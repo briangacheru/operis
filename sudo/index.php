@@ -257,7 +257,7 @@ if ($row->AdminName == "Admin") {
 <div class="row g-3 mb-3">
     <div class=" col-md-4">
         <div class="card overflow-hidden" style="min-width: 12rem">
-            <div class="bg-holder bg-card" style="background-image:url(../../assets/img/icons/spot-illustrations/corner-1.png);">
+            <div class="bg-holder bg-card" style="background-image:url(../assets/img/icons/spot-illustrations/corner-1.png);">
             </div>
             <!--/.bg-holder-->
 
@@ -343,7 +343,7 @@ if ($row->AdminName == "Admin") {
 <div class="row g-3 mb-3">
     <div class=" col-md-4">
         <div class="card overflow-hidden" style="min-width: 12rem">
-            <div class="bg-holder bg-card" style="background-image:url(../../assets/img/icons/spot-illustrations/corner-1.png);">
+            <div class="bg-holder bg-card" style="background-image:url(../assets/img/icons/spot-illustrations/corner-1.png);">
             </div>
             <!--/.bg-holder-->
 

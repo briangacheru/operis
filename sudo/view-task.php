@@ -159,14 +159,39 @@ if (isset($_SESSION['alert'])) {
                                 <?php endif; ?>
                             </div>
                         </div>
-                        <div class="col-12 col-sm-auto ms-auto">
-                            <a class="btn btn-outline-primary btn-lg fs-9" href="edit-task.php?task_id=<?php echo $encodedId; ?>">Edit Task</a>
-                        </div>
                     </div>
                     </div>
+                <div class="col-md-auto mt-4 mt-md-0">
+                    <a class="btn btn-outline-danger btn-sm me-2" id="favorite-btn" onclick="toggleFavorite(<?php echo $taskId; ?>)">
+                        <span id="favorite-icon" class="fas <?php $is_favorite = $row['is_favorite']; echo ($is_favorite == 1) ? 'fa-heart' : 'fa-heart-broken'; ?> me-1"></span>
+                        <span id="favorite-text"><?php echo ($is_favorite == 1) ? 'Unfavorite' : 'Favorite'; ?></span>
+                    </a>
+                    <a class="btn btn-outline-info btn-sm me-2" href="duplicate-task.php?task_id=<?php echo $encodedId; ?>" title="Duplicate Task" onclick="return confirmDuplicate();"><span class="fas fa-copy me-1"></span>Duplicate</a>
+                    <a class="btn btn-outline-primary btn-sm me-2" href="edit-task.php?task_id=<?php echo $encodedId; ?>"><span class="fas fa-edit me-1"></span>Edit Task</a>
+                </div>
             </div>
         </div>
     </div>
+    <!--<div class="card mb-3"><img class="card-img-top" src="../assets/img/team/1.jpg" alt=""/>
+        <div class="card-body">
+            <div class="row justify-content-between align-items-center">
+                <div class="col">
+                    <div class="d-flex">
+                        <div class="calendar me-2"><span class="calendar-month"><?php /*$currentMonth = date('F'); echo $currentMonth;*/?></span><span class="calendar-day"><?php /*$currentDay = date('d'); echo $currentDay;*/?> </span></div>
+                        <div class="flex-1 fs-10">
+                            <h5 class="fs-9">FREE New Year's Eve Midnight Harbor Fireworks</h5>
+                            <p class="mb-0">by <a href="#!">Boston Harbor Now</a></p><span class="fs-9 text-warning fw-semi-bold">$49.99 – $89.99</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-auto mt-4 mt-md-0">
+                    <button class="btn btn-falcon-default btn-sm me-2" type="button"><span class="fas fa-heart text-danger me-1"></span>235</button>
+                    <button class="btn btn-falcon-default btn-sm me-2" type="button"><span class="fas fa-share-alt me-1"></span>Share</button>
+                    <button class="btn btn-falcon-primary btn-sm px-4 px-sm-5" type="button">Register</button>
+                </div>
+            </div>
+        </div>
+    </div>-->
 
     <div class="card overflow-hidden mb-3" data-bs-theme="light">
         <div class="card-body bg-black">
@@ -362,7 +387,39 @@ if (isset($_SESSION['alert'])) {
                     </div>
                 </div>
             </div>
+    <script>
+        function confirmDuplicate() {
+            return confirm('Are you sure you want to duplicate this task?');
+        }
 
+        function toggleFavorite(taskId) {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', 'toggle_favorite.php', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        const favoriteBtn = document.getElementById('favorite-btn');
+                        const favoriteIcon = document.getElementById('favorite-icon');
+                        const favoriteText = document.getElementById('favorite-text');
+                        if (response.is_favorite == 1) {
+                            favoriteIcon.classList.remove('fa-heart-broken');
+                            favoriteIcon.classList.add('fa-heart');
+                            favoriteText.textContent = 'Unfavorite';
+                        } else {
+                            favoriteIcon.classList.remove('fa-heart');
+                            favoriteIcon.classList.add('fa-heart-broken');
+                            favoriteText.textContent = 'Favorite';
+                        }
+                    } else {
+                        alert('Failed to update favorite status.');
+                    }
+                }
+            };
+            xhr.send('task_id=' + taskId);
+        }
+    </script>
 <?php
 include "footer.php";
 ?>

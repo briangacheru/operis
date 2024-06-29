@@ -1,6 +1,13 @@
 <?php
 include "header.php";
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require 'phpmailer/src/Exception.php';
+require 'phpmailer/src/PHPMailer.php';
+require 'phpmailer/src/SMTP.php';
+
 $status = "OK";
 $msg = "";
 
@@ -25,15 +32,59 @@ if (isset($_GET['del'])) {
             $query = mysqli_query($con, "UPDATE tbltasks SET is_deleted = 1 , status = 'Cancelled' WHERE id='$cmpid'");
 
             if ($query) {
-                $_SESSION['alert'] = '<div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                      <i class="bi bi-check-circle"></i> Task cancelled successfully.
-                                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                      </div>';
+
+                // Fetch task details and writer's email
+                $taskQuery = mysqli_query($con, "SELECT * FROM tbltasks WHERE id='$cmpid'");
+                $taskData = mysqli_fetch_assoc($taskQuery);
+                $writerEmail = $taskData['email'];
+                $taskTopic = $taskData['topic'];
+                $taskSubject = $taskData['subject'];
+                $taskDueDate = $taskData['due_date'];
+                $taskPages = $taskData['pages'];
+                $taskDescription = $taskData['description'];
+                $taskAccount = $taskData['account'];
+
+                // Initialize PHPMailer
+                $mail = new PHPMailer(true);
+
+                try {
+                    // Server settings
+                    $mail->SMTPDebug = 0;                       // Enable verbose debug output
+                    $mail->isSMTP();
+                    $mail->Host       = 'mail.monkbrian.com';
+                    $mail->SMTPAuth   = true;
+                    $mail->Username   = 'support@monkbrian.com';
+                    $mail->Password   = 'EDU+pass.';
+                    $mail->SMTPSecure = 'ssl';
+                    $mail->Port       = 465;
+
+                    $mail->setFrom('support@monkbrian.com', 'Bryo Gacheru');
+                    $mail->addReplyTo('bryo4419@gmail.com', 'Bryo Gacheru');
+                    $mail->addAddress($writerEmail);
+                    $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin');
+
+                    // Content
+                    $mail->isHTML(true);                        // Set email format to HTML
+                    $mail->Subject = 'Task ID: ' . $cmpid . ' - ' . $taskTopic . ' - [ ' . $taskAccount. ' ] ';
+                    $mail->Body    = "<h1>Task $cmpid has been Cancelled. Do not go ahead with it.</h1>";
+
+                    $mail->send();
+
+                    $_SESSION['alert'] = '<div class="alert alert-danger alert-dismissible fade show" role="alert">
+                              <i class="bi bi-check-circle"></i> Task cancelled successfully and email notification sent.
+                              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                              </div>';
+                } catch (Exception $e) {
+                    $_SESSION['alert'] = '<div class="alert alert-danger alert-dismissible fade show" role="alert">
+                              <i class="bi bi-check-circle"></i> Task cancelled successfully, but email notification could not be sent. Mailer Error: ' . $mail->ErrorInfo . '
+                              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                              </div>';
+                }
             } else {
                 $_SESSION['alert'] = '<div class="alert alert-warning alert-dismissible fade show" role="alert">
-                                      <i class="bi bi-exclamation-octagon"></i> Error cancelling task record.
-                                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                      </div>';
+                          <i class="bi bi-exclamation-octagon"></i> Error cancelling task record.
+                          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                          </div>';
             }
         }
     } else {

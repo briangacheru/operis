@@ -341,6 +341,41 @@ $lateTasksCount = count($lateTasks); // Count the number of late tasks for notif
                         ?></span>
                                 </div>
                             </a>
+
+                            <!-- label-->
+                            <div class="row navbar-vertical-label-wrapper mt-3 mb-2">
+                                <div class="col-auto navbar-vertical-label">APPS
+                                </div>
+                                <div class="col ps-0">
+                                    <hr class="mb-0 navbar-vertical-divider" />
+                                </div>
+                            </div>
+                            <!-- parent pages--><a class="nav-link" href="calendar.php" role="button">
+                                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-calendar"></span></span><span class="nav-link-text ps-1">Calendar</span>
+                                    <span class="badge rounded-pill ms-2 badge-subtle-success">New</span>
+                                </div>
+                            </a>
+                            <!-- parent pages--><a class="nav-link" href="chat.php" role="button">
+                                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-comments"></span></span><span class="nav-link-text ps-1">Chat</span>
+                                    <span class="badge rounded-pill ms-2 badge-subtle-success"><?php
+                                        // Query to count tasks where is_deleted = 0
+                                        $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND is_paid = 1";
+                                        $result = mysqli_query($con, $query);
+                                        if ($result) {
+                                            $row = mysqli_fetch_assoc($result);
+                                            $count = $row['taskCount'];
+                                            // Check if count is greater than 0
+                                            if ($count > 0) {
+                                                echo $count; // Display the count
+                                            } else {
+                                                echo "0"; // Display "No Data" if count is 0
+                                            }
+                                        }
+                                        ?></span>
+                                </div>
+                            </a>
+
+
                             <!-- label-->
                             <div class="row navbar-vertical-label-wrapper mt-3 mb-2">
                                 <div class="col-auto navbar-vertical-label">PAYMENT

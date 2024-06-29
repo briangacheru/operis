@@ -254,7 +254,10 @@ if ($row = mysqli_fetch_array($result)) {
                                 </div>
                                 <div class="col-auto">
                                     <button class="btn btn-link text-secondary p-0 me-3 fw-medium" type="button" id="discardButton" role="button">Discard</button>
-                                    <button class="btn btn-primary" name="save" type="submit" role="button">Update Task </button>
+                                    <button class="btn btn-primary" name="save" type="submit" role="button" id="updateTaskButton">
+                                        <span id="buttonText">Update Task</span>
+                                        <span id="loadingSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -553,6 +556,23 @@ if ($row = mysqli_fetch_array($result)) {
                 });
         }
     }
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const updateTaskButton = document.getElementById('updateTaskButton');
+        const buttonText = document.getElementById('buttonText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const taskForm = document.getElementById('taskForm');
+
+        taskForm.addEventListener('submit', function() {
+            // Show the spinner and hide the button text
+            buttonText.classList.add('d-none');
+            loadingSpinner.classList.remove('d-none');
+
+            // Disable the button to prevent multiple submissions
+            updateTaskButton.disabled = true;
+        });
+    });
 </script>
 
 <?php
