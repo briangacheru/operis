@@ -157,8 +157,8 @@ if (isset($_SESSION['alert'])) {
                             <?php if ($taskStatus == 'In Progress'): ?>
                                 <a class="btn btn-outline-primary btn-lg fs-9" href="submission.php?task_id=<?php echo $encodedId; ?>#filesSubmission">Submit Task</a>
                             <?php elseif ($is_confirmed == 1): ?>
-                                <a class="btn btn-outline-success btn-sm fs-10" href="confirmation.php?task_id=<?php echo $encodedId; ?>&action=accept">Accept Task</a>
-                                <a class="btn btn-outline-danger btn-sm fs-10" href="confirmation.php?task_id=<?php echo $encodedId; ?>&action=decline">Decline Task</a>
+                                <a class="btn btn-outline-success btn-sm fs-10" href="#" onclick="confirmAction('<?php echo $encodedId; ?>', 'accept')">Accept Task</a>
+                                <a class="btn btn-outline-danger btn-sm fs-10" href="#" onclick="confirmAction('<?php echo $encodedId; ?>', 'decline')">Decline Task</a>
                             <?php elseif ($taskStatus == 'Submitted'): ?>
                                 <a class="btn btn-outline-primary btn-lg fs-9" href="submission.php?task_id=<?php echo $encodedId; ?>#filesSubmission">Resubmit Task</a>
                             <?php endif; ?>
@@ -352,7 +352,14 @@ if (isset($_SESSION['alert'])) {
         </div>
     </div>
 
-
+    <script>
+        function confirmAction(taskId, action) {
+            let actionText = action === 'accept' ? 'accept' : 'decline';
+            if (confirm(`Are you sure you want to ${actionText} this task?`)) {
+                window.location.href = `confirmation.php?task_id=${taskId}&action=${action}`;
+            }
+        }
+    </script>
 <?php
 include "footer.php";
 ?>

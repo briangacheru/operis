@@ -154,7 +154,6 @@ if ($row = mysqli_fetch_array($result)) {
                                     </select>
                                     <div class="invalid-feedback">This field is required</div>
                                 </div>
-                                <?php if ($taskDuplicate == 1): ?>
                                 <div class="col-sm-6 mb-3">
                                     <label class="form-label" for="cpp">Send email</label>
                                     <select class="form-select" id="sendEmail" name="sendEmail" required="required">
@@ -162,7 +161,6 @@ if ($row = mysqli_fetch_array($result)) {
                                         <option value="0">No</option>
                                     </select>
                                 </div>
-                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
