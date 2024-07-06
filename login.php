@@ -40,11 +40,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                     setcookie('rememberme', $rememberToken, time() + 86400, '/', '', true, true); // Secure cookie attributes
                 }
+                // Update user status to online
+                updateUserStatus($email, 'admin', true);
+
                 $loginMessage = "
                     <div class='alert alert-success alert-dismissible fade show' role='alert'>
                         <i class='bi bi-check-circle me-1'></i> Login successful. Redirecting!
                         <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
                     </div>";
+
+                echo "<script>
+                        setTimeout(function(){
+                            window.location.href = 'index.php';
+                        }, 2000); // Redirect after 2 seconds
+                      </script>";
             } else {
                 $loginError = "
                     <div class='alert alert-danger alert-dismissible fade show' role='alert'>
@@ -158,11 +167,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                     // Check if there is a success message to display
                                     if (!empty($loginMessage)) {
                                         echo "<p>$loginMessage</p>";
-                                        echo "<script>
-                                setTimeout(function(){
-                                    window.location.href = 'index.php';
-                                }, 2000); // Redirect after 2 seconds
-                              </script>";
                                     }
                                     // Store the submitted values in session variables
                                     if ($_SERVER['REQUEST_METHOD'] === 'POST') {

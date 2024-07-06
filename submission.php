@@ -371,7 +371,10 @@ if (isset($_SESSION['alert'])) {
                     </div>
                     <div class="col-auto">
                         <button class="btn btn-link text-secondary p-0 me-3 fw-medium" type="button" id="discardButton" role="button">Discard</button>
-                        <button class="btn btn-primary" name="save" type="submit" role="button">Submit Task</button>
+                        <button class="btn btn-primary" name="save" type="submit" role="button" id="submitTaskButton">
+                            <span id="buttonText">Submit Task</span>
+                            <span id="loadingSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -388,7 +391,9 @@ if (isset($_SESSION['alert'])) {
             const fileNamesList = document.getElementById('fileNamesList');
             const selectFilesButton = document.getElementById('selectFilesButton');
             const progressContainer = document.getElementById('progressContainer');
-            const submitButton = document.querySelector('button[type="submit"]');
+            const submitButton = document.getElementById('submitTaskButton');
+            const buttonText = document.getElementById('buttonText');
+            const loadingSpinner = document.getElementById('loadingSpinner');
             let uploadedFiles = [];
 
             // Handle click event to open file dialog
@@ -446,6 +451,8 @@ if (isset($_SESSION['alert'])) {
 
             submitButton.addEventListener('click', function(e) {
                 e.preventDefault();
+                buttonText.classList.add('d-none');
+                loadingSpinner.classList.remove('d-none');
                 uploadFiles(uploadedFiles);
             });
 
@@ -489,8 +496,8 @@ if (isset($_SESSION['alert'])) {
                         if (uploadSuccess) {
                             // Redirect to view-task.php after a brief delay
                             setTimeout(function() {
-                                window.location.href = 'view-task.php?task_id=<?php echo $encodedId; ?>';
-                            }, 5000); // 5-second delay for user to see the message
+                                window.location.href = 'view-task.php?task_id=<?php echo $encodedId; ?>&message=' + encodeURIComponent('Task submitted and emailed successfully!');
+                            }, 15000); // 15-second delay for user to see the message
                         }
                     } else {
                         const messageContainer = document.createElement('div');
@@ -502,6 +509,8 @@ if (isset($_SESSION['alert'])) {
                 `;
                         progressContainer.appendChild(messageContainer);
                         uploadSuccess = false;
+                        buttonText.classList.remove('d-none');
+                        loadingSpinner.classList.add('d-none');
                     }
                 });
 

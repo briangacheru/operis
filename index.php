@@ -132,7 +132,7 @@ if ($row->is_verified == 1) {
                             <?php endif; ?>
                             <?php
                             $allSubmitted = "";
-                            $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Submitted'";
+                            $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Submitted' AND email = '$aid'";
                             $result = mysqli_query($con, $query);
                             if ($result) {
                                 $row = mysqli_fetch_assoc($result);
@@ -152,7 +152,7 @@ if ($row->is_verified == 1) {
                                     <div class="col">
                                         <div class="d-flex">
                                             <div class="fas fa-circle mt-1 fs-11 text-primary"></div>
-                                            <p class="fs-10 ps-2 mb-0"><strong><?php echo $allSubmitted?> tasks</strong> need to be completed</p>
+                                            <p class="fs-10 ps-2 mb-0"><strong><?php echo $allSubmitted?> tasks</strong> need to be completed by Admin</p>
                                         </div>
                                     </div>
                                     <div class="col-auto d-flex align-items-center"><a class="fs-10 fw-medium" href="submitted-tasks.php">View tasks<i class="fas fa-chevron-right ms-1 fs-11"></i></a></div>
@@ -176,7 +176,7 @@ if ($row->is_verified == 1) {
             <div class="card-body position-relative">
                 <?php
                 $allTasks = "";
-                $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND email = '$aid'";
+                $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE email = '$aid'  AND status != 'Draft' ";
                 $result = mysqli_query($con, $query);
                 if ($result) {
                     $row = mysqli_fetch_assoc($result);
@@ -232,7 +232,7 @@ if ($row->is_verified == 1) {
             <div class="card-body position-relative">
                 <?php
                 $allUnconfirmed = "";
-                $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Unconfirmed' AND email = '$aid'";
+                $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND is_confirmed = 1 AND email = '$aid'";
                 $result = mysqli_query($con, $query);
                 if ($result) {
                     $row = mysqli_fetch_assoc($result);
@@ -318,7 +318,7 @@ if ($row->is_verified == 1) {
                 <div class="card-body position-relative">
                     <?php
                     $allCancelled = "";
-                    $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 1";
+                    $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 1 AND email = '$aid'";
                     $result = mysqli_query($con, $query);
                     if ($result) {
                         $row = mysqli_fetch_assoc($result);

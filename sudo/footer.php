@@ -194,6 +194,8 @@
 <script src="../vendors/bootstrap/bootstrap.min.js"></script>
 <script src="../vendors/anchorjs/anchor.min.js"></script>
 <script src="../vendors/is/is.min.js"></script>
+<script src="../vendors/glightbox/glightbox.min.js"></script>
+<script src="../vendors/emoji-mart/browser.js"></script>
 <script src="../vendors/fullcalendar/index.global.min.js"></script>
 <script src="../vendors/chart/chart.umd.js"></script>
 <script src="../vendors/countup/countUp.umd.js"></script>

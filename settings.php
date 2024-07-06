@@ -115,30 +115,35 @@ if (isset($_POST['update_password'])) {
     $newPassword = $_POST['new_password'];
     $confirmPassword = $_POST['confirm_password'];
 
-    // Verify old password
-    $sql = "SELECT Password FROM tblwriters WHERE email=:aid";
-    $query = $dbh->prepare($sql);
-    $query->bindParam(':aid', $adminid, PDO::PARAM_STR);
-    $query->execute();
-    $result = $query->fetch(PDO::FETCH_OBJ);
+    // Password validation
+    if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/', $newPassword)) {
+        $error_message = 'Password must be at least 8 characters long, contain at least one number, one lowercase letter, and one uppercase letter.';
+    } else {
+        // Verify old password
+        $sql = "SELECT Password FROM tblwriters WHERE email=:aid";
+        $query = $dbh->prepare($sql);
+        $query->bindParam(':aid', $adminid, PDO::PARAM_STR);
+        $query->execute();
+        $result = $query->fetch(PDO::FETCH_OBJ);
 
-    if ($result && password_verify($oldPassword, $result->Password)) {
-        if ($newPassword === $confirmPassword) {
-            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-            $sql = "UPDATE tblwriters SET Password=:newpassword WHERE email=:aid";
-            $query = $dbh->prepare($sql);
-            $query->bindParam(':newpassword', $hashedPassword, PDO::PARAM_STR);
-            $query->bindParam(':aid', $adminid, PDO::PARAM_STR);
-            if ($query->execute()) {
-                $message = 'Password has been updated successfully.';
+        if ($result && password_verify($oldPassword, $result->Password)) {
+            if ($newPassword === $confirmPassword) {
+                $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+                $sql = "UPDATE tblwriters SET Password=:newpassword WHERE email=:aid";
+                $query = $dbh->prepare($sql);
+                $query->bindParam(':newpassword', $hashedPassword, PDO::PARAM_STR);
+                $query->bindParam(':aid', $adminid, PDO::PARAM_STR);
+                if ($query->execute()) {
+                    $message = 'Password has been updated successfully.';
+                } else {
+                    $error_message = 'Failed to update password.';
+                }
             } else {
-                $error_message = 'Failed to update password.';
+                $error_message = 'New password and confirm password do not match.';
             }
         } else {
-            $error_message = 'New password and confirm password do not match.';
+            $error_message = 'Old password is incorrect.';
         }
-    } else {
-        $error_message = 'Old password is incorrect.';
     }
 }
 ?>
@@ -325,18 +330,20 @@ if (isset($_POST['update_password'])) {
                         <h5 class="mb-0 text-info">Change Password</h5>
                     </div>
                     <div class="card-body bg-body-tertiary">
-                        <form method="post">
+                        <form method="post" onsubmit="return validateForm()">
                             <div class="form-floating mb-3">
-                                <input class="form-control" id="old-password" type="password" name="old_password" placeholder="Old Password" />
+                                <input class="form-control" id="old-password" type="password" name="old_password" placeholder="Old Password" required />
                                 <label for="old-password">Old Password</label>
                             </div>
                             <div class="form-floating mb-3">
-                                <input class="form-control" id="new-password" type="password" name="new_password" placeholder="New Password" />
+                                <input class="form-control" id="new-password" type="password" name="new_password" placeholder="New Password" required />
                                 <label for="new-password">New Password</label>
+                                <div id="new-password-error" class="text-danger mt-2"></div>
                             </div>
                             <div class="form-floating mb-3">
-                                <input class="form-control" id="confirm-password" type="password" name="confirm_password" placeholder="Confirm Password" />
+                                <input class="form-control" id="confirm-password" type="password" name="confirm_password" placeholder="Confirm Password" required />
                                 <label for="confirm-password">Confirm Password</label>
+                                <div id="confirm-password-error" class="text-danger mt-2"></div>
                             </div>
                             <button class="btn btn-outline-primary d-block w-100" type="submit" name="update_password">Update Password</button>
                         </form>
@@ -358,4 +365,42 @@ if (isset($_POST['update_password'])) {
 }
 }
 ?>
+    <script>
+        document.getElementById('new-password').addEventListener('input', validatePassword);
+        document.getElementById('confirm-password').addEventListener('input', validateConfirmPassword);
+
+        function validatePassword() {
+            const password = document.getElementById('new-password').value;
+            const errorDiv = document.getElementById('new-password-error');
+            const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+            if (!regex.test(password)) {
+                errorDiv.textContent = 'Password must be at least 8 characters long, contain at least one number, one lowercase letter, and one uppercase letter.';
+            } else {
+                errorDiv.textContent = '';
+            }
+        }
+
+        function validateConfirmPassword() {
+            const password = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const errorDiv = document.getElementById('confirm-password-error');
+
+            if (password !== confirmPassword) {
+                errorDiv.textContent = 'Passwords do not match.';
+            } else {
+                errorDiv.textContent = '';
+            }
+        }
+
+        function validateForm() {
+            validatePassword();
+            validateConfirmPassword();
+
+            const newPasswordError = document.getElementById('new-password-error').textContent;
+            const confirmPasswordError = document.getElementById('confirm-password-error').textContent;
+
+            return newPasswordError === '' && confirmPasswordError === '';
+        }
+    </script>
 <?php include "footer.php"; ?>

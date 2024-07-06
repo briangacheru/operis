@@ -5,10 +5,30 @@ date_default_timezone_set('Africa/Nairobi');
 include('dbcon.php');
 
 if (isset($_REQUEST['logout'])) {
+    // Update is_online and last_seen before logging out
+    if (isset($_SESSION['odmsaid'])) {
+        $userEmail = $_SESSION['odmsaid']; // Assuming this stores the user's email or another unique identifier
+        $lastSeen = date('Y-m-d H:i:s');
+
+        $updateStatusSql = "UPDATE tbladmin SET is_online = 0, last_seen = ? WHERE email = ?";
+        $stmt = $con->prepare($updateStatusSql);
+
+        if (!$stmt) {
+            echo "Prepare failed: (" . $con->errno . ") " . $con->error;
+            exit;
+        }
+
+        $stmt->bind_param('ss', $lastSeen, $userEmail);
+        if (!$stmt->execute()) {
+            echo "Execute failed: (" . $stmt->errno . ") " . $stmt->error;
+            exit;
+        }
+        $stmt->close();
+    }
+
     // Clear the remember token in the database if it's set
     if (isset($_COOKIE['rememberme'])) {
         if (isset($_SESSION['odmsaid'])) {
-            $userEmail = $_SESSION['odmsaid']; // Assuming this stores the user's email or another unique identifier
             $updateTokenSql = "UPDATE tbladmin SET remember_token = NULL WHERE email = ?";
             $stmt = $con->prepare($updateTokenSql);
 
@@ -17,11 +37,12 @@ if (isset($_REQUEST['logout'])) {
                 exit;
             }
 
-            $stmt->bind_param('s', $rememberToken);
+            $stmt->bind_param('s', $userEmail);
             if (!$stmt->execute()) {
                 echo "Execute failed: (" . $stmt->errno . ") " . $stmt->error;
                 exit;
             }
+            $stmt->close();
         }
 
         // Clear the "Remember Me" cookie
@@ -40,6 +61,7 @@ if (isset($_REQUEST['logout'])) {
     exit();
 }
 ?>
+
 <!DOCTYPE html>
 <html data-bs-theme="light" lang="en-US" dir="ltr">
 

@@ -2,16 +2,25 @@
 include "header.php";
 
 // Fetch tasks from the database
-$query = mysqli_query($con, "SELECT id, topic, due_date, account, status FROM tbltasks WHERE is_deleted = 0");
+$query = mysqli_query($con, "SELECT id, topic, due_date, status FROM tbltasks WHERE is_deleted = 0");
 $tasks = [];
 
 while ($row = mysqli_fetch_assoc($query)) {
+    $due_date = new DateTime($row['due_date']);
+    $formatted_due_date = $due_date->format('Y-m-d\TH:i:s');
+
+    // Conditionally include time in title
+    if ($row['status'] == 'In Progress' || $row['status'] == 'Unconfirmed') {
+        $title = $row['id'] . ' ' . $due_date->format('h:i A');
+    } else {
+        $title = $row['id'];
+    }
+
     $tasks[] = [
         'id' => $row['id'],
-        'title' => $row['id'], // Display task ID as title
-        'start' => $row['due_date'],
+        'title' => $title, // Display task ID and conditional time due in AM/PM
+        'start' => $formatted_due_date,
         'topic' => $row['topic'],
-        'account' => $row['account'],
         'status' => $row['status'],
     ];
 }
@@ -19,8 +28,10 @@ while ($row = mysqli_fetch_assoc($query)) {
 $tasksJson = json_encode($tasks);
 ?>
 
+
+
 <div class="card shadow-none border mb-3">
-    <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/illustrations/corner-6.png);"></div>
+    <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(assets/img/illustrations/corner-6.png);"></div>
     <div class="card-header z-1">
         <div class="row flex-between-center gx-0">
             <div class="col-lg-auto d-flex align-items-center">
@@ -76,12 +87,15 @@ include "footer.php";
                     'In Progress': '<span class="badge badge rounded-pill badge-subtle-warning">In Progress<span class="ms-1 fas fa-stream" data-fa-transform="shrink-2"></span></span>'
                 };
 
+                var dueDate = new Date(info.event.start);
+                var options = { hour: '2-digit', minute: '2-digit', hour12: true };
+                var formattedDueDate = dueDate.toLocaleTimeString('en-US', options);
+
                 var taskDetails = `
                     <p><strong>ID:</strong> ${info.event.id}</p>
                     <p><strong>Topic:</strong> ${info.event.extendedProps.topic}</p>
-                    <p><strong>Account:</strong> ${info.event.extendedProps.account}</p>
                     <p><strong>Status:</strong> ${badges[info.event.extendedProps.status]}</p>
-                    <p><strong>Due Date:</strong> ${info.event.start.toLocaleString()}</p>
+                    <p><strong>Due Date:</strong> ${info.event.start.toLocaleDateString()} ${formattedDueDate}</p>
                 `;
                 document.getElementById('taskDetails').innerHTML = taskDetails;
 
@@ -116,3 +130,4 @@ include "footer.php";
         calendar.render();
     });
 </script>
+

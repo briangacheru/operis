@@ -9,7 +9,6 @@ if (isset($_SESSION['odmsaid'])) {
     exit();
 }
 
-
 // Query to fetch late tasks details
 $lateTasksQuery = mysqli_query($con, "SELECT * FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND due_date < NOW()  ORDER BY due_date ASC");
 
@@ -19,6 +18,22 @@ while ($task = mysqli_fetch_assoc($lateTasksQuery)) {
 }
 
 $lateTasksCount = count($lateTasks); // Count the number of late tasks for notifications
+
+// Fetch userID from the database using the email stored in the session
+$userQuery = mysqli_query($con, "SELECT id FROM tbladmin WHERE email = '$aid'");
+$userResult = mysqli_fetch_assoc($userQuery);
+$userID = $userResult['id']; // Get the userID
+
+// Query to fetch unread messages details by userID
+$unreadMessagesQuery = mysqli_query($con, "SELECT * FROM chat_messages WHERE is_read = 0 AND receiver_id = '$userID' ORDER BY timestamp ASC");
+
+$unreadMessages = []; // Initialize array to hold unread messages data
+while ($message = mysqli_fetch_assoc($unreadMessagesQuery)) {
+    $unreadMessages[] = $message; // Add each unread message to the array
+}
+
+$unreadMessagesCount = count($unreadMessages); // Count the number of unread messages
+
 
 ?>
 <!DOCTYPE html>
@@ -57,6 +72,7 @@ $lateTasksCount = count($lateTasks); // Count the number of late tasks for notif
     <!-- ===============================================-->
     <!--    Stylesheets-->
     <!-- ===============================================-->
+    <link href="../vendors/glightbox/glightbox.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700%7cPoppins:300,400,500,600,700,800,900&amp;display=swap" rel="stylesheet">
     <link href="../vendors/simplebar/simplebar.min.css" rel="stylesheet">
@@ -357,21 +373,7 @@ $lateTasksCount = count($lateTasks); // Count the number of late tasks for notif
                             </a>
                             <!-- parent pages--><a class="nav-link" href="chat.php" role="button">
                                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-comments"></span></span><span class="nav-link-text ps-1">Chat</span>
-                                    <span class="badge rounded-pill ms-2 badge-subtle-success"><?php
-                                        // Query to count tasks where is_deleted = 0
-                                        $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND is_paid = 1";
-                                        $result = mysqli_query($con, $query);
-                                        if ($result) {
-                                            $row = mysqli_fetch_assoc($result);
-                                            $count = $row['taskCount'];
-                                            // Check if count is greater than 0
-                                            if ($count > 0) {
-                                                echo $count; // Display the count
-                                            } else {
-                                                echo "0"; // Display "No Data" if count is 0
-                                            }
-                                        }
-                                        ?></span>
+                                    <span class="badge rounded-pill ms-2 badge-subtle-primary"><?php echo $unreadMessagesCount ?></span>
                                 </div>
                             </a>
 
@@ -504,6 +506,82 @@ $lateTasksCount = count($lateTasks); // Count the number of late tasks for notif
                             </div>
                         </div>
                     </li>
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link notification-indicator notification-indicator-info px-0 fa-icon-wait" id="navbarDropdownNotification" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" data-hide-on-body-scroll="data-hide-on-body-scroll">
+                            <span class="fas fa-comment" data-fa-transform="shrink-6" style="font-size: 33px;"></span>
+                            <span class="notification-indicator-number"><?php echo $unreadMessagesCount; ?></span>
+                        </a>
+                        <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end dropdown-menu-card dropdown-menu-notification dropdown-caret-bg" aria-labelledby="navbarDropdownNotification">
+                            <div class="card card-notification shadow-none">
+                                <div class="card-header">
+                                    <div class="row justify-content-between align-items-center">
+                                        <div class="col-auto">
+                                            <h6 class="card-header-title mb-0 text-primary">Messages</h6>
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php
+                                $sql = "SELECT * FROM tbladmin WHERE email='$aid'";
+                                $query = $dbh->prepare($sql);
+                                $query->execute();
+                                $results = $query->fetchAll(PDO::FETCH_OBJ);
+                                $cnt = 1;
+
+                                if ($query->rowCount() > 0) {
+                                foreach ($results as $row) {
+                                if ($row->AdminName == "Admin") {
+                                ?>
+                                <div class="scrollbar-overlay" style="max-height:19rem">
+                                    <div class="list-group list-group-flush fw-normal fs-10">
+                                        <div class="list-group-title border-bottom text-info">You have <?php echo $unreadMessagesCount; ?> unread messages.</div>
+                                        <?php
+                                        // Display each unread message
+                                        foreach ($unreadMessages as $key => $message) {
+                                            // Fetch sender details from tblwriters
+                                            $senderID = $message['sender_id'];
+                                            $senderQuery = mysqli_query($con, "SELECT username, Photo FROM tblwriters WHERE id = '$senderID'");
+                                            $senderResult = mysqli_fetch_assoc($senderQuery);
+
+                                            $receivedDate = new DateTime($message['timestamp']);
+                                            $now = new DateTime();
+                                            $interval = $now->diff($receivedDate);
+                                            $unreadMessages[$key]['time_received'] = $interval->format('%a days %h hours %i minutes');
+                                            if ($key >= 9) break; // Limit to only 10 messages
+                                        }
+                                        ?>
+                                        <?php foreach ($unreadMessages as $key => $message): ?>
+                                            <div class="list-group-item">
+                                                <?php
+                                                $encodedId = base64_encode($message['id']);
+                                                $senderName = $senderResult['username'];
+                                                $senderPhoto = $senderResult['Photo'];
+                                                ?>
+                                                <a class="notification notification-flush notification-unread" href="chat.php?message_id=<?php echo htmlspecialchars($encodedId); ?>">
+                                                    <div class="notification-avatar">
+                                                        <div class="avatar avatar-2xl me-3">
+                                                            <div class="avatar-name rounded-circle"><img src="../profileimages/<?php echo $senderPhoto; ?>" alt="<?php echo $senderName; ?>" class="rounded-circle"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="notification-body">
+                                                        <p class="mb-1"><strong><?php echo $senderName; ?></strong>: <?php echo $message['message']; ?></p>
+                                                        <span class="notification-time"><span class="me-2" role="img" aria-label="Emoji">💬</span><?php echo $message['time_received']; ?></span>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                            <?php if ($key >= 9) break; // Display only up to 10 messages ?>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                                <div class="card-footer text-center border-top"><a class="card-link d-block" href="chat.php">View all</a></div>
+                            </div>
+                        </div>
+                    </li>
+                    <?php
+                    }
+                    }
+                    } ?>
+
                     <li class="nav-item dropdown">
                         <a class="nav-link notification-indicator notification-indicator-primary px-0 fa-icon-wait" id="navbarDropdownNotification" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" data-hide-on-body-scroll="data-hide-on-body-scroll"><span class="fas fa-bell" data-fa-transform="shrink-6" style="font-size: 33px;"></span><span class="notification-indicator-number"><?php echo $lateTasksCount; ?></span></a>
                         <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end dropdown-menu-card dropdown-menu-notification dropdown-caret-bg" aria-labelledby="navbarDropdownNotification">

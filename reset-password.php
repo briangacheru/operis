@@ -3,9 +3,13 @@ require_once('auth.php');
 require_once('db.php');
 if($_SERVER['REQUEST_METHOD'] == 'POST'){
     extract($_POST);
-    if($new_password !== $confirm_password){
+
+    // Password validation
+    if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/', $new_password)) {
+        $error = "Password must be at least 8 characters long, contain at least one number, one lowercase letter, and one uppercase letter.";
+    } elseif($new_password !== $confirm_password){
         $error = "Password does not match.";
-    }else{
+    } else {
         $uid = $_GET['uid'] ?? "";
         $stmt = $con->prepare("SELECT * FROM `tblwriters` where md5(`id`) = ?");
         $stmt->bind_param('s', $uid);
@@ -14,7 +18,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
         if($result->num_rows > 0){
             $data = $result->fetch_assoc();
             $password = password_hash($new_password, PASSWORD_DEFAULT);
-            $update = $con->query("UPDATE `tblwriters` set `password` = '{$password}'");
+            $update = $con->query("UPDATE `tblwriters` set `password` = '{$password}' WHERE md5(`id`) = '{$uid}'");
             if($update){
                 $_SESSION['msg']['success'] = "New Password has been saved successfully.";
                 header('location: reset-password.php');
@@ -28,6 +32,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html data-bs-theme="light" lang="en-US" dir="ltr">
 
@@ -101,8 +106,6 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
                                 <div class="position-relative p-4 pt-md-5 pb-md-7" data-bs-theme="light">
                                     <div class="bg-holder bg-auth-card-shape" style="background-image:url(assets/img/icons/spot-illustrations/half-circle.png);">
                                     </div>
-                                    <!--/.bg-holder-->
-
                                     <div class="z-1 position-relative"><a class="link-light mb-4 font-sans-serif fs-5 d-inline-block fw-bolder" href="index.php">itasker</a>
                                         <p class="opacity-75 text-white">With the power of itasker, you can effortlessly streamline your workflow and boost productivity!</p>
                                     </div>
@@ -120,24 +123,26 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
                                     <div class="row justify-content-center">
                                         <div class="col-sm-8 col-md">
                                             <?php if(isset($error) && !empty($error)): ?>
-                                            <div class="alert alert-danger alert-dismissible"><?= $error ?></div>
+                                                <div class="alert alert-danger alert-dismissible"><?= $error ?></div>
                                             <?php endif; ?>
                                             <?php if(isset($_SESSION['msg']['success']) && !empty($_SESSION['msg']['success'])): ?>
-                                            <div class="alert alert-success alert-dismissible">
-                                                <?php
-                                                echo $_SESSION['msg']['success'];
-                                                unset($_SESSION['msg']);
-                                                ?>
-                                            </div>
+                                                <div class="alert alert-success alert-dismissible">
+                                                    <?php
+                                                    echo $_SESSION['msg']['success'];
+                                                    unset($_SESSION['msg']);
+                                                    ?>
+                                                </div>
                                             <?php endif; ?>
-                                            <form class="mb-3" method="post" role="form" action="">
+                                            <form class="mb-3" method="post" role="form" action="" onsubmit="return validateForm()">
                                                 <div class="form-floating mb-3">
-                                                    <input type="password" class="form-control" id="new_password" name="new_password" value="<?= $_POST['new_password'] ?? "" ?>" required="required" >
+                                                    <input type="password" class="form-control" id="new_password" name="new_password" value="<?= $_POST['new_password'] ?? "" ?>" required="required">
                                                     <label for="floatingPassword">New Password</label>
+                                                    <div id="new-password-error" class="text-danger mt-2"></div>
                                                 </div>
                                                 <div class="form-floating">
                                                     <input type="password" class="form-control" id="confirm_password" name="confirm_password" value="<?= $_POST['confirm_password'] ?? "" ?>" required="required" />
                                                     <label for="floatingPassword">Confirm Password</label>
+                                                    <div id="confirm-password-error" class="text-danger mt-2"></div>
                                                 </div>
                                                 <button class="btn btn-primary d-block w-100 mt-3" type="submit" name="submit">Reset Password</button>
                                             </form><a class="fs-10 text-600" href="login.php">Click here to login<span class="d-inline-block ms-1">&rarr;</span></a>
@@ -240,6 +245,44 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
 <!-- ===============================================-->
 <!--    JavaScripts-->
 <!-- ===============================================-->
+<script>
+    document.getElementById('new_password').addEventListener('input', validatePassword);
+    document.getElementById('confirm_password').addEventListener('input', validateConfirmPassword);
+
+    function validatePassword() {
+        const password = document.getElementById('new_password').value;
+        const errorDiv = document.getElementById('new-password-error');
+        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+        if (!regex.test(password)) {
+            errorDiv.textContent = 'Password must be at least 8 characters long, contain at least one number, one lowercase letter, and one uppercase letter.';
+        } else {
+            errorDiv.textContent = '';
+        }
+    }
+
+    function validateConfirmPassword() {
+        const password = document.getElementById('new_password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        const errorDiv = document.getElementById('confirm-password-error');
+
+        if (password !== confirmPassword) {
+            errorDiv.textContent = 'Passwords do not match.';
+        } else {
+            errorDiv.textContent = '';
+        }
+    }
+
+    function validateForm() {
+        validatePassword();
+        validateConfirmPassword();
+
+        const newPasswordError = document.getElementById('new-password-error').textContent;
+        const confirmPasswordError = document.getElementById('confirm-password-error').textContent;
+
+        return newPasswordError === '' && confirmPasswordError === '';
+    }
+</script>
 <script src="vendors/popper/popper.min.js"></script>
 <script src="vendors/bootstrap/bootstrap.min.js"></script>
 <script src="vendors/anchorjs/anchor.min.js"></script>
