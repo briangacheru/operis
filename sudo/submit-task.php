@@ -38,28 +38,27 @@ if ($_POST['action'] == 'submitForm') {
     $writerInfo = explode('|', mysqli_real_escape_string($con, $_POST['writer'])); // Split the writer string into an array
     $writerName = $writerInfo[0]; // Get the writer name
 
-    // Decode and process uploaded file paths as before
-    $uploadedFiles = json_decode($_POST['uploadedFiles'], true);
-    if (!is_array($uploadedFiles)) {
-        header('Content-Type: application/json');
-        echo json_encode(['status' => 'error', 'message' => 'Invalid uploaded files data.']);
-        exit; // Stop the script execution if the uploaded files data is invalid
-    }
+    // Check if uploadedFiles is set and is a valid JSON array
+    $filesString = '';
+    if (isset($_POST['uploadedFiles'])) {
+        $uploadedFiles = json_decode($_POST['uploadedFiles'], true);
+        if (is_array($uploadedFiles)) {
+            // Rename the actual files on the server
+            foreach ($uploadedFiles as $index => $fileData) {
+                $filePath = $fileData['filePath'];
+                $newFilePath = dirname($filePath) . '/' . basename($filePath); // Keep the original file name
+                if (!rename($filePath, $newFilePath)) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['status' => 'error', 'message' => 'Failed to rename file: ' . $filePath]);
+                    exit; // Stop the script execution if a file rename fails
+                }
+                $uploadedFiles[$index]['filePath'] = $newFilePath;
+            }
 
-    // Rename the actual files on the server
-    foreach ($uploadedFiles as $index => $fileData) {
-        $filePath = $fileData['filePath'];
-        $newFilePath = dirname($filePath) . '/' . basename($filePath); // Keep the original file name
-        if (!rename($filePath, $newFilePath)) {
-            header('Content-Type: application/json');
-            echo json_encode(['status' => 'error', 'message' => 'Failed to rename file: ' . $filePath]);
-            exit; // Stop the script execution if a file rename fails
+            // Convert the array of sanitized file names to a string to store in your database
+            $filesString = implode(',', array_column($uploadedFiles, 'filePath'));
         }
-        $uploadedFiles[$index]['filePath'] = $newFilePath;
     }
-
-    // Convert the array of sanitized file names to a string to store in your database
-    $filesString = implode(',', array_column($uploadedFiles, 'filePath'));
 
     // Determine the status based on is_confirmed value
     $status = ($is_confirmed == 0) ? 'In Progress' : 'Draft';
@@ -99,8 +98,10 @@ if ($_POST['action'] == 'submitForm') {
                     $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin'); // Example admin email, replace with actual admin email
 
                     // Attachments
-                    foreach ($uploadedFiles as $fileData) {
-                        $mail->addAttachment($fileData['filePath']); // Add attachments
+                    if (isset($uploadedFiles) && is_array($uploadedFiles)) {
+                        foreach ($uploadedFiles as $fileData) {
+                            $mail->addAttachment($fileData['filePath']); // Add attachments
+                        }
                     }
 
                     // Content

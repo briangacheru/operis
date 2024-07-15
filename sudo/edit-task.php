@@ -151,6 +151,7 @@ if ($row = mysqli_fetch_array($result)) {
                                     <select class="form-select" id="status" name="status" required="required">
                                         <option value="Draft" <?php echo ($taskStatus == 'Draft') ? 'selected' : ''; ?>>Draft</option>
                                         <option value="In Progress" <?php echo ($taskStatus == 'In Progress') ? 'selected' : ''; ?>>In Progress</option>
+                                        <option value="Submitted" <?php echo ($taskStatus == 'Submitted') ? 'selected' : ''; ?>>Submitted</option>
                                     </select>
                                     <div class="invalid-feedback">This field is required</div>
                                 </div>
@@ -200,6 +201,7 @@ if ($row = mysqli_fetch_array($result)) {
                                                 $fileName = basename($filePath); // Extracts the filename from the path
                                                 $fileUrl = "../taskfiles/" . $filePath; // Constructs the full URL to the file
                                                 $formattedDate = date("d M Y, g:i A", strtotime($taskCreatedOn)); // Format 'submitted_on' date
+                                                $fileSize = formatSizeUnits(filesize("../taskfiles/" . $filePath)); // Get file size
                                                 // Adjust the image path as necessary
                                                 $thumbnailPath = "../assets/img/icons/docs.png"; // Placeholder path for the thumbnail
                                                 ?>
@@ -207,7 +209,7 @@ if ($row = mysqli_fetch_array($result)) {
                                                     <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
                                                     <div class="ms-3 flex-shrink-1 flex-grow-1">
                                                         <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                                        <div class="fs-10"><span class="fw-semi-bold">Uploaded on</span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
+                                                        <div class="fs-10"><span class="fw-semi-bold"><?php echo $fileSize; ?></span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                                         <input type="hidden" name="existingFiles[]" value="<?php echo htmlspecialchars($filePath); ?>">
                                                         <!-- Add or adjust action buttons as necessary -->
                                                         <div class="hover-actions end-0 top-50 translate-middle-y">

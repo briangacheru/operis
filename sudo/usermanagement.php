@@ -125,7 +125,7 @@ if (isset($_SESSION['alert'])) {
                                     </div>
                                 </div>
                                 <div class="card-body px-0 pt-0">
-                                    <table class="table table-sm mb-0 overflow-hidden data-table fs-10"  data-datatables="data-datatables">
+                                    <table class="table table-sm mb-0 overflow-hidden data-table fs-10" data-datatables="data-datatables">
                                         <thead class="bg-200">
                                         <tr>
                                             <th class="text-900 no-sort white-space-nowrap">
@@ -143,10 +143,9 @@ if (isset($_SESSION['alert'])) {
                                         </thead>
                                         <tbody class="list" id="table-simple-pagination-body">
                                         <?php
-                                        $query=mysqli_query($con,"select * from tblwriters WHERE is_deleted = 0 ORDER BY id DESC");
+                                        $query=mysqli_query($con,"SELECT * FROM tblwriters WHERE is_deleted = 0 ORDER BY id DESC");
                                         $cnt=1;
-                                        while($row=mysqli_fetch_array($query))
-                                        {
+                                        while($row=mysqli_fetch_array($query)) {
                                             $encodedId = base64_encode($row["id"]); // Encode the id
                                             ?>
                                             <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100">
@@ -156,22 +155,23 @@ if (isset($_SESSION['alert'])) {
                                                     </div>
                                                 </td>
                                                 <td class="align-middle white-space-nowrap fw-semi-bold name"><?php echo $row["id"];?></td>
-                                                <td class="align-middle white-space-nowrap fw-semi-bold name"><?php echo $row["username"];?></td>
+                                                <td class="align-middle white-space-nowrap fw-semi-bold name"><a class="stretched-link" href="writer.php?writerID=<?php echo $encodedId;?>"><?php echo $row["username"];?></a></td>
                                                 <td class="align-middle white-space-nowrap email"><?php echo $row["email"];?></td>
                                                 <td class="align-middle white-space-nowrap email"><?php echo date("jS M, Y", strtotime($row['created_at'])); ?></td>
-                                                <td class="align-middle white-space-nowrap email"><?php
+                                                <td class="align-middle white-space-nowrap email">
+                                                    <?php
                                                     if ($row['is_verified'] == 1) {
-                                                        // Outputting a badge for verified status
                                                         echo '<span class="badge badge rounded-pill badge-subtle-success">Verified<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span>';
                                                     } else {
-                                                        // Outputting a badge for unverified status
                                                         echo '<span class="badge badge rounded-pill badge-subtle-danger">Unverified<span class="ms-1 fas fa-ban" data-fa-transform="shrink-2"></span></span>';
                                                     }
-                                                    ?></td>
+                                                    ?>
+                                                </td>
                                                 <td class="align-middle white-space-nowrap text-end position-relative">
                                                     <div class="hover-actions bg-100">
-                                                        <a class="btn btn-outline-primary bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" href="#user-edit-modal" title="View/Edit Writer" data-writer-id="<?php echo $row['id']; ?>" data-writer="<?php echo $row['username']; ?>" data-email="<?php echo $row['email']; ?>" data-phone="<?php echo $row['phone']; ?>"><span class="far fa-edit"></span></a>
-                                                        <a href="usermanagement.php?verifyid=<?php echo ($row['id']);?>" class="btn bg-<?php echo $row['is_verified'] ? 'danger' : 'success'; ?>-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" onclick="return confirm('Do you want to <?php echo $row['is_verified'] ? 'unverify' : 'verify'; ?> this writer?');" title="<?php echo $row['is_verified'] ? 'Unverify' : 'Verify'; ?> Writer"><i class="bi bi-<?php echo $row['is_verified'] ? 'x-circle-fill' : 'check-circle-fill'; ?>"></i></a>
+                                                        <a class="btn btn-outline-info bg-info icon-item rounded-3 me-2 fs-11 icon-item-sm" href="writer.php?writerID=<?php echo $encodedId;?>" title="View Writer"><span class="fas fa-eye"></span></a>
+                                                        <a class="btn btn-outline-primary bg-primary icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" href="#user-edit-modal" title="Edit Writer" data-writer-id="<?php echo $row['id']; ?>" data-writer="<?php echo $row['username']; ?>" data-email="<?php echo $row['email']; ?>" data-phone="<?php echo $row['phone']; ?>"><span class="far fa-edit"></span></a>
+                                                        <a href="usermanagement.php?verifyid=<?php echo $row['id'];?>" class="btn bg-<?php echo $row['is_verified'] ? 'danger' : 'success'; ?> icon-item rounded-3 me-2 fs-11 icon-item-sm" onclick="return confirm('Do you want to <?php echo $row['is_verified'] ? 'unverify' : 'verify'; ?> this writer?');" title="<?php echo $row['is_verified'] ? 'Unverify' : 'Verify'; ?> Writer"><i class="bi bi-<?php echo $row['is_verified'] ? 'x-circle-fill' : 'check-circle-fill'; ?>"></i></a>
                                                     </div>
                                                     <div class="dropdown font-sans-serif btn-reveal-trigger">
                                                         <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal-sm transition-none" type="button" id="user-view-edit" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-chevron-left fs-11"></span></button>

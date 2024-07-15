@@ -196,6 +196,43 @@ $result1 = mysqli_query($con, $query1);
 $currentStatus1 = mysqli_fetch_assoc($result1)['regStatus'];
 $currentStatusText1 = $currentStatus1 == 1 ? 'OPEN' : 'CLOSED';
 $badgeClass1 = $currentStatus1 == 1 ? 'badge-subtle-success' : 'badge-subtle-danger';
+
+// Handle form submission for updating notification
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['notificationSubmit'])) {
+    $notificationText = $_POST['notificationText'];
+
+    $sql = "UPDATE tblsettings SET description = ?, regStatus = 1 WHERE id = 3";
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param("s", $notificationText);
+
+    if ($stmt->execute()) {
+        $message = "Notification updated successfully.";
+    } else {
+        $error_message = "Error updating notification: " . $stmt->error;
+    }
+
+    $stmt->close();
+}
+
+// Handle form submission for deleting notification
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['notificationDelete'])) {
+    $sql = "UPDATE tblsettings SET description = '', regStatus = 0 WHERE id = 3";
+    $stmt = $con->prepare($sql);
+
+    if ($stmt->execute()) {
+        $message = "Notification deleted successfully.";
+    } else {
+        $error_message = "Error deleting notification: " . $stmt->error;
+    }
+
+    $stmt->close();
+}
+
+// Fetch current notification
+$query = mysqli_query($con, "SELECT * FROM tblsettings WHERE id = 3");
+$row = mysqli_fetch_assoc($query);
+$currentNotification = $row['description'];
+
 ?>
 
 <div class="row">
@@ -373,6 +410,24 @@ $badgeClass1 = $currentStatus1 == 1 ? 'badge-subtle-success' : 'badge-subtle-dan
                             <button class="btn btn-outline-primary w-100" type="submit" name="adminStatus">
                                 <?php echo $currentStatus1 == 1 ? 'Close Registration' : 'Open Registration'; ?>
                             </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h5 class="mb-0 text-info">Notifications Settings</h5>
+                    </div>
+                    <div class="card-body bg-body-tertiary">
+                        <!-- Form to Update Notification -->
+                        <!-- Form to Update Notification -->
+                        <form method="post" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="notificationText" class="form-label">Notification Text</label>
+                                <textarea class="form-control" id="notificationText" name="notificationText" rows="3" required><?php echo htmlspecialchars($currentNotification, ENT_QUOTES, 'UTF-8'); ?></textarea>
+                            </div>
+                            <button class="btn btn-outline-primary me-1 mb-1" type="submit" name="notificationSubmit">Update Notification</button>
+                            <button class="btn btn-outline-danger me-1 mb-1 float-end" type="submit" name="notificationDelete" onclick="return confirm('Are you sure you want to delete the notification?');">Delete Notification</button>
                         </form>
                     </div>
                 </div>

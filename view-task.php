@@ -268,6 +268,7 @@ if (isset($_SESSION['alert'])) {
                                 </div>
                                 <!--/.bg-holder-->
                                 <?php
+
                                 // Display Task Files section
                                 if (!empty($existingFiles)) {
                                     // Assuming $submittedFiles contains comma-separated file paths
@@ -276,6 +277,7 @@ if (isset($_SESSION['alert'])) {
                                         $fileName = basename($filePath); // Extracts the filename from the path
                                         $fileUrl = "taskfiles/" . $filePath; // Constructs the full URL to the file
                                         $formattedDate = date("d M Y, g:i A", strtotime($taskCreatedOn)); // Format 'submitted_on' date
+                                        $taskfileSize = formatSizeUnits(filesize("taskfiles/" . $filePath)); // Get file size
                                         // Adjust the image path as necessary
                                         $thumbnailPath = "assets/img/icons/docs.png"; // Placeholder path for the thumbnail
                                         ?>
@@ -283,7 +285,7 @@ if (isset($_SESSION['alert'])) {
                                             <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
                                             <div class="ms-3 flex-shrink-1 flex-grow-1">
                                                 <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                                <div class="fs-10"><span class="fw-semi-bold">Uploaded on</span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
+                                                <div class="fs-10"><span class="fw-semi-bold"><?php echo $taskfileSize; ?></span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                                 <!-- Add or adjust action buttons as necessary -->
                                                 <div class="hover-actions end-0 top-50 translate-middle-y">
                                                     <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
@@ -316,6 +318,7 @@ if (isset($_SESSION['alert'])) {
                         </div>
                         <!--/.bg-holder-->
                         <?php
+
                         // Display Task Files section
                         if (!empty($submittedFiles)) {
                             // Assuming $submittedFiles contains comma-separated file paths
@@ -324,6 +327,7 @@ if (isset($_SESSION['alert'])) {
                                 $fileName = basename($filePath); // Extracts the filename from the path
                                 $fileUrl = "taskfiles/" . $filePath; // Constructs the full URL to the file
                                 $formattedDate = date("d M Y, g:i A", strtotime($submittedOn)); // Format 'submitted_on' date
+                                $fileSize = formatSizeUnits(filesize("taskfiles/" . $filePath)); // Get file size
                                 // Adjust the image path as necessary
                                 $thumbnailPath = "assets/img/icons/docs.png"; // Placeholder path for the thumbnail
                                 ?>
@@ -331,7 +335,7 @@ if (isset($_SESSION['alert'])) {
                                     <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
                                     <div class="ms-3 flex-shrink-1 flex-grow-1">
                                         <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                        <div class="fs-10"><span class="fw-semi-bold">Submitted on</span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
+                                        <div class="fs-10"><span class="fw-semi-bold"><?php echo $fileSize; ?></span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                         <!-- Add or adjust action buttons as necessary -->
                                         <div class="hover-actions end-0 top-50 translate-middle-y">
                                             <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>

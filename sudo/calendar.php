@@ -2,7 +2,7 @@
 include "header.php";
 
 // Fetch tasks from the database
-$query = mysqli_query($con, "SELECT id, topic, due_date, status FROM tbltasks WHERE is_deleted = 0");
+$query = mysqli_query($con, "SELECT id, account, topic, due_date, status FROM tbltasks WHERE is_deleted = 0");
 $tasks = [];
 
 while ($row = mysqli_fetch_assoc($query)) {
@@ -11,24 +11,23 @@ while ($row = mysqli_fetch_assoc($query)) {
 
     // Conditionally include time in title
     if ($row['status'] == 'In Progress' || $row['status'] == 'Unconfirmed') {
-        $title = $row['id'] . ' ' . $due_date->format('h:i A');
+        $title = $row['id'] . ' ' . $row['account'] . ' ' . $due_date->format('h:i A');
     } else {
-        $title = $row['id'];
+        $title = $row['id'] . ' ' . $row['account'];
     }
 
     $tasks[] = [
         'id' => $row['id'],
-        'title' => $title, // Display task ID and conditional time due in AM/PM
+        'title' => $title, // Display task ID, account, and conditional time due in AM/PM
         'start' => $formatted_due_date,
         'topic' => $row['topic'],
+        'account' => $row['account'],
         'status' => $row['status'],
     ];
 }
 
 $tasksJson = json_encode($tasks);
 ?>
-
-
 
 <div class="card shadow-none border mb-3">
     <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(assets/img/illustrations/corner-6.png);"></div>
@@ -61,7 +60,7 @@ $tasksJson = json_encode($tasks);
                 <!-- Task details will be inserted here -->
             </div>
             <div class="modal-footer">
-                <a href="#" id="viewTaskLink" class="btn btn-outline-primary">See more details <svg class="svg-inline--fa fa-angle-right fa-w-8 fs-11 ml-1" aria-hidden="true" focusable="false" data-prefix="fas" data-icon="angle-right" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" data-fa-i2svg=""><path fill="currentColor" d="M224.3 273l-136 136c-9.4 9.4-24.6 9.4-33.9 0l-22.6-22.6c-9.4-9.4-9.4-24.6 0-33.9l96.4-96.4-96.4-96.4c-9.4-9.4-9.4-24.6 0-33.9L54.3 103c9.4-9.4 24.6-9.4 33.9 0l136 136c9.5 9.4 9.5 24.6.1 34z"></path></svg></a>
+                <a href="#" id="viewTaskLink" class="btn btn-outline-primary">See more details <svg class="svg-inline--fa fa-angle-right fa-w-8 fs-11 ml-1" aria-hidden="true" focusable="false" data-prefix="fas" data-icon="angle-right" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" data-fa-i2svg=""><path fill="currentColor" d="M224.3 273l-136 136c-9.4 9.4-24.6 9.4-33.9 0l-22.6-22.6c-9.4-9.4-9.4-24.6 0-33.9l96.4-96.4-96.4-96.4c-9.4-9.4-9.4-24.6 0-33.9L54.3 103c9.4-9.4 24.6-9.4 33.9 0l136 136c9.5 9.4 9.5 24.6 .1 34z"></path></svg></a>
             </div>
         </div>
     </div>
@@ -93,6 +92,7 @@ include "footer.php";
 
                 var taskDetails = `
                     <p><strong>ID:</strong> ${info.event.id}</p>
+                    <p><strong>Account:</strong> ${info.event.extendedProps.account}</p>
                     <p><strong>Topic:</strong> ${info.event.extendedProps.topic}</p>
                     <p><strong>Status:</strong> ${badges[info.event.extendedProps.status]}</p>
                     <p><strong>Due Date:</strong> ${info.event.start.toLocaleDateString()} ${formattedDueDate}</p>
@@ -130,4 +130,3 @@ include "footer.php";
         calendar.render();
     });
 </script>
-

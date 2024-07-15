@@ -639,4 +639,23 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
             <?php
                     }
                 } ?>
+            <?php
+            $query = mysqli_query($con, "SELECT * FROM tblsettings WHERE id = 3");
+
+            if ($query && mysqli_num_rows($query) > 0) {
+                $row = mysqli_fetch_assoc($query);
+                $currentNotification = $row['description'];
+
+                if (isset($row['regStatus']) && $row['regStatus'] == 1) {
+                    ?>
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <strong>Notification!</strong> <?php echo htmlspecialchars($currentNotification, ENT_QUOTES, 'UTF-8'); ?>
+                        <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    <?php
+                }
+            } else {
+                echo '<div class="alert alert-danger" role="alert">Error fetching notification settings.</div>';
+            }
+            ?>
 

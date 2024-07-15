@@ -161,37 +161,32 @@ if (isset($_SESSION['alert'])) {
                         </div>
                     </div>
                     </div>
-                <div class="col-md-auto mt-4 mt-md-0">
-                    <a class="btn btn-outline-danger btn-sm me-2" id="favorite-btn" onclick="toggleFavorite(<?php echo $taskId; ?>)">
-                        <span id="favorite-icon" class="fas <?php $is_favorite = $row['is_favorite']; echo ($is_favorite == 1) ? 'fa-heart' : 'fa-heart-broken'; ?> me-1"></span>
-                        <span id="favorite-text"><?php echo ($is_favorite == 1) ? 'Unfavorite' : 'Favorite'; ?></span>
+                <div class="d-flex align-items-center justify-content-between justify-content-lg-end px-x1">
+                    <a class="btn btn-sm btn-outline-primary" type="button" href="edit-task.php?task_id=<?php echo $encodedId; ?>" title="Edit Task">
+                        <i class="fas fa-edit" aria-hidden="true"></i>
+                        <span class="ms-1 d-none d-sm-inline-block">Edit Task</span>
                     </a>
-                    <a class="btn btn-outline-info btn-sm me-2" href="duplicate-task.php?task_id=<?php echo $encodedId; ?>" title="Duplicate Task" onclick="return confirmDuplicate();"><span class="fas fa-copy me-1"></span>Duplicate</a>
-                    <a class="btn btn-outline-primary btn-sm me-2" href="edit-task.php?task_id=<?php echo $encodedId; ?>"><span class="fas fa-edit me-1"></span>Edit Task</a>
+                    <div class="bg-300 mx-3 d-none d-lg-block" style="width:1px; height:29px"></div>
+                    <div class="d-flex align-items-center" id="table-ticket-replace-element">
+                        <a class="btn btn-outline-info btn-sm mx-2" type="button" href="duplicate-task.php?task_id=<?php echo $encodedId; ?>" title="Duplicate Task" onclick="return confirmDuplicate();">
+                            <i class="fas fa-copy" aria-hidden="true"></i>
+                            <span class="d-none d-sm-inline-block d-xl-none d-xxl-inline-block ms-1">Duplicate</span>
+                        </a>
+                        <a class="btn btn-outline-danger btn-sm mx-2" type="button" id="favorite-btn" onclick="toggleFavorite(<?php echo $taskId; ?>)">
+                            <i id="favorite-icon" class="fas <?php $is_favorite = $row['is_favorite']; echo ($is_favorite == 1) ? 'fa-heart' : 'fa-heart-broken'; ?>" aria-hidden="true"></i>
+                            <span id="favorite-text" class="d-none d-sm-inline-block d-xl-none d-xxl-inline-block ms-1"><?php echo ($is_favorite == 1) ? 'Unfavorite' : 'Favorite'; ?></span>
+                        </a>
+                        <?php if ($taskStatus =='Submitted'): ?>
+                        <a class="btn btn-outline-success btn-sm mx-2" type="button" id="complete-task-btn-<?php echo $taskId; ?>" title="Complete Task" onclick="completeTask('<?php echo $encodedId; ?>', <?php echo $taskId; ?>)">
+                            <i class="fas fa-check-circle" aria-hidden="true"></i>
+                            <span id="complete-task-text-<?php echo $taskId; ?>" class="d-none d-sm-inline-block d-xl-none d-xxl-inline-block ms-1">Complete</span>
+                        </a>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <!--<div class="card mb-3"><img class="card-img-top" src="../assets/img/team/1.jpg" alt=""/>
-        <div class="card-body">
-            <div class="row justify-content-between align-items-center">
-                <div class="col">
-                    <div class="d-flex">
-                        <div class="calendar me-2"><span class="calendar-month"><?php /*$currentMonth = date('F'); echo $currentMonth;*/?></span><span class="calendar-day"><?php /*$currentDay = date('d'); echo $currentDay;*/?> </span></div>
-                        <div class="flex-1 fs-10">
-                            <h5 class="fs-9">FREE New Year's Eve Midnight Harbor Fireworks</h5>
-                            <p class="mb-0">by <a href="#!">Boston Harbor Now</a></p><span class="fs-9 text-warning fw-semi-bold">$49.99 – $89.99</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-auto mt-4 mt-md-0">
-                    <button class="btn btn-falcon-default btn-sm me-2" type="button"><span class="fas fa-heart text-danger me-1"></span>235</button>
-                    <button class="btn btn-falcon-default btn-sm me-2" type="button"><span class="fas fa-share-alt me-1"></span>Share</button>
-                    <button class="btn btn-falcon-primary btn-sm px-4 px-sm-5" type="button">Register</button>
-                </div>
-            </div>
-        </div>
-    </div>-->
 
     <div class="card overflow-hidden mb-3" data-bs-theme="light">
         <div class="card-body bg-black">
@@ -312,6 +307,7 @@ if (isset($_SESSION['alert'])) {
                                         $fileName = basename($filePath); // Extracts the filename from the path
                                         $fileUrl = "../taskfiles/" . $filePath; // Constructs the full URL to the file
                                         $formattedDate = date("d M Y, g:i A", strtotime($taskCreatedOn)); // Format 'submitted_on' date
+                                        $fileSize = formatSizeUnits(filesize("../taskfiles/" . $filePath)); // Get file size
                                         // Adjust the image path as necessary
                                         $thumbnailPath = "../assets/img/icons/docs.png"; // Placeholder path for the thumbnail
                                         ?>
@@ -319,7 +315,7 @@ if (isset($_SESSION['alert'])) {
                                             <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
                                             <div class="ms-3 flex-shrink-1 flex-grow-1">
                                                 <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                                <div class="fs-10"><span class="fw-semi-bold">Uploaded on</span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
+                                                <div class="fs-10"><span class="fw-semi-bold"><?php echo $fileSize; ?></span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                                 <!-- Add or adjust action buttons as necessary -->
                                                 <div class="hover-actions end-0 top-50 translate-middle-y">
                                                     <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="../assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
@@ -336,6 +332,7 @@ if (isset($_SESSION['alert'])) {
                                 ?>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -352,6 +349,7 @@ if (isset($_SESSION['alert'])) {
                                 </div>
                                 <!--/.bg-holder-->
                                 <?php
+
                                 // Display Task Files section
                                 if (!empty($submittedFiles)) {
                                     // Assuming $submittedFiles contains comma-separated file paths
@@ -360,6 +358,7 @@ if (isset($_SESSION['alert'])) {
                                         $fileName = basename($filePath); // Extracts the filename from the path
                                         $fileUrl = "../taskfiles/" . $filePath; // Constructs the full URL to the file
                                         $formattedDate = date("d M Y, g:i A", strtotime($submittedOn)); // Format 'submitted_on' date
+                                        $submittedfileSize = formatSizeUnits(filesize("../taskfiles/" . $filePath)); // Get file size
                                         // Adjust the image path as necessary
                                         $thumbnailPath = "../assets/img/icons/docs.png"; // Placeholder path for the thumbnail
                                         ?>
@@ -367,7 +366,7 @@ if (isset($_SESSION['alert'])) {
                                             <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
                                             <div class="ms-3 flex-shrink-1 flex-grow-1">
                                                 <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                                <div class="fs-10"><span class="fw-semi-bold">Submitted on</span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
+                                                <div class="fs-10"><span class="fw-semi-bold"><?php echo $submittedfileSize; ?></span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                                 <!-- Add or adjust action buttons as necessary -->
                                                 <div class="hover-actions end-0 top-50 translate-middle-y">
                                                     <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="../assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
@@ -419,6 +418,24 @@ if (isset($_SESSION['alert'])) {
             };
             xhr.send('task_id=' + taskId);
         }
+
+        function completeTask(encodedId, taskId) {
+            if (confirm('Are you sure you want to complete task ID: #' + taskId + '?')) {
+                $.ajax({
+                    url: 'complete-task.php',
+                    type: 'POST',
+                    data: { task_id: encodedId },
+                    success: function() {
+                        // Redirect to the task details page after completing the task
+                        window.location.href = 'view-task.php?task_id=' + encodedId;
+                    },
+                    error: function() {
+                        alert('An error occurred while completing the task.');
+                    }
+                });
+            }
+        }
+
     </script>
 <?php
 include "footer.php";

@@ -330,6 +330,18 @@ if (isset($_GET['delete'])) {
         function clearForm() {
             document.getElementById('overdraftForm').reset();
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                let alertElement = document.querySelector('.alert');
+                if (alertElement) {
+                    alertElement.classList.remove('show');
+                    setTimeout(function() {
+                        alertElement.remove();
+                    }, 150); // Give time for the alert to fade out before removing
+                }
+            }, 10000); // 10 seconds
+        });
     </script>
 <?php
 include "footer.php";
