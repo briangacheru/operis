@@ -233,7 +233,7 @@ if (isset($_GET['del'])) {
                                                 <div class="hover-actions bg-100">
                                                     <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="view-task.php?task_id=<?php echo $encodedId; ?>" title="View task"><span class="far fa-eye"></span></a>
                                                     <!-- <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="edit-task.php?task_id=<?php //echo $encodedId; ?>" title="Edit Task"><span class="far fa-edit"></span></a> -->
-                                                    <a class="btn bg-warning-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="duplicate-task.php?task_id=<?php echo $row["id"];?>" title="Duplicate Task" onclick="return confirmDuplicateTask('<?php echo $row["id"];?>');"><span class="fas fa-copy"></span></a>
+                                                    <a class="btn bg-warning-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="duplicate-task.php?task_id=<?php echo $encodedId; ?>" title="Duplicate Task" onclick="return confirmDuplicateTask('<?php echo $row["id"];?>');"><span class="fas fa-copy"></span></a>
                                                     <!-- <a class="btn bg-danger-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="all-tasks.php?del=<?php //echo $encodedId; ?>" title="Cancel Task" onclick="return confirm('Do you really want to cancel task?');"><span class="fas fa-trash"></span></a> -->
                                                 </div>
                                                 <div class="dropdown font-sans-serif btn-reveal-trigger">

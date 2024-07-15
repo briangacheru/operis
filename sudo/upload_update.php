@@ -7,7 +7,7 @@ $response = ['status' => 'error', 'message' => 'File upload failed.'];
 
 if (isset($_FILES['file']['name'])) {
     $originalFileName = basename($_FILES['file']['name']);
-    $newFileName = preg_replace('/[^a-zA-Z0-9_.-]/', '_', $originalFileName); // Replace special characters with underscores
+    $newFileName = preg_replace('/[^a-zA-Z0-9 ._-]/', '-', $originalFileName);
     $targetFilePath = $targetDir . $newFileName;
 
     // Move the file to the server directory

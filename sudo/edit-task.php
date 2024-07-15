@@ -375,60 +375,79 @@ if ($row = mysqli_fetch_array($result)) {
         }
 
         async function uploadFile(file) {
-            const url = 'upload_update.php'; // URL to the PHP file handling uploads
+            const url = 'upload_update.php'; // Ensure this path is correct
             const formData = new FormData();
             formData.append('file', file);
             formData.append('action', 'upload');
 
             const li = document.createElement('li');
-            li.textContent = file.name + ' - Uploading...';
-            li.style.color = 'blue'; // Set text color to yellow during upload
+            li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Uploading: 0%`;
+            li.style.color = '#FFA500';
 
-            const removeBtn = document.createElement('button'); // Create a remove button
+            const progressBar = document.createElement('progress');
+            progressBar.value = 0;
+            progressBar.max = 100;
+            li.appendChild(progressBar);
+
+            const removeBtn = document.createElement('button');
             removeBtn.textContent = 'Remove';
-            removeBtn.classList.add('btn', 'btn-outline-warning', 'btn-sm', 'ms-2'); // Add some styling classes
-            removeBtn.onclick = function() {
-                // Function to remove the list item
+            removeBtn.classList.add('btn', 'btn-outline-warning', 'btn-sm', 'ms-2');
+            removeBtn.onclick = function () {
                 li.parentNode.removeChild(li);
-                // Remove the filePath from uploadedFilePaths
                 const index = uploadedFilePaths.findIndex(f => f.fileName === file.name);
                 if (index > -1) {
                     const filePath = uploadedFilePaths[index].filePath;
-                    deleteFileFromServer(filePath); // Call function to delete the file from the server
+                    deleteFileFromServer(filePath);
                     uploadedFilePaths.splice(index, 1);
                     updateUploadedFilesInput();
                 }
             };
 
-            li.appendChild(removeBtn); // Append the button to the li element
+            li.appendChild(removeBtn);
             document.getElementById('fileNamesList').appendChild(li);
 
             try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    body: formData,
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', url, true);
+
+                xhr.upload.addEventListener('progress', function (e) {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        progressBar.value = percentComplete;
+                        li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Uploading: ${percentComplete.toFixed(2)}%`;
+                        li.appendChild(progressBar);
+                        li.appendChild(removeBtn);
+                    }
                 });
 
-                const data = await response.json();
-                if (data.status === 'success') {
-                    const filePath = data.filePath;
-                    li.textContent = file.name + ' - Upload complete!';
-                    li.style.color = 'green'; // Set text color to green on success
-                    li.appendChild(removeBtn); // Ensure the remove button stays
-                    uploadedFilePaths.push({fileName: file.name, filePath: filePath}); // Store uploaded file path
-                    updateUploadedFilesInput();
-                } else {
-                    li.textContent = file.name + ' - Upload failed: ' + data.message;
-                    li.style.color = 'red'; // Set text color to red on failure
-                    throw new Error(data.message);
-                }
+                xhr.onload = function () {
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.status === 'success') {
+                            const filePath = response.filePath;
+                            li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload complete!`;
+                            li.style.color = 'green';
+                            li.appendChild(removeBtn);
+                            uploadedFilePaths.push({ fileName: file.name, filePath: filePath });
+                            updateUploadedFilesInput();
+                        } else {
+                            li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload failed: ${response.message}`;
+                            li.style.color = 'red';
+                        }
+                    } else {
+                        li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload error.`;
+                        li.style.color = 'red';
+                    }
+                };
+
+                xhr.send(formData);
             } catch (error) {
                 console.error('Error:', error);
-                li.textContent = file.name + ' - Upload error.';
-                li.style.color = 'red'; // Set text color to red on failure
-                throw error;
+                li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload error.`;
+                li.style.color = 'red';
             }
         }
+
 
         async function deleteFileFromServer(filePath) {
             const url = 'delete_file.php'; // URL to the PHP file handling deletions

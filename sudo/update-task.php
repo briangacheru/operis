@@ -8,11 +8,6 @@ require 'phpmailer/src/Exception.php';
 require 'phpmailer/src/PHPMailer.php';
 require 'phpmailer/src/SMTP.php';
 
-function sanitizeFileName($filename) {
-    $sanitized = str_replace(['#', ','], '_', $filename);
-    return preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $sanitized);
-}
-
 if ($_POST['action'] == 'submitForm') {
     $requiredFields = ['topic', 'subject', 'account', 'description', 'writer', 'email', 'due_date', 'cpp', 'pages'];
 
@@ -48,7 +43,7 @@ if ($_POST['action'] == 'submitForm') {
     }
 
     $uploadedFileNames = array_map(function($file) {
-        return sanitizeFileName(basename($file['filePath']));
+        return basename($file['filePath']);
     }, $uploadedFiles);
 
     $allFiles = array_merge($existingFiles, $uploadedFileNames);
@@ -79,12 +74,12 @@ if ($_POST['action'] == 'submitForm') {
                         $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin');
 
                         foreach ($uploadedFiles as $file) {
-                            $filePath = "../taskfiles/" . sanitizeFileName(basename($file['filePath']));
+                            $filePath = "../taskfiles/" . basename($file['filePath']);
                             $mail->addAttachment($filePath);
                         }
 
                         $mail->isHTML(true);
-                        $mail->Subject = 'Task ID: ' . $taskId . ' - ' . $topic . ' - [ ' . $account. ' ] ';
+                        $mail->Subject = 'Task ID: ' . $taskId . ' - ' . $topic . ' - [ ' . $account . ' ] ';
                         $mail->Body    = "<h1>Task Details</h1>
                                           <p><strong>Topic:</strong> $topic</p>
                                           <p><strong>Subject:</strong> $subject</p>

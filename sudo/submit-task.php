@@ -9,14 +9,6 @@ require 'phpmailer/src/Exception.php';
 require 'phpmailer/src/PHPMailer.php';
 require 'phpmailer/src/SMTP.php';
 
-// Function to sanitize file names
-function sanitizeFileName($filename) {
-    // Replace # and , with _
-    $sanitized = str_replace(['#', ','], '_', $filename);
-    // Remove characters that are not URL-safe
-    return preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $sanitized);
-}
-
 // Assuming $con is a valid mysqli connection object established in "check-login.php" or elsewhere
 if ($_POST['action'] == 'submitForm') {
     // List of required fields
@@ -54,15 +46,10 @@ if ($_POST['action'] == 'submitForm') {
         exit; // Stop the script execution if the uploaded files data is invalid
     }
 
-    // Map full paths to just their basename components and sanitize file names
-    $fileNames = array_map(function($fileData) {
-        return sanitizeFileName(basename($fileData['filePath']));
-    }, $uploadedFiles);
-
     // Rename the actual files on the server
     foreach ($uploadedFiles as $index => $fileData) {
         $filePath = $fileData['filePath'];
-        $newFilePath = dirname($filePath) . '/' . $fileNames[$index];
+        $newFilePath = dirname($filePath) . '/' . basename($filePath); // Keep the original file name
         if (!rename($filePath, $newFilePath)) {
             header('Content-Type: application/json');
             echo json_encode(['status' => 'error', 'message' => 'Failed to rename file: ' . $filePath]);

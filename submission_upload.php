@@ -4,176 +4,122 @@ include "check-login.php";
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-// Include PHPMailer autoloader
 require 'phpmailer/src/Exception.php';
 require 'phpmailer/src/PHPMailer.php';
 require 'phpmailer/src/SMTP.php';
 
-// Function to sanitize file names
-function sanitizeFileName($filename) {
-    // Replace special characters with hyphen
-    $sanitized = preg_replace('/[^A-Za-z0-9_\-\.]/', '-', $filename);
-    return $sanitized;
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_GET['task_id'])) {
-        $encodedId = $_GET['task_id'];
-        $taskId = base64_decode($encodedId);
-    } else {
-        $_SESSION['alert'] = '<div class="alert alert-warning border-0 d-flex align-items-center" role="alert">
-                                    <div class="bg-warning me-3 icon-item"><span class="fas fa-exclamation-circle text-white fs-6"></span></div>
-                                    <p class="mb-0 flex-1">Invalid task ID!</p>
-                                    <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>';
-        header('Location: view-task.php');
-        exit();
+if ($_POST['action'] == 'submitForm') {
+    // Ensure taskfiles has at least one file
+    if (empty($_FILES['taskfiles']['name'][0])) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'You must submit at least one file.']);
+        exit;
     }
 
-    $uploadedFiles = [];
+    // Retrieve and sanitize input data
+    $taskId = isset($_POST['taskId']) ? mysqli_real_escape_string($con, $_POST['taskId']) : '';
+    $topic = isset($_POST['topic']) ? mysqli_real_escape_string($con, $_POST['topic']) : '';
+    $account = isset($_POST['account']) ? mysqli_real_escape_string($con, $_POST['account']) : '';
+    $writerEmail = isset($_POST['email']) ? mysqli_real_escape_string($con, $_POST['email']) : '';
+    $sendEmail = isset($_POST['sendEmail']) ? mysqli_real_escape_string($con, $_POST['sendEmail']) : '0';
 
-    // Retrieve existing submitted files and other task details
-    $sql = "SELECT * FROM tbltasks WHERE id='$taskId'";
-    $result = mysqli_query($con, $sql);
-    if ($result) {
-        $row = mysqli_fetch_assoc($result);
-        $existingFiles = $row['submitted_files'];
-        $topic = $row['topic'];
-        $account = $row['account'];
-        $subject = $row['subject'];
-        $due_date = $row['due_date'];
-        $submitted_on = $row['submitted_on'];
-        $pages = $row['pages'];
-        $description = $row['description'];
-        $writerEmail = $row['email'];
+    if (empty($taskId) || empty($topic) || empty($account) || empty($writerEmail)) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Task ID, Topic, Account, and Email are required.']);
+        exit;
+    }
 
-        // Convert existing files into an array
-        $existingFilesArray = !empty($existingFiles) ? explode(',', $existingFiles) : [];
+    // Fetch existing files from the database
+    $query = "SELECT submitted_files FROM tbltasks WHERE id = ?";
+    if ($stmt = mysqli_prepare($con, $query)) {
+        mysqli_stmt_bind_param($stmt, 'i', $taskId);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_bind_result($stmt, $existingFilesString);
+        mysqli_stmt_fetch($stmt);
+        mysqli_stmt_close($stmt);
+    } else {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Database error: ' . mysqli_error($con)]);
+        exit;
+    }
 
-        // Check if files were uploaded
-        if (!empty($_FILES['taskfiles']['name'][0])) {
-            $totalFiles = count($_FILES['taskfiles']['name']);
+    $existingFiles = !empty($existingFilesString) ? explode(',', $existingFilesString) : [];
 
-            for ($i = 0; $i < $totalFiles; $i++) {
-                $fileName = sanitizeFileName($_FILES['taskfiles']['name'][$i]);
-                $fileTmpName = $_FILES['taskfiles']['tmp_name'][$i];
-                $fileSize = $_FILES['taskfiles']['size'][$i];
-                $fileError = $_FILES['taskfiles']['error'][$i];
-                $fileType = $_FILES['taskfiles']['type'][$i];
+    $uploadedFiles = json_decode($_POST['uploadedFiles'], true);
+    if (!is_array($uploadedFiles)) {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Invalid uploaded files data.']);
+        exit;
+    }
 
-                // Handle file upload errors
-                if ($fileError === 0) {
-                    $fileDestination = 'taskfiles/' . $fileName;
-                    if (move_uploaded_file($fileTmpName, $fileDestination)) {
-                        $uploadedFiles[] = $fileName;
-                    } else {
-                        $_SESSION['alert'] = '<div class="alert alert-danger border-0 d-flex align-items-center" role="alert">
-                                                    <div class="bg-danger me-3 icon-item"><span class="fas fa-exclamation-circle text-white fs-6"></span></div>
-                                                    <p class="mb-0 flex-1">Error uploading files!</p>
-                                                    <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-                                                </div>';
-                        header('Location: view-task.php?task_id=' . $encodedId);
-                        exit();
+    $uploadedFileNames = array_map(function($file) {
+        return basename($file['filePath']);
+    }, $uploadedFiles);
+
+    $allFiles = array_merge($existingFiles, $uploadedFileNames);
+    $filesString = implode(',', $allFiles);
+    $submittedOn = date('Y-m-d H:i:s');
+
+    $sql = "UPDATE tbltasks SET submitted_files=?, submitted_on=?, status='Submitted' WHERE id=?";
+
+    if ($stmt = mysqli_prepare($con, $sql)) {
+        mysqli_stmt_bind_param($stmt, 'ssi', $filesString, $submittedOn, $taskId);
+
+        if (mysqli_stmt_execute($stmt)) {
+            if (mysqli_stmt_affected_rows($stmt) > 0) {
+                if ($sendEmail == '1') {
+                    $mail = new PHPMailer(true);
+
+                    try {
+                        $mail->isSMTP();
+                        $mail->Host       = 'mail.monkbrian.com';
+                        $mail->SMTPAuth   = true;
+                        $mail->Username   = 'support@monkbrian.com';
+                        $mail->Password   = 'EDU+pass.';
+                        $mail->SMTPSecure = 'ssl';
+                        $mail->Port       = 465;
+
+                        $mail->setFrom('support@monkbrian.com', 'Bryo Gacheru');
+                        $mail->addReplyTo('bryo4419@gmail.com', 'Bryo Gacheru');
+                        $mail->addAddress($writerEmail);
+                        $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin');
+
+                        foreach ($uploadedFiles as $file) {
+                            $filePath = "taskfiles/" . basename($file['filePath']);
+                            $mail->addAttachment($filePath);
+                        }
+
+                        // Content
+                        $mail->isHTML(true);                                  // Set email format to HTML
+                        $mail->Subject = 'Task ID: ' . $taskId . ' - ' . $topic . ' - [ ' . $account. ' ] ';
+                        $mail->Body    = "<h1>Submission</h1>
+                                          <p><strong>Date Submitted:</strong> $submittedOn</p>";
+                        $mail->AltBody = "Task Details\nDate Submitted: $submittedOn";
+
+                        $mail->send();
+                        $emailStatus = 'Email sent successfully.';
+                    } catch (Exception $e) {
+                        $emailStatus = "Email could not be sent. Mailer Error: {$mail->ErrorInfo}";
                     }
-                } else {
-                    $_SESSION['alert'] = '<div class="alert alert-danger border-0 d-flex align-items-center" role="alert">
-                                                <div class="bg-danger me-3 icon-item"><span class="fas fa-exclamation-circle text-white fs-6"></span></div>
-                                                <p class="mb-0 flex-1">There was an error uploading your files!</p>
-                                                <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-                                            </div>';
-                    header('Location: view-task.php?task_id=' . $encodedId);
-                    exit();
-                }
-            }
-
-            // Merge existing and new files
-            $allFiles = array_merge($existingFilesArray, $uploadedFiles);
-            $submittedFiles = implode(',', $allFiles);
-            $submittedOn = date('Y-m-d H:i:s');
-            $sql = "UPDATE tbltasks SET submitted_files = '$submittedFiles', submitted_on = '$submittedOn', status = 'Submitted' WHERE id = '$taskId'";
-
-            if (mysqli_query($con, $sql)) {
-                // Send email with attachment using PHPMailer
-                $mail = new PHPMailer(true);
-                try {
-                    // Server settings
-                    $mail->isSMTP();
-                    $mail->Host       = 'mail.monkbrian.com'; // Your SMTP server
-                    $mail->SMTPAuth   = true;
-                    $mail->Username   = 'support@monkbrian.com'; // SMTP username
-                    $mail->Password   = 'EDU+pass.'; // SMTP password
-                    $mail->SMTPSecure = 'ssl';
-                    $mail->Port       = 465;
-
-                    // Recipients
-                    $mail->setFrom('support@monkbrian.com', 'Bryo Gacheru');
-                    $mail->addReplyTo('bryo4419@gmail.com', 'Bryo Gacheru');
-                    $mail->addAddress($writerEmail); // Writer's email
-                    $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin'); // Example admin email, replace with actual admin email
-
-                    // Attachments
-                    foreach ($uploadedFiles as $file) {
-                        $mail->addAttachment('taskfiles/' . $file);
-                    }
-
-                    // Content
-                    $mail->isHTML(true);                                  // Set email format to HTML
-                    $mail->Subject = 'Task ID: ' . $taskId . ' - ' . $topic . ' - [ ' . $account. ' ] ';
-                    $mail->Body    = "<h1>Submission</h1>
-                                      <p><strong>Due Date:</strong> $due_date</p>
-                                      <p><strong>Date Submitted:</strong> $submittedOn</p>";
-                    $mail->AltBody = "Task Details\nTopic: $topic\nSubject: $subject\nDue Date: $due_date\nPages: $pages\nDescription: $description\nDate Submitted: $submittedOn";
-
-                    $mail->send();
-                    $_SESSION['alert'] = '<div class="alert alert-success border-0 d-flex align-items-center" role="alert">
-                                                <div class="bg-success me-3 icon-item"><span class="fas fa-check-circle text-white fs-6"></span></div>
-                                                <p class="mb-0 flex-1">Files uploaded successfully, task submitted, and email sent!</p>
-                                                <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-                                            </div>';
-                } catch (Exception $e) {
-                    $_SESSION['alert'] = '<div class="alert alert-warning border-0 d-flex align-items-center" role="alert">
-                                                <div class="bg-warning me-3 icon-item"><span class="fas fa-exclamation-circle text-white fs-6"></span></div>
-                                                <p class="mb-0 flex-1">Files uploaded successfully and task submitted, but email could not be sent. Mailer Error: ' . $mail->ErrorInfo . '</p>
-                                                <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-                                            </div>';
                 }
 
-                header('Location: view-task.php?task_id=' . $encodedId);
-                exit();
+                header('Content-Type: application/json');
+                echo json_encode(['status' => 'success', 'message' => 'Task updated successfully. ' . ($sendEmail == '1' ? $emailStatus : ''), 'task_id' => base64_encode($taskId)]);
             } else {
-                $_SESSION['alert'] = '<div class="alert alert-danger border-0 d-flex align-items-center" role="alert">
-                                            <div class="bg-danger me-3 icon-item"><span class="fas fa-exclamation-circle text-white fs-6"></span></div>
-                                            <p class="mb-0 flex-1">Error updating task status in the database!</p>
-                                            <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-                                        </div>';
-                header('Location: view-task.php?task_id=' . $encodedId);
-                exit();
+                header('Content-Type: application/json');
+                echo json_encode(['status' => 'error', 'message' => 'No changes were made or task not found.']);
             }
         } else {
-            $_SESSION['alert'] = '<div class="alert alert-warning border-0 d-flex align-items-center" role="alert">
-                                        <div class="bg-warning me-3 icon-item"><span class="fas fa-exclamation-circle text-white fs-6"></span></div>
-                                        <p class="mb-0 flex-1">No files selected for upload!</p>
-                                        <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-                                    </div>';
-            header('Location: view-task.php?task_id=' . $encodedId);
-            exit();
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => 'Database error: ' . mysqli_stmt_error($stmt)]);
         }
+        mysqli_stmt_close($stmt);
     } else {
-        $_SESSION['alert'] = '<div class="alert alert-danger border-0 d-flex align-items-center" role="alert">
-                                    <div class="bg-danger me-3 icon-item"><span class="fas fa-exclamation-circle text-white fs-6"></span></div>
-                                    <p class="mb-0 flex-1">Error retrieving task data!</p>
-                                    <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>';
-        header('Location: view-task.php?task_id=' . $encodedId);
-        exit();
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Database error: ' . mysqli_error($con)]);
     }
 } else {
-    $_SESSION['alert'] = '<div class="alert alert-danger border-0 d-flex align-items-center" role="alert">
-                                <div class="bg-danger me-3 icon-item"><span class="fas fa-exclamation-circle text-white fs-6"></span></div>
-                                <p class="mb-0 flex-1">Invalid request!</p>
-                                <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>';
-    header('Location: view-task.php');
-    exit();
+    header('Content-Type: application/json');
+    echo json_encode(['status' => 'error', 'message' => 'No action performed.']);
 }
 ?>
