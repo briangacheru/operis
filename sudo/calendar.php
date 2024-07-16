@@ -122,7 +122,7 @@ include "footer.php";
                 };
 
                 var badgeClass = badges[status] || 'badge-subtle-secondary';
-                content.classList.add('badge', 'rounded-pill', badgeClass);
+                content.classList.add('badge', 'w-100', 'rounded-pill', badgeClass);
                 content.innerHTML = '<strong>' + info.event.title + '</strong>';
                 return { domNodes: [content] };
             }

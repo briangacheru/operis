@@ -127,7 +127,7 @@ if (isset($_GET['del'])) {
                                             </th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task Id</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Topic</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center">Status</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Status</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Account</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Time Due</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">Amount</th>
@@ -219,7 +219,11 @@ if (isset($_GET['del'])) {
                                                 </div>
                                             </td>
                                             <td class="align-middle white-space-nowrap fw-semi-bold name"><?php echo $row["id"];?></td>
-                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><a href="view-task.php?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></td>
+<!--                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><a href="view-task.php?task_id=--><?php //echo $encodedId; ?><!--">--><?php //echo $row["topic"];?><!--</a></td>-->
+                                            <td class="align-middle text-nowrap" style="width:1%;">
+                                                <h6 class="mb-0"><a class="stretched-link" href="view-task.php?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
+                                                <p class="fs-11 mb-0"><?php echo $row["pages"];?> Page(s)</p>
+                                            </td>
                                             <td class="align-middle white-space-nowrap product"><?php echo $statusBadge;?>
                                             <?php if ($is_confirmed != 0): ?>
                                                 <?php echo $confirmation;?>

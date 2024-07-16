@@ -157,7 +157,7 @@ if (isset($_GET['del'])) {
                                                 </div>
                                             </td>
                                             <td class="align-middle white-space-nowrap fw-semi-bold name"><?php echo $row["id"];?></td>
-                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><a href="view-task.php?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></td>
+                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><a class="stretched-link" href="view-task.php?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></td>
                                             <td class="align-middle white-space-nowrap product"><?php echo $statusBadge;?>
                                             <?php if ($is_confirmed == 1): ?>
                                                 <?php echo $confirmation;?>
