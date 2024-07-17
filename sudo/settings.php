@@ -1,5 +1,6 @@
-<?php
-include "header.php";
+<?php include "head.php";?>
+<title>iTasker | Settings</title>
+<?php include "navi.php";
 
 $message = ''; // Initialize an empty message variable
 $error_message = ''; // Initialize an empty error message variable

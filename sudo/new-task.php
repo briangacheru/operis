@@ -1,5 +1,5 @@
 <?php
-include "header.php";?>
+include "head.php";?>
 
     <?php
     if (isset($_SESSION['alert'])) {

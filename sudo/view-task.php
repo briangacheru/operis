@@ -1,5 +1,4 @@
-<?php
-include "header.php";
+<?php include "head.php";
 
 if (isset($_GET['task_id'])) {
     $encodedId = $_GET['task_id'];
@@ -19,29 +18,29 @@ $taskTopic = $taskSubject = $taskAccount = $taskCreatedOn = $taskStatus = $taskI
 $sql2 = "SELECT * FROM tbltasks WHERE id='$taskId'";
 $result = mysqli_query($con, $sql2);
 
-if ($row = mysqli_fetch_array($result)) {
-    $id = base64_encode($row["id"]);
-    $taskTopic = $row["topic"];
-    $taskSubject = $row["subject"];
-    $taskAccount = $row["account"];
-    $taskCreatedOn = $row["create_date"];
-    $taskStatus = $row["status"];
-    $taskIsPaid = $row["is_paid"];
-    $taskDescription = $row["description"];
-    $taskWriter = $row["writer"];
-    $taskWriterEmail = $row["email"];
-    $taskDueDate = $row["due_date"];
-    $taskCPP = $row["cpp"];
-    $taskPages = $row["pages"];
-    $existingFiles = $row['task_files']; // Assuming this contains comma-separated file paths
-    $submittedFiles = $row['submitted_files'];
-    $taskSubmitTime = $row['submitted_on'];
-    $submittedOn = $row['submitted_on'];
+if ($rowTask = mysqli_fetch_array($result)) {
+    $id = base64_encode($rowTask["id"]);
+    $taskTopic = $rowTask["topic"];
+    $taskSubject = $rowTask["subject"];
+    $taskAccount = $rowTask["account"];
+    $taskCreatedOn = $rowTask["create_date"];
+    $taskStatus = $rowTask["status"];
+    $taskIsPaid = $rowTask["is_paid"];
+    $taskDescription = $rowTask["description"];
+    $taskWriter = $rowTask["writer"];
+    $taskWriterEmail = $rowTask["email"];
+    $taskDueDate = $rowTask["due_date"];
+    $taskCPP = $rowTask["cpp"];
+    $taskPages = $rowTask["pages"];
+    $existingFiles = $rowTask['task_files']; // Assuming this contains comma-separated file paths
+    $submittedFiles = $rowTask['submitted_files'];
+    $taskSubmitTime = $rowTask['submitted_on'];
+    $submittedOn = $rowTask['submitted_on'];
 }
 
 // Determine badge based on task status
 $statusBadge = '';
-switch ($row["status"]) {
+switch ($rowTask["status"]) {
     case 'In Progress':
         $statusBadge = '<div class="badge rounded-pill badge-subtle-warning fs-11">In progress<span class="fas fa-stream ms-1" data-fa-transform="shrink-2"></span></div>';
         break;
@@ -61,14 +60,14 @@ switch ($row["status"]) {
         $statusBadge = '<div class="badge rounded-pill badge-subtle-success fs-11">Completed<span class="fas fa-check ms-1" data-fa-transform="shrink-2"></span></div>';
         break;
 }
-    // Correctly retrieve is_paid status from the row
-    $is_paid = $row['is_paid']; // Assuming 'is_paid' is the column name in your database
+    // Correctly retrieve is_paid status from the $rowTask
+    $is_paid = $rowTask['is_paid']; // Assuming 'is_paid' is the column name in your database
     // Determine badge based on payment status
     $statusBadgeClass = ($is_paid == 1) ? 'badge-subtle-success' : 'badge-subtle-warning';
     $statusBadgeText = ($is_paid == 1) ? 'Paid' : 'Unpaid';
     $statusBadgePay = "<span class='badge badge rounded-pill $statusBadgeClass'>$statusBadgeText</span>";
 
-    $is_confirmed = $row['is_confirmed']; // Assuming 'is_confirmed' is the column name in your database
+    $is_confirmed = $rowTask['is_confirmed']; // Assuming 'is_confirmed' is the column name in your database
     if ($is_confirmed == 0) {
         $confirmationClass = 'bg-light';
         $confirmationText = 'Confirmed';
@@ -83,18 +82,21 @@ switch ($row["status"]) {
 
 ?>
 
+<title>iTasker | View Task #<?php  echo $taskId;?></title>
+<?php include "navi.php";?>
+
     <div class="card shadow-none border mb-3">
         <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/illustrations/corner-6.png);">
         </div>
         <!--/.bg-holder-->
 
         <div class="card-header z-1">
-            <div class="row flex-between-center gx-0">
+            <div class="$rowTask flex-between-center gx-0">
                 <div class="col-lg-auto d-flex align-items-center">
                     <h4 class="mb-0 text-primary fw-bold">View <span class="text-info fw-medium">Task Details</span></h4>
                 </div>
                 <div class="col-lg-auto pt-3 pt-lg-0">
-                    <form class="row flex-lg-column flex-xxl-row gx-3 gy-2 align-items-center align-items-lg-start align-items-xxl-center">
+                    <form class="$rowTask flex-lg-column flex-xxl-$rowTask gx-3 gy-2 align-items-center align-items-lg-start align-items-xxl-center">
                         <div class="col-auto">
                         </div>
                         <div class="col-md-auto position-relative">
@@ -145,10 +147,10 @@ if (isset($_SESSION['alert'])) {
         <!--/.bg-holder-->
 
         <div class="card-body position-relative">
-            <div class="row g-2 align-items-sm-center">
+            <div class="$rowTask g-2 align-items-sm-center">
                 <div class="col-auto"><img src="../assets/img/icons/connect-circle.png" alt="" height="55" /></div>
                     <div class="col">
-                    <div class="row align-items-center">
+                    <div class="$rowTask align-items-center">
                         <div class="col col-lg-8">
                             <h5 class="mb-sm-0 text-primary fs-7">Task ID: <span class="text-info fw-medium">#<?php  echo $taskId;?></span></h5>
                             <p class="fw-semi-bold fs-10"><span class="me-1">Posted</span><span class="text-info ms-2"><?php  echo date("d M Y, g:i A", strtotime($taskCreatedOn));?></span>
@@ -162,18 +164,18 @@ if (isset($_SESSION['alert'])) {
                     </div>
                     </div>
                 <div class="d-flex align-items-center justify-content-between justify-content-lg-end px-x1">
-                    <a class="btn btn-sm btn-outline-primary" type="button" href="edit-task.php?task_id=<?php echo $encodedId; ?>" title="Edit Task">
+                    <a class="btn btn-sm btn-outline-primary" type="button" href="edit-task?task_id=<?php echo $encodedId; ?>" title="Edit Task">
                         <i class="fas fa-edit" aria-hidden="true"></i>
                         <span class="ms-1 d-none d-sm-inline-block">Edit Task</span>
                     </a>
                     <div class="bg-300 mx-3 d-none d-lg-block" style="width:1px; height:29px"></div>
                     <div class="d-flex align-items-center" id="table-ticket-replace-element">
-                        <a class="btn btn-outline-info btn-sm mx-2" type="button" href="duplicate-task.php?task_id=<?php echo $encodedId; ?>" title="Duplicate Task" onclick="return confirmDuplicate();">
+                        <a class="btn btn-outline-info btn-sm mx-2" type="button" href="duplicate-task?task_id=<?php echo $encodedId; ?>" title="Duplicate Task" onclick="return confirmDuplicate();">
                             <i class="fas fa-copy" aria-hidden="true"></i>
                             <span class="d-none d-sm-inline-block d-xl-none d-xxl-inline-block ms-1">Duplicate</span>
                         </a>
                         <a class="btn btn-outline-danger btn-sm mx-2" type="button" id="favorite-btn" onclick="toggleFavorite(<?php echo $taskId; ?>)">
-                            <i id="favorite-icon" class="fas <?php $is_favorite = $row['is_favorite']; echo ($is_favorite == 1) ? 'fa-heart' : 'fa-heart-broken'; ?>" aria-hidden="true"></i>
+                            <i id="favorite-icon" class="fas <?php $is_favorite = $rowTask['is_favorite']; echo ($is_favorite == 1) ? 'fa-heart' : 'fa-heart-broken'; ?>" aria-hidden="true"></i>
                             <span id="favorite-text" class="d-none d-sm-inline-block d-xl-none d-xxl-inline-block ms-1"><?php echo ($is_favorite == 1) ? 'Unfavorite' : 'Favorite'; ?></span>
                         </a>
                         <?php if ($taskStatus =='Submitted'): ?>
@@ -194,18 +196,18 @@ if (isset($_SESSION['alert'])) {
             </div>
             <!--/.bg-holder-->
 
-            <div class="row">
+            <div class="$rowTask">
                 <div class="card-body position-relative">
-                    <div class="row g-3 align-items-center">
+                    <div class="$rowTask g-3 align-items-center">
                         <div class="col">
-                            <div class="row align-items-center">
+                            <div class="$rowTask align-items-center">
                                 <div class="col col-sm-12">
                                     <h6 class="fw-semi-bold text-400 fs-9"><span class="fas fa-book text-white me-1"> </span><?php  echo $taskSubject;?></h6>
                                     <h2 class="fw-bold text-white"><?php  echo $taskTopic;?> </h2>
                                     <p class="text-white fw-semi-bold fs-10"><span class="me-1 fs-9">Due</span><span class="text-info ms-2 fs-10"><?php  echo date("d M Y, g:i A", strtotime($taskDueDate));?></span>
                                      </p>
                                     <?php
-                                    $due_date = new DateTime($row['due_date']);
+                                    $due_date = new DateTime($rowTask['due_date']);
                                     $currentDateTime = new DateTime(); // Assuming you've already got this
                                     $interval = $currentDateTime->diff($due_date);
                                     $isLate = ($due_date < $currentDateTime) ? true : false;
@@ -215,13 +217,13 @@ if (isset($_SESSION['alert'])) {
                                     $totalMinutes = $interval->i;
 
                                     // Format the difference as a string, and choose color based on whether it's late
-                                    if ($row['status'] == 'Completed') {
+                                    if ($rowTask['status'] == 'Completed') {
                                         $timeDiff = "<span style='font-weight: bold;'>Completed</span>";
-                                    } elseif ($row['status'] == 'Cancelled') {
+                                    } elseif ($rowTask['status'] == 'Cancelled') {
                                         $timeDiff = "<span style='font-weight: bold;'>Cancelled</span>";
-                                    } elseif ($row['status'] == 'Submitted') {
+                                    } elseif ($rowTask['status'] == 'Submitted') {
                                         $timeDiff = "<span style='font-weight: bold;'>Submitted</span>";
-                                    } elseif ($row['is_confirmed'] == 2) {
+                                    } elseif ($rowTask['is_confirmed'] == 2) {
                                         $timeDiff = "<span style='font-weight: bold;'>Declined</span>";
                                     } else {
                                         if ($isLate) {
@@ -236,7 +238,7 @@ if (isset($_SESSION['alert'])) {
                                     <?php elseif ($taskIsPaid = 1): ?>
                                         <?php echo $statusBadgePay; ?>
                                         <?php if ($is_paid == 1):
-                                            $paidOn = $row['paid_on'];
+                                            $paidOn = $rowTask['paid_on'];
                                             $paidDate = date("d M Y, g:i A", strtotime($paidOn));
                                             ?> <span class="text-info ms-2 fs-10"><?php echo $paidDate; ?></span>
                                         <?php endif; ?>
@@ -258,7 +260,7 @@ if (isset($_SESSION['alert'])) {
             </div>
         </div>
     </div>
-    <div class="row ">
+    <div class="$rowTask ">
         <div class="col-lg-12 order-1 order-lg-0">
             <div class="card mb-3">
                 <div class="card-header bg-body-tertiary">
@@ -288,7 +290,7 @@ if (isset($_SESSION['alert'])) {
     </div>
 
             <div class="col mb-3">
-                <div class="row g-3">
+                <div class="$rowTask g-3">
                     <div class="col-xxl-12">
                         <div class="card h-100 h-xxl-auto mt-xxl-3">
                             <div class="card-header d-flex flex-between-center bg-body-tertiary py-2">
@@ -313,7 +315,7 @@ if (isset($_SESSION['alert'])) {
                                         ?>
                                         <div class="d-flex mb-3 hover-actions-trigger align-items-center">
                                             <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
-                                            <div class="ms-3 flex-shrink-1 flex-grow-1">
+                                            <div class="ms-3 flex-shrink-1 flex-g$rowTask-1">
                                                 <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
                                                 <div class="fs-10"><span class="fw-semi-bold"><?php echo $fileSize; ?></span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                                 <!-- Add or adjust action buttons as necessary -->
@@ -338,7 +340,7 @@ if (isset($_SESSION['alert'])) {
             </div>
 
             <div class="col mb-3">
-                <div class="row g-3">
+                <div class="$rowTask g-3">
                     <div class="col-xxl-12">
                         <div class="card h-100 h-xxl-auto mt-xxl-3">
                             <div class="card-header d-flex flex-between-center bg-body-tertiary py-2">
@@ -364,7 +366,7 @@ if (isset($_SESSION['alert'])) {
                                         ?>
                                         <div class="d-flex mb-3 hover-actions-trigger align-items-center">
                                             <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
-                                            <div class="ms-3 flex-shrink-1 flex-grow-1">
+                                            <div class="ms-3 flex-shrink-1 flex-g$rowTask-1">
                                                 <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
                                                 <div class="fs-10"><span class="fw-semi-bold"><?php echo $submittedfileSize; ?></span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                                 <!-- Add or adjust action buttons as necessary -->
@@ -427,7 +429,7 @@ if (isset($_SESSION['alert'])) {
                     data: { task_id: encodedId },
                     success: function() {
                         // Redirect to the task details page after completing the task
-                        window.location.href = 'view-task.php?task_id=' + encodedId;
+                        window.location.href = 'view-task?task_id=' + encodedId;
                     },
                     error: function() {
                         alert('An error occurred while completing the task.');

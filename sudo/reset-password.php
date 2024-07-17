@@ -103,7 +103,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
                                     </div>
                                     <!--/.bg-holder-->
 
-                                    <div class="z-1 position-relative"><a class="link-light mb-4 font-sans-serif fs-5 d-inline-block fw-bolder" href="index.php">itasker</a>
+                                    <div class="z-1 position-relative"><a class="link-light mb-4 font-sans-serif fs-5 d-inline-block fw-bolder" href="index">itasker</a>
                                         <p class="opacity-75 text-white">With the power of itasker, you can effortlessly streamline your workflow and boost productivity!</p>
                                     </div>
                                 </div>
@@ -140,7 +140,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
                                                     <label for="floatingPassword">Confirm Password</label>
                                                 </div>
                                                 <button class="btn btn-primary d-block w-100 mt-3" type="submit" name="submit">Reset Password</button>
-                                            </form><a class="fs-10 text-600" href="login.php">Click here to login<span class="d-inline-block ms-1">&rarr;</span></a>
+                                            </form><a class="fs-10 text-600" href="login">Click here to login<span class="d-inline-block ms-1">&rarr;</span></a>
                                         </div>
                                     </div>
                                 </div>

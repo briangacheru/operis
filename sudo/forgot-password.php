@@ -136,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                     </div>
                                     <!--/.bg-holder-->
 
-                                    <div class="z-1 position-relative"><a class="link-light mb-4 font-sans-serif fs-5 d-inline-block fw-bolder" href="index.php">itasker</a>
+                                    <div class="z-1 position-relative"><a class="link-light mb-4 font-sans-serif fs-5 d-inline-block fw-bolder" href="index">itasker</a>
                                         <p class="opacity-75 text-white">With the power of itasker, you can effortlessly streamline your workflow and boost productivity!</p>
                                     </div>
                                 </div>
@@ -167,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                                 <input class="form-control" type="email" id="email" name="email" placeholder="Email address" value="<?= $_POST['email'] ?? "" ?>" required="required" />
                                                 <div class="mb-3"></div>
                                                 <button class="btn btn-primary d-block w-100 mt-3" type="submit" name="submit">Send reset link</button>
-                                            </form><a class="fs-10 text-600" href="login.php">Return to your account here.<span class="d-inline-block ms-1">&rarr;</span></a>
+                                            </form><a class="fs-10 text-600" href="login">Return to your account here.<span class="d-inline-block ms-1">&rarr;</span></a>
                                         </div>
                                     </div>
                                 </div>

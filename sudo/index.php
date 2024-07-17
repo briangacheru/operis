@@ -1,6 +1,4 @@
-<?php
-include "header.php";
-?>
+<?php include "head.php";?>
 <?php
 $aid = $_SESSION['odmsaid'];
 $sql = "SELECT * FROM tbladmin WHERE email=:aid";
@@ -11,9 +9,12 @@ $results = $query->fetchAll(PDO::FETCH_OBJ);
 $cnt = 1;
 
 if ($query->rowCount() > 0) {
-foreach ($results as $row) {
-if ($row->AdminName == "Admin") {
-?>
+    foreach ($results as $rowAdmin) {
+        if ($rowAdmin->AdminName == "Admin") {
+            ?>
+<title>iTasker | Dashboard - <?php echo $rowAdmin->username; ?></title>
+<?php include "navi.php";?>
+
 <div class="row  g-3 mb-3">
     <div class="col">
         <div class="card h-lg-100 overflow-hidden">
@@ -40,7 +41,7 @@ if ($row->AdminName == "Admin") {
                                     $greeting = 'Good Evening';
                                 }
                                 ?>
-                                <h3 class="text-primary mb-1"><?php echo $greeting; ?>, <span class="text-info"><?php echo $row->username; ?>!</span></h3>
+                                <h3 class="text-primary mb-1"><?php echo $greeting; ?>, <span class="text-info"><?php echo $rowAdmin->username; ?>!</span></h3>
                                 <p>Here’s what happening with your tasks today </p>
                             </div>
                             <div class="d-flex py-3">
@@ -52,8 +53,8 @@ if ($row->AdminName == "Admin") {
                                     $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND DATE(due_date) = CURDATE()";
                                     $result = mysqli_query($con, $query);
                                     if ($result) {
-                                        $row = mysqli_fetch_assoc($result);
-                                        $count = $row['taskCount'];
+                                        $rowAdmin = mysqli_fetch_assoc($result);
+                                        $count = $rowAdmin['taskCount'];
                                         if ($count > 0) {
                                             $todayTasks = $count; // Set the count to output variable
                                         } else {
@@ -93,8 +94,8 @@ if ($row->AdminName == "Admin") {
                             $query = "SELECT COUNT(*) as taskDeclined FROM tbltasks WHERE is_deleted = 0 AND (writer = 'Draft' OR status = 'Draft') AND is_confirmed = 2";
                             $result = mysqli_query($con, $query);
                             if ($result) {
-                                $row = mysqli_fetch_assoc($result);
-                                $count = $row['taskDeclined'];
+                                $rowAdmin = mysqli_fetch_assoc($result);
+                                $count = $rowAdmin['taskDeclined'];
                                 if ($count > 0) {
                                     $allDeclined = $count; // Set the count to output variable
                                 } else {
@@ -114,7 +115,7 @@ if ($row->AdminName == "Admin") {
                                             </div>
                                         </div>
                                         <div class="col-auto d-flex align-items-center">
-                                            <a class="fs-10 fw-medium text-warning-emphasis" href="drafts.php">
+                                            <a class="fs-10 fw-medium text-warning-emphasis" href="drafts">
                                                 View declined tasks<i class="fas fa-chevron-right ms-1 fs-11"></i>
                                             </a>
                                         </div>
@@ -131,7 +132,7 @@ if ($row->AdminName == "Admin") {
                                             <p class="fs-10 ps-2 mb-0"><strong><?php echo $lateTasksCount; ?> tasks</strong> are late</p>
                                         </div>
                                     </div>
-                                    <div class="col-auto d-flex align-items-center"><a class="fs-10 fw-medium text-warning-emphasis" href="tasks-in-progress.php">View late tasks<i class="fas fa-chevron-right ms-1 fs-11"></i></a></div>
+                                    <div class="col-auto d-flex align-items-center"><a class="fs-10 fw-medium text-warning-emphasis" href="tasks-in-progress">View late tasks<i class="fas fa-chevron-right ms-1 fs-11"></i></a></div>
                                 </div>
                             </li>
                             <?php endif; ?>
@@ -140,8 +141,8 @@ if ($row->AdminName == "Admin") {
                             $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed'";
                             $result = mysqli_query($con, $query);
                             if ($result) {
-                                $row = mysqli_fetch_assoc($result);
-                                $count = $row['taskCount'];
+                                $rowAdmin = mysqli_fetch_assoc($result);
+                                $count = $rowAdmin['taskCount'];
                                 if ($count > 0) {
                                     $allUnpaid = $count; // Set the count to output variable
                                 } else {
@@ -160,7 +161,7 @@ if ($row->AdminName == "Admin") {
                                             <p class="fs-10 ps-2 mb-0"><strong><?php echo $allUnpaid ?> tasks</strong> are unpaid</p>
                                         </div>
                                     </div>
-                                    <div class="col-auto d-flex align-items-center"><a class="fs-10 fw-medium" href="unpaid-tasks.php">View payments<i class="fas fa-chevron-right ms-1 fs-11"></i></a></div>
+                                    <div class="col-auto d-flex align-items-center"><a class="fs-10 fw-medium" href="unpaid-tasks">View payments<i class="fas fa-chevron-right ms-1 fs-11"></i></a></div>
                                 </div>
                             </li>
                             <?php endif; ?>
@@ -169,8 +170,8 @@ if ($row->AdminName == "Admin") {
                             $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Submitted'";
                             $result = mysqli_query($con, $query);
                             if ($result) {
-                                $row = mysqli_fetch_assoc($result);
-                                $count = $row['taskCount'];
+                                $rowAdmin = mysqli_fetch_assoc($result);
+                                $count = $rowAdmin['taskCount'];
                                 if ($count > 0) {
                                     $allSubmitted = $count; // Set the count to output variable
                                 } else {
@@ -189,7 +190,7 @@ if ($row->AdminName == "Admin") {
                                             <p class="fs-10 ps-2 mb-0"><strong><?php echo $allSubmitted?> tasks</strong> need to be completed</p>
                                         </div>
                                     </div>
-                                    <div class="col-auto d-flex align-items-center"><a class="fs-10 fw-medium text-success-emphasis" href="submitted-tasks.php">View submitted tasks<i class="fas fa-chevron-right ms-1 fs-11"></i></a></div>
+                                    <div class="col-auto d-flex align-items-center"><a class="fs-10 fw-medium text-success-emphasis" href="submitted-tasks">View submitted tasks<i class="fas fa-chevron-right ms-1 fs-11"></i></a></div>
                                 </div>
                             </li>
                             <?php endif; ?>
@@ -213,7 +214,7 @@ if ($row->AdminName == "Admin") {
                                             </div>
                                         </div>
                                         <div class="col-auto d-flex align-items-center">
-                                            <a class="fs-10 fw-medium text-warning-emphasis" href="settings.php">
+                                            <a class="fs-10 fw-medium text-warning-emphasis" href="settings">
                                                 Open registration<i class="fas fa-chevron-right ms-1 fs-11"></i>
                                             </a>
                                         </div>
@@ -240,7 +241,7 @@ if ($row->AdminName == "Admin") {
                                             </div>
                                         </div>
                                         <div class="col-auto d-flex align-items-center">
-                                            <a class="fs-10 fw-medium text-warning-emphasis" href="settings.php">
+                                            <a class="fs-10 fw-medium text-warning-emphasis" href="settings">
                                                 Open registration<i class="fas fa-chevron-right ms-1 fs-11"></i>
                                             </a>
                                         </div>
@@ -267,8 +268,8 @@ if ($row->AdminName == "Admin") {
                 $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0";
                 $result = mysqli_query($con, $query);
                 if ($result) {
-                    $row = mysqli_fetch_assoc($result);
-                    $count = $row['taskCount'];
+                    $rowAdmin = mysqli_fetch_assoc($result);
+                    $count = $rowAdmin['taskCount'];
                     if ($count > 0) {
                         $allTasks = $count; // Set the count to output variable
                     } else {
@@ -279,7 +280,7 @@ if ($row->AdminName == "Admin") {
                 }
                 ?>
                 <h6>All Tasks</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-warning" data-countup='{"endValue":<?php echo $allTasks; ?>,"decimalPlaces":0}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-warning" href="all-tasks.php">See tasks<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-warning" data-countup='{"endValue":<?php echo $allTasks; ?>,"decimalPlaces":0}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-warning" href="all-tasks">See tasks<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
     </div>
@@ -295,8 +296,8 @@ if ($row->AdminName == "Admin") {
                 $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND (writer = 'Draft' OR status = 'Draft')";
                 $result = mysqli_query($con, $query);
                 if ($result) {
-                    $row = mysqli_fetch_assoc($result);
-                    $count = $row['taskCount'];
+                    $rowAdmin = mysqli_fetch_assoc($result);
+                    $count = $rowAdmin['taskCount'];
                     if ($count > 0) {
                         $allDrafts = $count; // Set the count to output variable
                     } else {
@@ -307,7 +308,7 @@ if ($row->AdminName == "Admin") {
                 }
                 ?>
                 <h6>Draft Tasks</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $allDrafts; ?>,"decimalPlaces":0}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-info" href="draft-tasks.php">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $allDrafts; ?>,"decimalPlaces":0}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-info" href="draft-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
     </div>
@@ -323,8 +324,8 @@ if ($row->AdminName == "Admin") {
                 $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Unconfirmed'";
                 $result = mysqli_query($con, $query);
                 if ($result) {
-                    $row = mysqli_fetch_assoc($result);
-                    $count = $row['taskCount'];
+                    $rowAdmin = mysqli_fetch_assoc($result);
+                    $count = $rowAdmin['taskCount'];
                     if ($count > 0) {
                         $allUnconfirmed = $count; // Set the count to output variable
                     } else {
@@ -335,7 +336,7 @@ if ($row->AdminName == "Admin") {
                 }
                 ?>
                 <h6>Unconfirmed Tasks</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $allUnconfirmed; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap" href="unconfirmed.php">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $allUnconfirmed; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap" href="unconfirmed">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
     </div>
@@ -353,8 +354,8 @@ if ($row->AdminName == "Admin") {
                 $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND is_paid = 1";
                 $result = mysqli_query($con, $query);
                 if ($result) {
-                    $row = mysqli_fetch_assoc($result);
-                    $count = $row['taskCount'];
+                    $rowAdmin = mysqli_fetch_assoc($result);
+                    $count = $rowAdmin['taskCount'];
                     if ($count > 0) {
                         $allPaid = $count; // Set the count to output variable
                     } else {
@@ -365,7 +366,7 @@ if ($row->AdminName == "Admin") {
                 }
                 ?>
                 <h6>Paid Tasks</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-warning" data-countup='{"endValue":<?php echo $allPaid; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-warning" href="paid-tasks.php">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-warning" data-countup='{"endValue":<?php echo $allPaid; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-warning" href="paid-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
     </div>
@@ -381,8 +382,8 @@ if ($row->AdminName == "Admin") {
                 $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed'";
                 $result = mysqli_query($con, $query);
                 if ($result) {
-                    $row = mysqli_fetch_assoc($result);
-                    $count = $row['taskCount'];
+                    $rowAdmin = mysqli_fetch_assoc($result);
+                    $count = $rowAdmin['taskCount'];
                     if ($count > 0) {
                         $allUnpaid = $count; // Set the count to output variable
                     } else {
@@ -393,7 +394,7 @@ if ($row->AdminName == "Admin") {
                 }
                 ?>
                 <h6>Unpaid Tasks</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $allUnpaid; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-info" href="unpaid-tasks.php">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $allUnpaid; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-info" href="unpaid-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
     </div>
@@ -409,8 +410,8 @@ if ($row->AdminName == "Admin") {
                 $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 1";
                 $result = mysqli_query($con, $query);
                 if ($result) {
-                    $row = mysqli_fetch_assoc($result);
-                    $count = $row['taskCount'];
+                    $rowAdmin = mysqli_fetch_assoc($result);
+                    $count = $rowAdmin['taskCount'];
                     if ($count > 0) {
                         $allCancelled = $count; // Set the count to output variable
                     } else {
@@ -421,7 +422,7 @@ if ($row->AdminName == "Admin") {
                 }
                 ?>
                 <h6>Cancelled Tasks</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $allCancelled; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-primary" href="cancelled-tasks.php">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $allCancelled; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-primary" href="cancelled-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
     </div>
@@ -439,8 +440,8 @@ if ($row->AdminName == "Admin") {
                 $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress'";
                 $result = mysqli_query($con, $query);
                 if ($result) {
-                    $row = mysqli_fetch_assoc($result);
-                    $count = $row['taskCount'];
+                    $rowAdmin = mysqli_fetch_assoc($result);
+                    $count = $rowAdmin['taskCount'];
                     if ($count > 0) {
                         $allProgress = $count; // Set the count to output variable
                     } else {
@@ -451,7 +452,7 @@ if ($row->AdminName == "Admin") {
                 }
                 ?>
                 <h6>Tasks in progress</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-warning" data-countup='{"endValue":<?php echo $allProgress; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-warning" href="tasks-in-progress.php">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-warning" data-countup='{"endValue":<?php echo $allProgress; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-warning" href="tasks-in-progress">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
     </div>
@@ -467,8 +468,8 @@ if ($row->AdminName == "Admin") {
                 $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Submitted'";
                 $result = mysqli_query($con, $query);
                 if ($result) {
-                    $row = mysqli_fetch_assoc($result);
-                    $count = $row['taskCount'];
+                    $rowAdmin = mysqli_fetch_assoc($result);
+                    $count = $rowAdmin['taskCount'];
                     if ($count > 0) {
                         $allSubmitted = $count; // Set the count to output variable
                     } else {
@@ -479,7 +480,7 @@ if ($row->AdminName == "Admin") {
                 }
                 ?>
                 <h6>Submitted Tasks</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $allSubmitted; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-info" href="submitted-tasks.php">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $allSubmitted; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-info" href="submitted-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
     </div>
@@ -495,8 +496,8 @@ if ($row->AdminName == "Admin") {
                 $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed'";
                 $result = mysqli_query($con, $query);
                 if ($result) {
-                    $row = mysqli_fetch_assoc($result);
-                    $count = $row['taskCount'];
+                    $rowAdmin = mysqli_fetch_assoc($result);
+                    $count = $rowAdmin['taskCount'];
                     if ($count > 0) {
                         $allCompleted = $count; // Set the count to output variable
                     } else {
@@ -507,7 +508,7 @@ if ($row->AdminName == "Admin") {
                 }
                 ?>
                 <h6>Completed Tasks</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $allCompleted; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-primary" href="completed-tasks.php">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $allCompleted; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-primary" href="completed-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
     </div>
@@ -525,10 +526,10 @@ if ($row->AdminName == "Admin") {
                 $totalPaidRaw = 0; // Raw total for JavaScript
                 $query = mysqli_query($con, "SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE is_deleted = 0 AND is_paid = 1");
                 if ($query) {
-                    $row = mysqli_fetch_array($query);
-                    if ($row && $row['total'] !== null) {
-                        $totalPaidRaw = $row['total']; // Keep the raw total
-                        $totalPaidFormatted = 'Ksh. ' . number_format($row['total'], 2);
+                    $rowAdmin = mysqli_fetch_array($query);
+                    if ($rowAdmin && $rowAdmin['total'] !== null) {
+                        $totalPaidRaw = $rowAdmin['total']; // Keep the raw total
+                        $totalPaidFormatted = 'Ksh. ' . number_format($rowAdmin['total'], 2);
                     } else {
                         $totalPaidFormatted = 'Ksh. 0.00';
                     }
@@ -538,7 +539,7 @@ if ($row->AdminName == "Admin") {
                 ?>
                 <h6>Total Paid Amount</h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-warning" data-countup='{"endValue":<?php echo $totalPaidRaw; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div>
-                <a class="fw-semi-bold fs-10 text-nowrap text-warning" href="paid-tasks.php">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                <a class="fw-semi-bold fs-10 text-nowrap text-warning" href="paid-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
     </div>
@@ -554,10 +555,10 @@ if ($row->AdminName == "Admin") {
                 $totalUnPaidRaw = 0; // Raw total for JavaScript
                 $query = mysqli_query($con, "select sum(CPP*pages) as total  from tbltasks  WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed'");
                 if ($query) {
-                    $row = mysqli_fetch_array($query);
-                    if ($row && $row['total'] !== null) {
-                        $totalUnPaidRaw = $row['total']; // Keep the raw total
-                        $totalUnPaidFormatted = 'Ksh. ' . number_format($row['total'], 2);
+                    $rowAdmin = mysqli_fetch_array($query);
+                    if ($rowAdmin && $rowAdmin['total'] !== null) {
+                        $totalUnPaidRaw = $rowAdmin['total']; // Keep the raw total
+                        $totalUnPaidFormatted = 'Ksh. ' . number_format($rowAdmin['total'], 2);
                     } else {
                         $totalUnPaidFormatted = 'Ksh. 0.00';
                     }
@@ -567,7 +568,7 @@ if ($row->AdminName == "Admin") {
                 ?>
                 <h6>Total Unpaid Amount</h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $totalUnPaidRaw; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div>
-                <a class="fw-semi-bold fs-10 text-nowrap text-info" href="unpaid-tasks.php">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                <a class="fw-semi-bold fs-10 text-nowrap text-info" href="unpaid-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
     </div>
@@ -593,7 +594,7 @@ if ($row->AdminName == "Admin") {
                 $amount_due = $totalCompletedTasks - $totalOverdrafts;
                 ?>
                 <h6>Total Amount Due</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $amount_due; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-primary" href="completed-tasks.php">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $amount_due; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-primary" href="completed-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
     </div>
@@ -615,7 +616,7 @@ if ($row->AdminName == "Admin") {
                 ?>
                 <h6>Verified Users</h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-warning" data-countup='{"endValue":<?php echo htmlentities($totalusersquery);?>}'>0</div>
-                <a class="fw-semi-bold fs-10 text-nowrap text-warning" href="usermanagement.php">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                <a class="fw-semi-bold fs-10 text-nowrap text-warning" href="usermanagement">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
     </div>
@@ -631,10 +632,10 @@ if ($row->AdminName == "Admin") {
                 $totalOverDraftsRaw = 0; // Raw total for JavaScript
                 $query = mysqli_query($con, "select sum(amount) as totalDraft  from tbloverdrafts  WHERE is_settled = 0");
                 if ($query) {
-                    $row = mysqli_fetch_array($query);
-                    if ($row && $row['totalDraft'] !== null) {
-                        $totalOverDraftsRaw = $row['totalDraft']; // Keep the raw total
-                        $totalOverDraftsFormatted = 'Ksh. ' . number_format($row['totalDraft'], 2);
+                    $rowAdmin = mysqli_fetch_array($query);
+                    if ($rowAdmin && $rowAdmin['totalDraft'] !== null) {
+                        $totalOverDraftsRaw = $rowAdmin['totalDraft']; // Keep the raw total
+                        $totalOverDraftsFormatted = 'Ksh. ' . number_format($rowAdmin['totalDraft'], 2);
                     } else {
                         $totalOverDraftsFormatted = 'Ksh. 0.00';
                     }
@@ -644,7 +645,7 @@ if ($row->AdminName == "Admin") {
                 ?>
                 <h6>Total Total Overdraft Amount</h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $totalOverDraftsRaw; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div>
-                <a class="fw-semi-bold fs-10 text-nowrap text-info" href="overdraft.php">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                <a class="fw-semi-bold fs-10 text-nowrap text-info" href="overdraft">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
     </div>
@@ -664,7 +665,7 @@ if ($row->AdminName == "Admin") {
                 ?>
                 <h6>Total Writers</h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo htmlentities($totalusersquery);?>}'>0</div>
-                <a class="fw-semi-bold fs-10 text-nowrap text-primary" href="usermanagement.php">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                <a class="fw-semi-bold fs-10 text-nowrap text-primary" href="usermanagement">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
     </div>
@@ -678,7 +679,7 @@ if ($row->AdminName == "Admin") {
         <h4 class="alert-heading">Notification</h4>
         <p>Your account needs to be verified first</p>
             <hr>
-            <p class="mb-0">Update your <a href="profile.php">Profile</a> in the mean time.</p>
+            <p class="mb-0">Update your <a href="profile">Profile</a> in the mean time.</p>
     </div>
 </div>';}}}?>
 

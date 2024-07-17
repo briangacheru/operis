@@ -86,7 +86,7 @@ if (isset($_GET['task_id']) && isset($_GET['action'])) {
                                 </div>';
     }
 
-    header('Location: view-task.php?task_id=' . $encodedId);
+    header('Location: view-task?task_id=' . $encodedId);
     exit();
 } else {
     $_SESSION['alert'] = '<div class="alert alert-danger border-0 d-flex align-items-center" role="alert">

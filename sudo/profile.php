@@ -1,6 +1,6 @@
-<?php
-include "header.php";
-?>
+<?php include "head.php";?>
+    <title>iTasker | My Profile</title>
+<?php include "navi.php";?>
 
 <?php
 $allCompleted = "";
@@ -113,7 +113,7 @@ if($query->rowCount() > 0)
                   </h4>
                   <h5 class="fs-9 fw-normal text-primary"><?php  echo $row->email;?> </h5>
                   <p class="text-500"><?php  echo $row->MobileNumber;?></p>
-                  <a class="btn btn-outline-primary btn-sm px-3" type="button" href="settings.php">Edit Profile</a>
+                  <a class="btn btn-outline-primary btn-sm px-3" type="button" href="settings">Edit Profile</a>
                   <div class="border-bottom border-dashed my-4 d-lg-none"></div>
                 </div>
                 <div class="col ps-2 ps-lg-5"><div class="d-flex align-items-center mb-2" href="#"><span class="fas fa-user-secret fs-8 me-2 text-info" title="Member Since" data-fa-transform="grow-2"></span>

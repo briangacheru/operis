@@ -26,6 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->close();
 }
 
-header('Location: view-task.php?task_id=' . $encodedId); // Redirect to the task details page with the encoded task ID
+header('Location: view-task?task_id=' . $encodedId); // Redirect to the task details page with the encoded task ID
 exit;
 ?>

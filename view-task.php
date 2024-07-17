@@ -1,5 +1,5 @@
 <?php
-include "header.php";
+include "head.php";
 
 if (isset($_GET['task_id'])) {
     $encodedId = $_GET['task_id'];
@@ -19,30 +19,30 @@ $taskTopic = $taskSubject = $taskAccount = $taskCreatedOn = $taskStatus = $taskI
 $sql2 = "SELECT * FROM tbltasks WHERE id='$taskId'";
 $result = mysqli_query($con, $sql2);
 
-if ($row = mysqli_fetch_array($result)) {
-    $id = base64_encode($row["id"]);
-    $taskTopic = $row["topic"];
-    $taskSubject = $row["subject"];
-    $taskAccount = $row["account"];
-    $taskCreatedOn = $row["create_date"];
-    $taskStatus = $row["status"];
-    $taskIsPaid = $row["is_paid"];
-    $taskIsConfirmed = $row["is_confirmed"];
-    $taskDescription = $row["description"];
-    $taskWriter = $row["writer"];
-    $taskWriterEmail = $row["email"];
-    $taskDueDate = $row["due_date"];
-    $taskCPP = $row["cpp"];
-    $taskPages = $row["pages"];
-    $existingFiles = $row['task_files']; // Assuming this contains comma-separated file paths
-    $submittedFiles = $row['submitted_files'];
-    $taskSubmitTime = $row['submitted_on'];
-    $submittedOn = $row['submitted_on'];
+if ($rowTask = mysqli_fetch_array($result)) {
+    $id = base64_encode($rowTask["id"]);
+    $taskTopic = $rowTask["topic"];
+    $taskSubject = $rowTask["subject"];
+    $taskAccount = $rowTask["account"];
+    $taskCreatedOn = $rowTask["create_date"];
+    $taskStatus = $rowTask["status"];
+    $taskIsPaid = $rowTask["is_paid"];
+    $taskIsConfirmed = $rowTask["is_confirmed"];
+    $taskDescription = $rowTask["description"];
+    $taskWriter = $rowTask["writer"];
+    $taskWriterEmail = $rowTask["email"];
+    $taskDueDate = $rowTask["due_date"];
+    $taskCPP = $rowTask["cpp"];
+    $taskPages = $rowTask["pages"];
+    $existingFiles = $rowTask['task_files']; // Assuming this contains comma-separated file paths
+    $submittedFiles = $rowTask['submitted_files'];
+    $taskSubmitTime = $rowTask['submitted_on'];
+    $submittedOn = $rowTask['submitted_on'];
 }
 
 // Determine badge based on task status
 $statusBadge = '';
-switch ($row["status"]) {
+switch ($rowTask["status"]) {
     case 'In Progress':
         $statusBadge = '<div class="badge rounded-pill badge-subtle-warning fs-11">In progress<span class="fas fa-stream ms-1" data-fa-transform="shrink-2"></span></div>';
         break;
@@ -63,19 +63,22 @@ switch ($row["status"]) {
         break;
 }
 // Correctly retrieve is_paid status from the row
-$is_paid = $row['is_paid']; // Assuming 'is_paid' is the column name in your database
+$is_paid = $rowTask['is_paid']; // Assuming 'is_paid' is the column name in your database
 
 // Determine badge based on payment status
 $statusBadgeClass = ($is_paid == 1) ? 'bg-success' : 'bg-warning';
 $statusBadgeText = ($is_paid == 1) ? 'Paid' : 'Unpaid';
 $statusBadgePay = "<span class='badge $statusBadgeClass'>$statusBadgeText</span>";
 
-$is_confirmed = $row['is_confirmed']; // Assuming 'is_paid' is the column name in your database
+$is_confirmed = $rowTask['is_confirmed']; // Assuming 'is_paid' is the column name in your database
 $confirmationClass = ($is_confirmed == 0) ? 'bg-light' : 'bg-primary';
 $confirmationText = ($is_confirmed == 0) ? 'Confirmed' : 'Unconfirmed';
 $confirmation = "<span class='badge $confirmationClass'>$confirmationText</span>";
 
 ?>
+
+    <title>View Task #<?php  echo $taskId;?> | iTasker</title>
+<?php include "navi.php";?>
 
     <div class="card shadow-none border mb-3">
         <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(assets/img/illustrations/corner-6.png);">
@@ -155,12 +158,12 @@ if (isset($_SESSION['alert'])) {
                         </div>
                         <div class="col-12 col-sm-auto ms-auto">
                             <?php if ($taskStatus == 'In Progress'): ?>
-                                <a class="btn btn-outline-primary btn-lg fs-9" href="submission.php?task_id=<?php echo $encodedId; ?>#filesSubmission">Submit Task</a>
+                                <a class="btn btn-outline-primary btn-lg fs-9" href="submission?task_id=<?php echo $encodedId; ?>#filesSubmission">Submit Task</a>
                             <?php elseif ($is_confirmed == 1): ?>
                                 <a class="btn btn-outline-success btn-sm fs-10" href="#" onclick="confirmAction('<?php echo $encodedId; ?>', 'accept')">Accept Task</a>
                                 <a class="btn btn-outline-danger btn-sm fs-10" href="#" onclick="confirmAction('<?php echo $encodedId; ?>', 'decline')">Decline Task</a>
                             <?php elseif ($taskStatus == 'Submitted'): ?>
-                                <a class="btn btn-outline-primary btn-lg fs-9" href="submission.php?task_id=<?php echo $encodedId; ?>#filesSubmission">Resubmit Task</a>
+                                <a class="btn btn-outline-primary btn-lg fs-9" href="#" onclick="confirmAction('<?php echo $encodedId; ?>', 'resubmit')">Resubmit Task</a>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -186,7 +189,7 @@ if (isset($_SESSION['alert'])) {
                                     <p class="text-white fw-semi-bold fs-10"><span class="me-1 fs-9">Due</span><span class="text-info ms-2 fs-10"><?php  echo date("d M Y, g:i A", strtotime($taskDueDate));?></span>
                                      </p>
                                     <?php
-                                    $due_date = new DateTime($row['due_date']);
+                                    $due_date = new DateTime($rowTask['due_date']);
                                     $currentDateTime = new DateTime(); // Assuming you've already got this
                                     $interval = $currentDateTime->diff($due_date);
                                     $isLate = ($due_date < $currentDateTime) ? true : false;
@@ -207,7 +210,7 @@ if (isset($_SESSION['alert'])) {
                                     <?php elseif ($taskIsPaid = 1): ?>
                                         <?php echo $statusBadgePay; ?>
                                         <?php if ($is_paid == 1):
-                                            $paidOn = $row['paid_on'];
+                                            $paidOn = $rowTask['paid_on'];
                                             $paidDate = date("d M Y, g:i A", strtotime($paidOn));
                                             ?> <span class="text-info ms-2 fs-10"><?php echo $paidDate; ?></span>
                                         <?php endif; ?>
@@ -358,12 +361,19 @@ if (isset($_SESSION['alert'])) {
 
     <script>
         function confirmAction(taskId, action) {
-            let actionText = action === 'accept' ? 'accept' : 'decline';
-            if (confirm(`Are you sure you want to ${actionText} this task?`)) {
-                window.location.href = `confirmation.php?task_id=${taskId}&action=${action}`;
+            if (action === 'accept' || action === 'decline') {
+                let actionText = action === 'accept' ? 'accept' : 'decline';
+                if (confirm(`Are you sure you want to ${actionText} this task?`)) {
+                    window.location.href = `confirmation?task_id=${taskId}&action=${action}`;
+                }
+            } else if (action === 'resubmit') {
+                if (confirm('Are you sure you want to resubmit this task?')) {
+                    window.location.href = `resubmission?task_id=${taskId}#filesResubmission`;
+                }
             }
         }
     </script>
+
 <?php
 include "footer.php";
 ?>

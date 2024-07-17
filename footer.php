@@ -10,7 +10,7 @@
 </footer>
 </div>
 <div class="modal fade" id="overdraft-view-modal" tabindex="-1" role="dialog" aria-labelledby="authentication-modal-label" aria-hidden="true">
-    <div class="modal-dialog mt-6" role="document">
+    <div class="modal-dialog" role="document">
         <div class="modal-content border-0">
             <div class="modal-header px-5 position-relative modal-shape-header bg-shape">
                 <div class="position-relative z-1">

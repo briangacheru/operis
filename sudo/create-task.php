@@ -1,7 +1,6 @@
-<?php
-include "header.php";
-
-?>
+<?php include "head.php";?>
+<title>iTasker | Create New Task</title>
+<?php include "navi.php";?>
 
     <div id="alert-container"></div>
 
@@ -409,7 +408,7 @@ include "header.php";
                         const message = encodeURIComponent(data.message);
                         const emailSentMessage = data.emailSent ? 'Email sent successfully.' : 'Email sending failed.';
                         const fullMessage = `${data.message} ${emailSentMessage}`;
-                        window.location.href = `view-task.php?task_id=${data.task_id}&message=${encodeURIComponent(fullMessage)}`;
+                        window.location.href = `view-task?task_id=${data.task_id}&message=${encodeURIComponent(fullMessage)}`;
                     } else if (data.status === 'error') {
                         displayBootstrapAlert(`Failed to submit the form: ${data.message}`, 'danger');
                         resetButton();

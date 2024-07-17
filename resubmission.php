@@ -78,7 +78,7 @@ $confirmation = "<span class='badge $confirmationClass'>$confirmationText</span>
 
 ?>
 
-    <title>Task #<?php  echo $taskId;?> Submission | iTasker</title>
+    <title>Task #<?php  echo $taskId;?> Resubmission | iTasker</title>
 <?php include "navi.php";?>
 
     <div class="card shadow-none border mb-3">
@@ -351,7 +351,7 @@ if (isset($_SESSION['alert'])) {
     </div>
     <div id="alertPlaceholder"></div>
     <form class="needs-validation" novalidate="novalidate" id="taskForm" method="post" action="submission_upload.php" enctype="multipart/form-data">
-        <div class="card mb-3" id="filesSubmission">
+        <div class="card mb-3" id="filesResubmission">
             <div class="card-header bg-body-tertiary">
                 <h6 class="mb-0">Submit file(s)</h6>
             </div>

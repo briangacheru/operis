@@ -1,5 +1,5 @@
 <?php
-include "header.php";
+include "head.php";
 ?>
 
 <?php
@@ -7,8 +7,8 @@ $allCompleted = "";
 $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND email ='$aid'";
 $result = mysqli_query($con, $query);
 if ($result) {
-    $row = mysqli_fetch_assoc($result);
-    $count = $row['taskCount'];
+    $rowProfile = mysqli_fetch_assoc($result);
+    $count = $rowProfile['taskCount'];
     if ($count > 0) {
         $allCompleted = $count; // Set the count to output variable
     } else {
@@ -24,8 +24,8 @@ $allProgress = "";
 $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND email ='$aid'";
 $result = mysqli_query($con, $query);
 if ($result) {
-    $row = mysqli_fetch_assoc($result);
-    $count = $row['taskCount'];
+    $rowProfile = mysqli_fetch_assoc($result);
+    $count = $rowProfile['taskCount'];
     if ($count > 0) {
         $allProgress = $count; // Set the count to output variable
     } else {
@@ -41,10 +41,10 @@ $totalPaidFormatted = "No data"; // Default message if the query fails
 $totalPaidRaw = 0; // Raw total for JavaScript
 $query = mysqli_query($con, "SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE is_deleted = 0 AND is_paid = 1 AND email ='$aid'");
 if ($query) {
-    $row = mysqli_fetch_array($query);
-    if ($row && $row['total'] !== null) {
-        $totalPaidRaw = $row['total']; // Keep the raw total
-        $totalPaidFormatted = 'Ksh. ' . number_format($row['total'], 2);
+    $rowProfile = mysqli_fetch_array($query);
+    if ($rowProfile && $rowProfile['total'] !== null) {
+        $totalPaidRaw = $rowProfile['total']; // Keep the raw total
+        $totalPaidFormatted = 'Ksh. ' . number_format($rowProfile['total'], 2);
     } else {
         $totalPaidFormatted = 'Ksh. 0.00';
     }
@@ -63,29 +63,31 @@ $results=$query->fetchAll(PDO::FETCH_OBJ);
 $cnt=1;
 if($query->rowCount() > 0)
 {
-    foreach($results as $row)
+    foreach($results as $rowProfile)
     {
         ?>
+        <title>My Profile | iTasker</title>
+        <?php include "navi.php";?>
           <div class="card mb-3">
             <div class="card-header position-relative min-vh-25 mb-7">
-                <?php if ($row->coverImage == "1.jpg") { ?>
+                <?php if ($rowProfile->coverImage == "1.jpg") { ?>
                 <div class="bg-holder rounded-3 rounded-bottom-0" style="background-image:url(profileimages/1.jpg);">
                 <?php } else { ?>
-                    <div class="bg-holder rounded-3 rounded-bottom-0" style="background-image:url('profileimages/<?php echo $row->coverImage; ?>');">
+                    <div class="bg-holder rounded-3 rounded-bottom-0" style="background-image:url('profileimages/<?php echo $rowProfile->coverImage; ?>');">
                 <?php } ?>
               </div>
               <!--/.bg-holder-->
 
               <div class="avatar avatar-5xl avatar-profile">
                   <?php
-                  if($row->Photo=="avatar.png")
+                  if($rowProfile->Photo=="avatar.png")
                   {
                       ?>
                       <img class="rounded-circle img-thumbnail shadow-sm" src="assets/img/team/avatar.png" width="200" alt="" />
                       <?php
                   } else {
                       ?>
-                      <img class="rounded-circle img-thumbnail shadow-sm" src="profileimages/<?php  echo $row->Photo;?>" width="200" alt="">
+                      <img class="rounded-circle img-thumbnail shadow-sm" src="profileimages/<?php  echo $rowProfile->Photo;?>" width="200" alt="">
                       <?php
                   } ?>
               </div>
@@ -93,9 +95,9 @@ if($query->rowCount() > 0)
             <div class="card-body">
               <div class="row">
                 <div class="col-lg-6">
-                  <h4 class="mb-1 text-info"> <?php  echo $row->FirstName;?> <?php  echo $row->LastName;?>
+                  <h4 class="mb-1 text-info"> <?php  echo $rowProfile->FirstName;?> <?php  echo $rowProfile->LastName;?>
                       <?php
-                      if($row->is_verified == 1)
+                      if($rowProfile->is_verified == 1)
                       {
                           ?>
                       <span data-bs-toggle="tooltip" data-bs-placement="right" title="Verified">
@@ -111,15 +113,15 @@ if($query->rowCount() > 0)
                       } ?>
 
                   </h4>
-                  <h5 class="fs-9 fw-normal text-primary"><?php  echo $row->email;?> </h5>
-                  <p class="text-500"><?php  echo $row->phone;?></p>
-                  <a class="btn btn-outline-primary btn-sm px-3" type="button" href="settings.php">Edit Profile</a>
+                  <h5 class="fs-9 fw-normal text-primary"><?php  echo $rowProfile->email;?> </h5>
+                  <p class="text-500"><?php  echo $rowProfile->username;?> | <?php  echo $rowProfile->phone;?></p>
+                  <a class="btn btn-outline-primary btn-sm px-3" type="button" href="settings">Edit Profile</a>
                   <div class="border-bottom border-dashed my-4 d-lg-none"></div>
                 </div>
                 <div class="col ps-2 ps-lg-5"><div class="d-flex align-items-center mb-2" href="#"><span class="fas fa-user-secret fs-8 me-2 text-info" title="Member Since" data-fa-transform="grow-2"></span>
                     <div class="flex-1">
                       <h6 class="mb-0 text-primary"><?php
-                          $adminRegDate = $row->created_at;
+                          $adminRegDate = $rowProfile->created_at;
                           $formattedDate = date("jS F, Y", strtotime($adminRegDate));
                           echo $formattedDate;
                               ?>

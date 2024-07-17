@@ -1,5 +1,5 @@
 <?php
-include "header.php";
+include "head.php";
 
 // Fetch tasks from the database
 $query = mysqli_query($con, "SELECT id, topic, due_date, status FROM tbltasks WHERE is_deleted = 0 AND email = '$aid' AND status != 'Draft'");
@@ -28,7 +28,8 @@ while ($row = mysqli_fetch_assoc($query)) {
 $tasksJson = json_encode($tasks);
 ?>
 
-
+<title>Tasks Calendar | iTasker</title>
+<?php include "navi.php";?>
 
 <div class="card shadow-none border mb-3">
     <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(assets/img/illustrations/corner-6.png);"></div>
@@ -101,7 +102,7 @@ include "footer.php";
 
                 // Set the link to view the task
                 var viewTaskLink = document.getElementById('viewTaskLink');
-                viewTaskLink.href = 'view-task.php?task_id=' + btoa(info.event.id);
+                viewTaskLink.href = 'view-task?task_id=' + btoa(info.event.id);
 
                 var taskModal = new bootstrap.Modal(document.getElementById('taskModal'));
                 taskModal.show();

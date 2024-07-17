@@ -3091,7 +3091,7 @@ class PHPMailer
                 $signed = tempnam(sys_get_temp_dir(), 'mailsign');
                 file_put_contents($file, $body);
 
-                //Workaround for PHP bug https://bugs.php.net/bug.php?id=69197
+                //Workaround for PHP bug https://bugs.php.net/bug?id=69197
                 if (empty($this->sign_extracerts_file)) {
                     $sign = @openssl_pkcs7_sign(
                         $file,
@@ -3634,7 +3634,7 @@ class PHPMailer
      * without breaking lines within a character.
      * Adapted from a function by paravoid.
      *
-     * @see http://www.php.net/manual/en/function.mb-encode-mimeheader.php#60283
+     * @see http://www.php.net/manual/en/function.mb-encode-mimehead.php#60283
      *
      * @param string $str       multi-byte text to wrap encode
      * @param string $linebreak string to use as linefeed/end-of-line

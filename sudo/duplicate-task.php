@@ -30,7 +30,7 @@ if (isset($_GET['task_id'])) {
         if (mysqli_query($con, $duplicateQuery)) {
             $newTaskId = mysqli_insert_id($con); // Get the ID of the new task
             $encodedId = base64_encode($newTaskId);
-            header("Location: view-task.php?task_id=$encodedId&message=Task duplicated successfully"); // Redirect to the new task
+            header("Location: view-task?task_id=$encodedId&message=Task duplicated successfully"); // Redirect to the new task
             exit;
         } else {
             echo "Error duplicating task: " . mysqli_error($con);

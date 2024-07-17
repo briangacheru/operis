@@ -1,5 +1,5 @@
 <?php
-include "header.php";
+include "head.php";
 
 $message = ''; // Initialize an empty message variable
 $error_message = ''; // Initialize an empty error message variable
@@ -147,6 +147,8 @@ if (isset($_POST['update_password'])) {
     }
 }
 ?>
+<title>Settings | iTasker</title>
+<?php include "navi.php";?>
 
 <div class="row">
     <div class="col-12">

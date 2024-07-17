@@ -1,5 +1,5 @@
 <?php
-include "header.php";
+include "head.php";
 ?>
     <div class="alert alert-success border-0 d-flex align-items-center" role="alert">
         <div class="bg-success me-3 icon-item"><span class="fas fa-check-circle text-white fs-6"></span></div>

@@ -1,5 +1,5 @@
 <?php
-include "header.php";
+include "head.php";
 
 // Check session and set user ID
 if (isset($_SESSION['sessionWriter'])) {
@@ -163,7 +163,7 @@ usort($users, function($a, $b) {
     }
 
     function fetchMessages(userId, userType, index) {
-        fetch(`fetch_messages.php?user_id=${userId}&user_type=${userType}`)
+        fetch(`fetch_messages?user_id=${userId}&user_type=${userType}`)
             .then(response => response.json())
             .then(messages => {
                 const chatContent = document.getElementById(`chat-content-${userId}`);

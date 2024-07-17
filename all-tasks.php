@@ -1,5 +1,5 @@
 <?php
-include "header.php";
+include "head.php";
 
 $status = "OK";
 $msg = "";
@@ -48,6 +48,9 @@ if (isset($_GET['del'])) {
 }
 
 ?>
+
+    <title>All Tasks | iTasker</title>
+<?php include "navi.php";?>
 
     <div class="card shadow-none border mb-3">
         <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(assets/img/illustrations/corner-6.png);">
@@ -193,7 +196,7 @@ if (isset($_GET['del'])) {
                                                 </div>
                                             </td>
                                             <td class="align-middle white-space-nowrap fw-semi-bold name"><?php echo $row["id"];?></td>
-                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><a href="view-task.php?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></td>
+                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><a href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></td>
                                             <td class="align-middle white-space-nowrap product"><?php echo $statusBadge;?>
                                             <?php if ($is_confirmed == 1): ?>
                                                 <?php echo $confirmation;?>
@@ -207,7 +210,7 @@ if (isset($_GET['del'])) {
 
                                             <td class="align-middle white-space-nowrap text-end position-relative">
                                                 <div class="hover-actions bg-100">
-                                                    <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="view-task.php?task_id=<?php echo $encodedId; ?>" title="View task" ><span class="far fa-eye"></span></a>
+                                                    <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="view-task?task_id=<?php echo $encodedId; ?>" title="View task" ><span class="far fa-eye"></span></a>
                                                 </div>
                                                 <div class="dropdown font-sans-serif btn-reveal-trigger">
                                                     <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal-sm transition-none" type="button" id="crm-recent-leads-4" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-chevron-left fs-11"></span></button>

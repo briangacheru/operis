@@ -1,5 +1,6 @@
-<?php
-include "header.php";
+<?php include "head.php";?>
+<title>iTasker | Chat</title>
+<?php include "navi.php";
 
 // Check session and set user ID
 if (isset($_SESSION['odmsaid'])) {
@@ -213,7 +214,7 @@ usort($users, function($a, $b) {
     }
 
     function fetchMessages(userId, userType, index) {
-        fetch(`fetch_messages.php?user_id=${userId}&user_type=${userType}`)
+        fetch(`fetch_messages?user_id=${userId}&user_type=${userType}`)
             .then(response => response.json())
             .then(messages => {
                 updateChatContent(userId, messages, index);
@@ -288,7 +289,7 @@ usort($users, function($a, $b) {
     }
 
     function pollMessages() {
-        fetch(`poll_messages.php?last_timestamp=${lastTimestamp}`)
+        fetch(`poll_messages?last_timestamp=${lastTimestamp}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -340,7 +341,7 @@ usort($users, function($a, $b) {
 
 
     function updateReadStatus(userId) {
-        fetch(`update_read_status.php?user_id=${userId}`)
+        fetch(`update_read_status?user_id=${userId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {

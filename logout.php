@@ -57,7 +57,7 @@ if (isset($_REQUEST['logout'])) {
     setcookie('PHPSESSID', '', time() - 3600, '/', '', isset($_SERVER["HTTPS"]), true);
 
     // Redirect to the login page
-    header('Location: logout.php');
+    header('Location: logout');
     exit();
 }
 ?>
@@ -137,7 +137,7 @@ if (isset($_REQUEST['logout'])) {
                                     </div>
                                     <!--/.bg-holder-->
 
-                                    <div class="z-1 position-relative"><a class="link-light mb-4 font-sans-serif fs-5 d-inline-block fw-bolder" href="index.html">itasker</a>
+                                    <div class="z-1 position-relative"><a class="link-light mb-4 font-sans-serif fs-5 d-inline-block fw-bolder" href="index">itasker</a>
                                         <p class="opacity-75 text-white">With the power of itasker, you can effortlessly streamline your workflow and boost productivity!</p>
                                     </div>
                                 </div>
@@ -149,7 +149,7 @@ if (isset($_REQUEST['logout'])) {
                                 <div class="p-4 p-md-5 flex-grow-1">
                                     <div class="text-center"><img class="d-block mx-auto mb-4" src="assets/img/icons/spot-illustrations/45.png" alt="shield" width="100" />
                                         <h3>See you again!</h3>
-                                        <p>Thanks for using itasker. You are <br />now successfully signed out.</p><a class="btn btn-primary btn-sm mt-3" href="login.php"><span class="fas fa-chevron-left me-1" data-fa-transform="shrink-4 down-1"></span>Return to Login</a>
+                                        <p>Thanks for using itasker. You are <br />now successfully signed out.</p><a class="btn btn-primary btn-sm mt-3" href="login"><span class="fas fa-chevron-left me-1" data-fa-transform="shrink-4 down-1"></span>Return to Login</a>
                                     </div>
                                 </div>
                             </div>

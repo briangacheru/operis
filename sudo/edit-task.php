@@ -1,5 +1,4 @@
-<?php
-include "header.php";
+<?php include "head.php";
 
 if (isset($_GET['task_id'])) {
     $encodedId = $_GET['task_id'];
@@ -38,9 +37,9 @@ if ($row = mysqli_fetch_array($result)) {
     $taskDuplicate = $row["is_duplicate"];
 
 }
-
 ?>
-
+<title>iTasker | Edit Task #<?php  echo $taskId;?></title>
+<?php include "navi.php";?>
 <div id="alert-container"></div>
 
 <div class="card shadow-none border mb-3">
@@ -506,9 +505,9 @@ if ($row = mysqli_fetch_array($result)) {
                         // Display a success alert
                         //displayBootstrapAlert('Task created successfully.', 'success');
                         // Optionally, redirect or clear the form here
-                        //window.location.href = `view-task.php?task_id=${data.task_id}`;
+                        //window.location.href = `view-task?task_id=${data.task_id}`;
                         const message = encodeURIComponent(data.message);
-                        window.location.href = `view-task.php?task_id=${data.task_id}&message=${message}`;
+                        window.location.href = `view-task?task_id=${data.task_id}&message=${message}`;
                     } else if (data.status === 'error') {
                         // Display an error alert with the message from the PHP script
                         displayBootstrapAlert(`Failed to update the form: ${data.message}`, 'danger');

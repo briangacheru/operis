@@ -1,5 +1,6 @@
-<?php
-include "header.php";
+<?php include "head.php";?>
+    <title>iTasker | Overdraft</title>
+<?php include "navi.php";
 
 $status = "OK";
 $msg = "";
@@ -304,7 +305,7 @@ if (isset($_GET['delete'])) {
                                                     <td class="align-middle white-space-nowrap text-end position-relative">
                                                         <div class="hover-actions bg-100">
                                                             <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" href="#overdraft-view-modal" title="Edit task" data-id="<?php echo $row['id']; ?>" data-writer="<?php echo $row['writer']; ?>" data-amount="<?php echo $row['amount']; ?>" data-date="<?php echo $row['od_date']; ?>"><span class="far fa-edit"></span></a>
-                                                            <a class="btn bg-danger-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="overdraft.php?delete=<?php echo $encodedId; ?>" title="Cancel Overdraft" onclick="return confirm('Do you really want to cancel overdraft?');"><span class="fas fa-trash"></span></a>
+                                                            <a class="btn bg-danger-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="overdraft?delete=<?php echo $encodedId; ?>" title="Cancel Overdraft" onclick="return confirm('Do you really want to cancel overdraft?');"><span class="fas fa-trash"></span></a>
                                                         </div>
                                                         <div class="dropdown font-sans-serif btn-reveal-trigger">
                                                             <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal-sm transition-none" type="button" id="crm-recent-leads-4" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-chevron-left fs-11"></span></button>

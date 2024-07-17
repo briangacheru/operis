@@ -73,7 +73,7 @@
                                     </div>
                                     <!--/.bg-holder-->
 
-                                    <div class="z-1 position-relative"><a class="link-light mb-4 font-sans-serif fs-5 d-inline-block fw-bolder" href="index.html">falcon</a>
+                                    <div class="z-1 position-relative"><a class="link-light mb-4 font-sans-serif fs-5 d-inline-block fw-bolder" href="index">falcon</a>
                                         <p class="opacity-75 text-white">With the power of Falcon, you can now focus only on functionaries for your digital products, while leaving the UI design on us!</p>
                                     </div>
                                 </div>

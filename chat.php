@@ -1,5 +1,5 @@
 <?php
-include "header.php";
+include "head.php";
 
 // Check session and set user ID
 if (isset($_SESSION['sessionWriter'])) {
@@ -62,7 +62,8 @@ usort($users, function($a, $b) {
     return strtotime($b['latest_message_time'] ?? '0000-00-00 00:00:00') - strtotime($a['latest_message_time'] ?? '0000-00-00 00:00:00');
 });
 ?>
-
+<title>Chat | iTasker</title>
+<?php include "navi.php";?>
 <div class="card shadow-none border mb-3">
     <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(assets/img/illustrations/corner-6.png);"></div>
     <div class="card-header z-1">
@@ -186,7 +187,7 @@ usort($users, function($a, $b) {
     }
 
     function fetchMessages(userId, userType, index) {
-        fetch(`fetch_messages.php?user_id=${userId}&user_type=${userType}`)
+        fetch(`fetch_messages?user_id=${userId}&user_type=${userType}`)
             .then(response => response.json())
             .then(messages => {
                 updateChatContent(userId, messages, index);
@@ -261,7 +262,7 @@ usort($users, function($a, $b) {
     }
 
     function pollMessages() {
-        fetch(`poll_messages.php?last_timestamp=${lastTimestamp}`)
+        fetch(`poll_messages?last_timestamp=${lastTimestamp}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -316,7 +317,7 @@ usort($users, function($a, $b) {
     }
 
     function updateReadStatus(userId) {
-        fetch(`update_read_status.php?user_id=${userId}`)
+        fetch(`update_read_status?user_id=${userId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {

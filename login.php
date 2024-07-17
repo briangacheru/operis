@@ -147,12 +147,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                     </div>
                                     <!--/.bg-holder-->
 
-                                    <div class="z-1 position-relative"><a class="link-light mb-4 font-sans-serif fs-5 d-inline-block fw-bolder" href="index.html">iTasker</a>
+                                    <div class="z-1 position-relative"><a class="link-light mb-4 font-sans-serif fs-5 d-inline-block fw-bolder" href="index">iTasker</a>
                                         <p class="opacity-75 text-white">With the power of itasker, you can effortlessly streamline your workflow and boost productivity!</p>
                                     </div>
                                 </div>
                                 <div class="mt-3 mb-4 mt-md-4 mb-md-5" data-bs-theme="light">
-                                    <p class="text-white">Don't have an account?<br><a class="text-decoration-underline link-light" href="register.php">Get started!</a></p>
+                                    <p class="text-white">Don't have an account?<br><a class="text-decoration-underline link-light" href="register">Get started!</a></p>
                                     <p class="mb-0 mt-4 mt-md-5 fs-10 fw-semi-bold text-white opacity-75">Read our <a class="text-decoration-underline text-white" href="#!">terms</a> and <a class="text-decoration-underline text-white" href="#!">conditions </a></p>
                                 </div>
                             </div>
@@ -203,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                                     <label class="form-check-label mb-0" for="card-checkbox">Remember me</label>
                                                 </div>
                                             </div>
-                                            <div class="col-auto"><a class="fs-10" href="forgot-password.php">Forgot Password?</a></div>
+                                            <div class="col-auto"><a class="fs-10" href="forgot-password">Forgot Password?</a></div>
                                         </div>
                                         <div class="mb-3">
                                             <button class="btn btn-primary d-block w-100 mt-3" type="submit" name="submit">Log in</button>

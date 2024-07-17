@@ -71,7 +71,7 @@
             }
         </script>
         <div class="row flex-center min-vh-100 py-6 text-center">
-            <div class="col-sm-10 col-md-8 col-lg-6 col-xxl-5"><a class="d-flex flex-center mb-4" href="index.php"><img class="me-2" src="assets/img/icons/spot-illustrations/itasker.png" alt="" width="58" /><span class="font-sans-serif text-primary fw-bolder fs-4 d-inline-block">itasker</span></a>
+            <div class="col-sm-10 col-md-8 col-lg-6 col-xxl-5"><a class="d-flex flex-center mb-4" href="index"><img class="me-2" src="assets/img/icons/spot-illustrations/itasker.png" alt="" width="58" /><span class="font-sans-serif text-primary fw-bolder fs-4 d-inline-block">itasker</span></a>
                 <div class="card">
                     <div class="card-body p-4 p-sm-5">
                         <div class="fw-black lh-1 text-300 fs-error">500</div>
