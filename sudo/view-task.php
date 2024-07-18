@@ -83,7 +83,18 @@ switch ($rowTask["status"]) {
 ?>
 
 <title>iTasker | View Task #<?php  echo $taskId;?></title>
-<?php include "navi.php";?>
+<?php include "navi.php";
+if (isset($_GET['task_id'])) {
+    $encodedId = $_GET['task_id'];
+    $taskId = base64_decode($encodedId);
+} else {
+    $_SESSION['alert'] ='<div class="alert alert-warning border-0 d-flex align-items-center" role="alert">
+                                        <div class="bg-warning me-3 icon-item"><span class="fas fa-exclamation-circle text-white fs-6"></span></div>
+                                        <p class="mb-0 flex-1">Invalid task ID!</p>
+                                        <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>';
+}
+?>
 
     <div class="card shadow-none border mb-3">
         <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/illustrations/corner-6.png);">
@@ -164,7 +175,7 @@ if (isset($_SESSION['alert'])) {
                     </div>
                     </div>
                 <div class="d-flex align-items-center justify-content-between justify-content-lg-end px-x1">
-                    <a class="btn btn-sm btn-outline-primary" type="button" href="edit-task?task_id=<?php echo $encodedId; ?>" title="Edit Task">
+                    <a class="btn btn-sm btn-outline-primary" type="button" href="edit-task?task_id=<?php  echo $encodedId; ?>" title="Edit Task">
                         <i class="fas fa-edit" aria-hidden="true"></i>
                         <span class="ms-1 d-none d-sm-inline-block">Edit Task</span>
                     </a>

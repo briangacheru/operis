@@ -78,7 +78,6 @@ $msg = "";
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Account</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Subject</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">Amount</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center">Payment</th>
                                             <th class="text-900 no-sort pe-1 align-middle data-table-row-action"></th>
                                         </tr>
                                         </thead>
@@ -132,7 +131,7 @@ $msg = "";
                                                 </div>
                                             </td>
                                             <td class="align-middle white-space-nowrap fw-semi-bold name"><?php echo $row["id"];?></td>
-                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><a class="stretched-link" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></td>
+                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><a href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></td>
                                             <td class="align-middle white-space-nowrap product"><?php echo $statusBadge;?>
                                             <?php if ($is_confirmed == 1): ?>
                                                 <?php echo $confirmation;?>
@@ -140,9 +139,10 @@ $msg = "";
                                             </td>
                                             <td class="align-middle white-space-nowrap email"><?php echo $row["account"];?></td>
                                             <td class="align-middle white-space-nowrap email"><?php echo $row["subject"];?></td>
-                                            <td class="align-middle text-end amount"><?php echo number_format($totalprice,2); ?></td>
-                                            <td class="align-middle text-center fs-9 white-space-nowrap payment"><?php echo $statusBadgePay;?></td>
-
+                                            <td class="align-middle text-end amount">
+                                                <h6 class="mb-0"><?php echo number_format($totalprice,2); ?></h6>
+                                                <p class="fs-11 mb-0"><?php echo $statusBadgePay;?></p>
+                                            </td>
                                             <td class="align-middle white-space-nowrap text-end position-relative">
                                                 <div class="hover-actions bg-100">
                                                     <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="view-task?task_id=<?php echo $encodedId; ?>" title="View task" ><span class="far fa-eye"></span></a>

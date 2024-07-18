@@ -19,6 +19,7 @@ if ($_POST['action'] == 'submitForm') {
     // Retrieve and sanitize input data
     $taskId = isset($_POST['taskId']) ? mysqli_real_escape_string($con, $_POST['taskId']) : '';
     $topic = isset($_POST['topic']) ? mysqli_real_escape_string($con, $_POST['topic']) : '';
+    $due = isset($_POST['due']) ? mysqli_real_escape_string($con, $_POST['due']) : '';
     $account = isset($_POST['account']) ? mysqli_real_escape_string($con, $_POST['account']) : '';
     $writerEmail = isset($_POST['email']) ? mysqli_real_escape_string($con, $_POST['email']) : '';
     $sendEmail = isset($_POST['sendEmail']) ? mysqli_real_escape_string($con, $_POST['sendEmail']) : '0';
@@ -92,9 +93,9 @@ if ($_POST['action'] == 'submitForm') {
                         // Content
                         $mail->isHTML(true);                                  // Set email format to HTML
                         $mail->Subject = 'Task ID: ' . $taskId . ' - ' . $topic . ' - [ ' . $account. ' ] ';
-                        $mail->Body    = "<h1>Submission</h1>
-                                          <p><strong>Date Submitted:</strong> $submittedOn</p>";
-                        $mail->AltBody = "Task Details\nDate Submitted: $submittedOn";
+                        $mail->Body    = "<h1>Submission Details</h1>
+                                          <p><strong>Due Date:</strong> $due</p>
+                                          <p><strong>Submitted:</strong> $submittedOn</p>";
 
                         $mail->send();
                         $emailStatus = 'Email sent successfully.';

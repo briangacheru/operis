@@ -38,7 +38,7 @@
         <div class="card-body bg-body-tertiary">
             <div class="tab-content">
                 <div class="tab-pane preview-tab-pane active" >
-                    <form class="needs-validation" novalidate="novalidate" id="taskForm" method="post" action="submit-task.php" enctype="multipart/form-data">
+                    <form class="needs-validation" novalidate="novalidate" id="taskForm" method="post" action="submit-task" enctype="multipart/form-data">
                         <div class="card mb-3">
                             <div class="card-header bg-body-tertiary">
                                 <h6 class="mb-0">Basic information</h6>
@@ -274,7 +274,7 @@
         }
 
         async function uploadFile(file) {
-            const url = 'upload.php'; // Ensure this path is correct
+            const url = 'upload'; // Ensure this path is correct
             const formData = new FormData();
             formData.append('file', file);
             formData.append('action', 'upload');
@@ -349,7 +349,7 @@
 
 
         async function deleteFileFromServer(filePath) {
-            const url = 'delete_file.php'; // URL to the PHP file handling deletions
+            const url = 'delete_file'; // URL to the PHP file handling deletions
             const formData = new FormData();
             formData.append('filePath', filePath);
             formData.append('action', 'deleteFile');
@@ -397,7 +397,7 @@
             formData.append('action', 'submitForm'); // Append the action field here
 
             try {
-                const response = await fetch('submit-task.php', {
+                const response = await fetch('submit-task', {
                     method: 'POST',
                     body: formData,
                 });

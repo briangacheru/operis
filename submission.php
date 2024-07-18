@@ -350,7 +350,7 @@ if (isset($_SESSION['alert'])) {
         </div>
     </div>
     <div id="alertPlaceholder"></div>
-    <form class="needs-validation" novalidate="novalidate" id="taskForm" method="post" action="submission_upload.php" enctype="multipart/form-data">
+    <form class="needs-validation" novalidate="novalidate" id="taskForm" method="post" action="submission_upload" enctype="multipart/form-data">
         <div class="card mb-3" id="filesSubmission">
             <div class="card-header bg-body-tertiary">
                 <h6 class="mb-0">Submit file(s)</h6>
@@ -386,6 +386,7 @@ if (isset($_SESSION['alert'])) {
         <!-- Hidden fields for additional required data -->
         <input type="hidden" name="taskId" value="<?php  echo $taskId;?>">
         <input type="hidden" name="topic" value="<?php  echo $taskTopic;?>">
+        <input type="hidden" name="due" value="<?php  echo $taskDueDate;?>">
         <input type="hidden" name="account" value="<?php  echo $taskAccount;?>">
         <input type="hidden" name="email" value="<?php  echo $taskWriterEmail;?>">
         <input type="hidden" name="sendEmail" value="1">
@@ -459,7 +460,7 @@ if (isset($_SESSION['alert'])) {
             }
 
             async function uploadFile(file) {
-                const url = 'upload_update.php'; // Ensure this path is correct
+                const url = 'upload_update'; // Ensure this path is correct
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('action', 'upload');
@@ -534,7 +535,7 @@ if (isset($_SESSION['alert'])) {
 
 
             async function deleteFileFromServer(filePath) {
-                const url = 'delete_file.php'; // URL to the PHP file handling deletions
+                const url = 'delete_file'; // URL to the PHP file handling deletions
                 const formData = new FormData();
                 formData.append('filePath', filePath);
                 formData.append('action', 'deleteFile');
@@ -577,7 +578,7 @@ if (isset($_SESSION['alert'])) {
                 formData.append('action', 'submitForm'); // Append the action field here
 
                 try {
-                    const response = await fetch('submission_upload.php', {
+                    const response = await fetch('submission_upload', {
                         method: 'POST',
                         body: formData,
                     });
@@ -635,7 +636,7 @@ if (isset($_SESSION['alert'])) {
         });
         function deleteFile(filePath, elementToRemove) {
             if (confirm('Are you sure you want to delete this file?')) {
-                fetch('delete-file.php', {
+                fetch('delete-file', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',

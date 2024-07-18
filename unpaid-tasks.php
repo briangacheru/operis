@@ -64,8 +64,6 @@
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Pages</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">CPP</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">Amount</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center">Payment</th>
-                                            <th class="text-900 no-sort pe-1 align-middle data-table-row-action"></th>
                                         </tr>
                                         </thead>
                                         <tbody class="list" id="table-simple-pagination-body">
@@ -118,7 +116,7 @@
                                                 </div>
                                             </td>
                                             <td class="align-middle white-space-nowrap fw-semi-bold name"><?php echo $row["id"];?></td>
-                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><a href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></td>
+                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><a class="stretched-link" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></td>
                                             <td class="align-middle white-space-nowrap product"><?php echo $statusBadge;?>
                                             <?php if ($is_confirmed == 1): ?>
                                                 <?php echo $confirmation;?>
@@ -126,16 +124,9 @@
                                             </td>
                                             <td class="align-middle white-space-nowrap email"><?php echo $row["pages"];?></td>
                                             <td class="align-middle white-space-nowrap email"><?php echo $row["cpp"];?></td>
-                                            <td class="align-middle text-end amount"><?php echo number_format($totalprice,2); ?></td>
-                                            <td class="align-middle text-center fs-9 white-space-nowrap payment"><?php echo $statusBadgePay;?></td>
-
-                                            <td class="align-middle white-space-nowrap text-end position-relative">
-                                                <div class="hover-actions bg-100">
-                                                    <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="view-task?task_id=<?php echo $encodedId; ?>" title="View task" ><span class="far fa-eye"></span></a>
-                                                </div>
-                                                <div class="dropdown font-sans-serif btn-reveal-trigger">
-                                                    <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal-sm transition-none" type="button" id="crm-recent-leads-4" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-chevron-left fs-11"></span></button>
-                                                </div>
+                                            <td class="align-middle text-end amount" data-amount="<?php echo number_format($totalprice, 2, '.', ''); ?>">
+                                                <h6 class="mb-0"><?php echo number_format($totalprice, 2, '.', ''); ?></h6>
+                                                <p class="fs-11 mb-0"><?php echo $statusBadgePay;?></p>
                                             </td>
                                         </tr>
                                         <?php
@@ -166,9 +157,16 @@
 
             for (var i = 0; i < rows.length; i++) {
                 var row = [], cols = rows[i].querySelectorAll("td, th");
+                var numCols = cols.length;
 
-                for (var j = 0; j < cols.length; j++) {
-                    row.push(cols[j].innerText);
+                for (var j = 0; j < numCols; j++) {
+                    if (j === numCols - 1) {
+                        // Replace the last column with the amount
+                        var amount = cols[j].getAttribute('data-amount');
+                        row.push(amount ? amount : cols[j].innerText);
+                    } else {
+                        row.push(cols[j].innerText);
+                    }
                 }
 
                 csv.push(row.join(","));
@@ -197,6 +195,7 @@
             downloadLink.click();
         }
     </script>
+
 
 <?php
 include "footer.php";

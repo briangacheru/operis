@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     $.ajax({
     type: 'POST',
-    url: 'update-od.php', // Your PHP file to handle the update
+    url: 'update-od', // Your PHP file to handle the update
     data: $(this).serialize(),
     dataType: 'json',
     success: function (response) {
@@ -58,37 +58,37 @@ document.addEventListener('DOMContentLoaded', function () {
     function confirmExport() {
         var confirmExport = confirm("Do you want to download the exported CSV file?");
         if (confirmExport) {
-            window.location.href = 'export_all_tasks.php';
+            window.location.href = 'export_all_tasks';
         }
     }
         function exportWriter() {
             var exportWriter = confirm("Do you want to download the exported CSV file?");
             if (exportWriter) {
-                window.location.href = 'export_writers.php';
+                window.location.href = 'export_writers';
             }
 }
     function exportPaid() {
     var exportPaid = confirm("Do you want to download the exported CSV file?");
     if (exportPaid) {
-    window.location.href = 'export_paid_tasks.php';
+    window.location.href = 'export_paid_tasks';
 }
 }
     function exportUnpaid() {
     var exportUnpaid = confirm("Do you want to download the exported CSV file?");
     if (exportUnpaid) {
-    window.location.href = 'export_unpaid_tasks.php';
+    window.location.href = 'export_unpaid_tasks';
 }
 }
 function exportOverdraft() {
     var exportOverdraft = confirm("Do you want to download the exported CSV file?");
     if (exportOverdraft) {
-        window.location.href = 'export_overdraft.php';
+        window.location.href = 'export_overdraft';
     }
 }
 function exportOverdraftAs() {
     var exportOverdraft = confirm("Do you want to download the exported CSV file?");
     if (exportOverdraft) {
-        window.location.href = 'export-overdraft.php';
+        window.location.href = 'export-overdraft';
     }
 }
     function selectAllTasks(source) {
@@ -114,7 +114,7 @@ function exportOverdraftAs() {
     function updateFormFields(writerName) {
     $.ajax({
         type: 'GET',
-        url: 'get_amount_due.php',
+        url: 'get_amount_due',
         data: { writer_name: writerName },
         dataType: 'json',
         success: function(response) {
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const formData = new FormData(this);
 
-        fetch('update-writer.php', {
+        fetch('update-writer', {
             method: 'POST',
             body: formData
         })

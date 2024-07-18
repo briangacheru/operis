@@ -158,12 +158,12 @@ if (isset($_SESSION['alert'])) {
                         </div>
                         <div class="col-12 col-sm-auto ms-auto">
                             <?php if ($taskStatus == 'In Progress'): ?>
-                                <a class="btn btn-outline-primary btn-lg fs-9" href="submission?task_id=<?php echo $encodedId; ?>#filesSubmission">Submit Task</a>
+                                <a class="btn btn-outline-primary btn-lg fs-9" href="submission?task_id=<?php $encodedId = $_GET['task_id']; echo $encodedId; ?>#filesSubmission">Submit Task</a>
                             <?php elseif ($is_confirmed == 1): ?>
-                                <a class="btn btn-outline-success btn-sm fs-10" href="#" onclick="confirmAction('<?php echo $encodedId; ?>', 'accept')">Accept Task</a>
-                                <a class="btn btn-outline-danger btn-sm fs-10" href="#" onclick="confirmAction('<?php echo $encodedId; ?>', 'decline')">Decline Task</a>
+                                <a class="btn btn-outline-success btn-sm fs-10" href="#" onclick="confirmAction('<?php $encodedId = $_GET['task_id']; echo $encodedId; ?>', 'accept')">Accept Task</a>
+                                <a class="btn btn-outline-danger btn-sm fs-10" href="#" onclick="confirmAction('<?php $encodedId = $_GET['task_id']; echo $encodedId; ?>', 'decline')">Decline Task</a>
                             <?php elseif ($taskStatus == 'Submitted'): ?>
-                                <a class="btn btn-outline-primary btn-lg fs-9" href="#" onclick="confirmAction('<?php echo $encodedId; ?>', 'resubmit')">Resubmit Task</a>
+                                <a class="btn btn-outline-primary btn-lg fs-9" href="#" onclick="confirmAction('<?php $encodedId = $_GET['task_id']; echo $encodedId; ?>', 'resubmit')">Resubmit Task</a>
                             <?php endif; ?>
                         </div>
                     </div>
