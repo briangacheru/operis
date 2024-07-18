@@ -19,7 +19,7 @@ if(isset($_POST['save']))
                                 You must select a writer.
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>';
-        header('Location: overdraft.php'); // Adjust the redirection to your form page
+        header('Location: overdraft'); // Adjust the redirection to your form page
         exit;
     }
 
@@ -33,7 +33,7 @@ if(isset($_POST['save']))
                                     Overdraft record added successfully.
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                     </div>';
-            header('Location: overdraft.php');
+            header('Location: overdraft');
             exit;
         } else {
             $_SESSION['alert'] = '<div class="alert alert-danger alert-dismissible fade show" role="alert"><i class="bi bi-exclamation-triangle me-1"></i>Something went wrong. Please try again!
@@ -90,7 +90,7 @@ if (isset($_GET['delete'])) {
         }
     }
 
-    header('Location: overdraft.php');
+    header('Location: overdraft');
     exit;
 }
 
@@ -258,11 +258,11 @@ if (isset($_GET['delete'])) {
                                         <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                                             <div class="d-none" id="table-simple-pagination-actions">
                                                 <div class="d-flex">
-                                                    <button type="button" class="btn btn-falcon-info btn-sm ms-2" onclick="submitForm('settle-overdrafts.php')">Mark as Settled</button>
+                                                    <button type="button" class="btn btn-falcon-info btn-sm ms-2" onclick="submitForm('settle-overdrafts')">Mark as Settled</button>
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
-                                                <a class="btn btn-falcon-info btn-sm mx-2" href="overdraft.php" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Overdraft</span></a>
+                                                <a class="btn btn-falcon-info btn-sm mx-2" href="overdraft" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Overdraft</span></a>
 <!--                                                <button class="btn btn-falcon-default btn-sm mx-2" type="button"><span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Filter</span></button>-->
                                                 <button class="btn btn-falcon-primary btn-sm" onclick="exportOverdraft()" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
                                             </div>

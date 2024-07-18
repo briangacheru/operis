@@ -406,7 +406,7 @@ if (isset($_SESSION['alert'])) {
 
         function toggleFavorite(taskId) {
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', 'toggle_favorite.php', true);
+            xhr.open('POST', 'toggle_favorite', true);
             xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
             xhr.onload = function() {
                 if (xhr.status === 200) {
@@ -435,7 +435,7 @@ if (isset($_SESSION['alert'])) {
         function completeTask(encodedId, taskId) {
             if (confirm('Are you sure you want to complete task ID: #' + taskId + '?')) {
                 $.ajax({
-                    url: 'complete-task.php',
+                    url: 'complete-task',
                     type: 'POST',
                     data: { task_id: encodedId },
                     success: function() {

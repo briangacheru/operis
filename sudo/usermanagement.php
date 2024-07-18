@@ -25,7 +25,7 @@ if (isset($_GET['delid'])) {
                             </div>';
     }
 
-    header('Location: usermanagement.php');
+    header('Location: usermanagement');
     exit;
 }
 
@@ -55,7 +55,7 @@ if (isset($_GET['verifyid'])) {
                             </div>';
     }
 
-    header('Location: usermanagement.php');
+    header('Location: usermanagement');
     exit;
 }
 ?>
@@ -156,7 +156,7 @@ if (isset($_SESSION['alert'])) {
                                                     </div>
                                                 </td>
                                                 <td class="align-middle white-space-nowrap fw-semi-bold name"><?php echo $row["id"];?></td>
-                                                <td class="align-middle white-space-nowrap fw-semi-bold name"><a class="stretched-link" href="writer?writerID=<?php echo $encodedId;?>"><?php echo $row["username"];?></a></td>
+                                                <td class="align-middle white-space-nowrap fw-semi-bold name"><a href="writer?writerID=<?php echo $encodedId;?>"><?php echo $row["username"];?></a></td>
                                                 <td class="align-middle white-space-nowrap email"><?php echo $row["email"];?></td>
                                                 <td class="align-middle white-space-nowrap email"><?php echo date("jS M, Y", strtotime($row['created_at'])); ?></td>
                                                 <td class="align-middle white-space-nowrap email">
@@ -170,7 +170,7 @@ if (isset($_SESSION['alert'])) {
                                                 </td>
                                                 <td class="align-middle white-space-nowrap text-end position-relative">
                                                     <div class="hover-actions bg-100">
-                                                        <a class="btn btn-outline-info bg-info icon-item rounded-3 me-2 fs-11 icon-item-sm stretched-link" href="writer?writerID=<?php echo $encodedId;?>" title="View Writer"><span class="fas fa-eye"></span></a>
+                                                        <a class="btn btn-outline-info bg-info icon-item rounded-3 me-2 fs-11 icon-item-sm" href="writer?writerID=<?php echo $encodedId;?>" title="View Writer"><span class="fas fa-eye"></span></a>
                                                         <a class="btn btn-outline-primary bg-primary icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" href="#user-edit-modal" title="Edit Writer" data-writer-id="<?php echo $row['id']; ?>" data-writer="<?php echo $row['username']; ?>" data-email="<?php echo $row['email']; ?>" data-phone="<?php echo $row['phone']; ?>"><span class="far fa-edit"></span></a>
                                                         <a href="usermanagement?verifyid=<?php echo $row['id'];?>" class="btn bg-<?php echo $row['is_verified'] ? 'danger' : 'success'; ?> icon-item rounded-3 me-2 fs-11 icon-item-sm" onclick="return confirm('Do you want to <?php echo $row['is_verified'] ? 'unverify' : 'verify'; ?> this writer?');" title="<?php echo $row['is_verified'] ? 'Unverify' : 'Verify'; ?> Writer"><i class="bi bi-<?php echo $row['is_verified'] ? 'x-circle-fill' : 'check-circle-fill'; ?>"></i></a>
                                                     </div>
@@ -256,7 +256,7 @@ if (isset($_SESSION['alert'])) {
 
                 const formData = new FormData(this);
 
-                fetch('update-writer.php', {
+                fetch('update-writer', {
                     method: 'POST',
                     body: formData
                 })
@@ -291,7 +291,7 @@ if (isset($_SESSION['alert'])) {
         function exportWriter() {
             var exportWriter = confirm("Do you want to download the exported CSV file?");
             if (exportWriter) {
-                window.location.href = 'export_writers.php';
+                window.location.href = 'export_writers';
             }
         }
 

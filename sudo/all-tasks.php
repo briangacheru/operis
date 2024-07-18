@@ -44,7 +44,7 @@ if (isset($_GET['del'])) {
                               </div>';
     }
 
-    header('Location: all-tasks.php');
+    header('Location: all-tasks');
     exit;
 }
 
@@ -99,12 +99,12 @@ if (isset($_GET['del'])) {
                                         <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                                             <div class="d-none" id="table-simple-pagination-actions">
                                                 <div class="d-flex">
-                                                    <button type="button" class="btn btn-falcon-info btn-sm ms-2" onclick="submitForm('mark-tasks-completed.php')">Mark as Completed</button>
-                                                    <button type="button" class="btn btn-falcon-success btn-sm ms-2" onclick="submitForm('mark-tasks-paid.php')">Mark as Paid</button>
+                                                    <button type="button" class="btn btn-falcon-info btn-sm ms-2" onclick="submitForm('mark-tasks-completed')">Mark as Completed</button>
+                                                    <button type="button" class="btn btn-falcon-success btn-sm ms-2" onclick="submitForm('mark-tasks-paid')">Mark as Paid</button>
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
-                                                <a class="btn btn-falcon-info btn-sm mx-2" href="create-task.php" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Task</span></a>
+                                                <a class="btn btn-falcon-info btn-sm mx-2" href="create-task" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Task</span></a>
 <!--                                                <button class="btn btn-falcon-default btn-sm mx-2" type="button"><span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Filter</span></button>-->
                                                 <button class="btn btn-falcon-primary btn-sm" onclick="confirmExport()" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
                                                 <!--<div class="dropdown font-sans-serif ms-2">

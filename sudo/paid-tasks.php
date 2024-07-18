@@ -54,7 +54,7 @@ $msg = "";
                                         </div>
                                         <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                                             <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
-                                                <a class="btn btn-falcon-info btn-sm mx-2" href="create-task.php" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Task</span></a>
+                                                <a class="btn btn-falcon-info btn-sm mx-2" href="create-task" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Task</span></a>
 <!--                                                <button class="btn btn-falcon-default btn-sm mx-2" type="button"><span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Filter</span></button>-->
                                                 <button class="btn btn-falcon-primary btn-sm" onclick="exportPaid()" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
                                                 <!--<div class="dropdown font-sans-serif ms-2">

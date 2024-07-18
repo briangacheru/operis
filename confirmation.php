@@ -56,7 +56,7 @@ if (isset($_GET['task_id']) && isset($_GET['action'])) {
                                     <p class="mb-0 flex-1">Task not found!</p>
                                     <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>';
-        header('Location: view-task.php');
+        header('Location: view-task');
         exit();
     }
 
@@ -94,7 +94,7 @@ if (isset($_GET['task_id']) && isset($_GET['action'])) {
                                 <p class="mb-0 flex-1">Invalid request!</p>
                                 <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>';
-    header('Location: view-task.php');
+    header('Location: view-task');
     exit();
 }
 ?>

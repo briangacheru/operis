@@ -30,7 +30,7 @@ if (isset($_GET['del'])) {
                             </div>';
     }
 
-    header('Location: draft-tasks.php');
+    header('Location: draft-tasks');
     exit;
 }
 

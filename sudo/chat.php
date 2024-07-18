@@ -177,7 +177,7 @@ usort($users, function($a, $b) {
                 </div>
             <?php endforeach; ?>
 
-            <form class="chat-editor-area" method="post" action="send_message.php" enctype="multipart/form-data" onsubmit="return submitMessage();">
+            <form class="chat-editor-area" method="post" action="send_message" enctype="multipart/form-data" onsubmit="return submitMessage();">
                 <div class="emojiarea-editor outline-none scrollbar" contenteditable="true" id="messageInput"></div>
                 <input type="hidden" name="message" id="messageField">
                 <input type="hidden" name="receiver_id" id="receiverIdField">
@@ -384,7 +384,7 @@ usort($users, function($a, $b) {
             formData.append('file', fileInput.files[0]);
         }
 
-        fetch('send_message.php', {
+        fetch('send_message', {
             method: 'POST',
             body: formData
         })

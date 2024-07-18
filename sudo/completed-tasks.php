@@ -54,11 +54,11 @@ $msg = "";
                                         <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                                             <div class="d-none" id="table-simple-pagination-actions">
                                                 <div class="d-flex">
-                                                    <button type="button" class="btn btn-falcon-default btn-sm ms-2" onclick="submitForm('archive-tasks.php')"><span class="fa fa-archive"></span> Archive Tasks</button>
+                                                    <button type="button" class="btn btn-falcon-default btn-sm ms-2" onclick="submitForm('archive-tasks')"><span class="fa fa-archive"></span> Archive Tasks</button>
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
-                                                <a class="btn btn-falcon-info btn-sm mx-2" href="create-task.php" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Task</span></a>
+                                                <a class="btn btn-falcon-info btn-sm mx-2" href="create-task" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Task</span></a>
                                             </div>
                                         </div>
                                     </div>
