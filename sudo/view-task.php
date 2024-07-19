@@ -102,7 +102,7 @@ if (isset($_GET['task_id'])) {
         <!--/.bg-holder-->
 
         <div class="card-header z-1">
-            <div class="$rowTask flex-between-center gx-0">
+            <div class="row flex-between-center gx-0">
                 <div class="col-lg-auto d-flex align-items-center">
                     <h4 class="mb-0 text-primary fw-bold">View <span class="text-info fw-medium">Task Details</span></h4>
                 </div>
@@ -153,19 +153,21 @@ if (isset($_SESSION['alert'])) {
 ?>
 
     <div class="card mb-3">
-    <div class="bg-holder bg-card" style="background-image:url(../assets/img/icons/spot-illustrations/corner-5.png);">
-        </div>
-        <!--/.bg-holder-->
-
-        <div class="card-body position-relative">
-            <div class="$rowTask g-2 align-items-sm-center">
-                <div class="col-auto"><img src="../assets/img/icons/connect-circle.png" alt="" height="55" /></div>
-                    <div class="col">
-                    <div class="$rowTask align-items-center">
-                        <div class="col col-lg-8">
+        <div class="card-body">
+            <div class="row justify-content-between align-items-center">
+                <div class="col">
+                    <div class="d-flex">
+                        <div class="calendar me-2">
+                            <span class="calendar-month">
+                                <?php // Get the current month and date
+                                $currentMonth = date('M'); // Current month abbreviation (e.g., 'Jul')
+                                $currentDay = date('d'); // Current day of the month (e.g., '19')
+                                echo $currentMonth;?>
+                            </span>
+                            <span class="calendar-day"><?php echo $currentDay; ?> </span></div>
+                        <div class="flex-1 fs-10">
                             <h5 class="mb-sm-0 text-primary fs-7">Task ID: <span class="text-info fw-medium">#<?php  echo $taskId;?></span></h5>
-                            <p class="fw-semi-bold fs-10"><span class="me-1">Posted</span><span class="text-info ms-2"><?php  echo date("d M Y, g:i A", strtotime($taskCreatedOn));?></span>
-                            </p>
+                            <p class="mb-0">Posted <span class="text-info ms-2"><?php  echo date("d M Y, g:i A", strtotime($taskCreatedOn));?></span></p>
                             <div class="fs-9 mb-3 mb-sm-0 text-primary"><strong class="me-2">Status: </strong><?php  echo $statusBadge;?>
                                 <?php if ($is_confirmed != 0): ?>
                                     <?php echo $confirmation;?>
@@ -173,29 +175,26 @@ if (isset($_SESSION['alert'])) {
                             </div>
                         </div>
                     </div>
-                    </div>
-                <div class="d-flex align-items-center justify-content-between justify-content-lg-end px-x1">
-                    <a class="btn btn-sm btn-outline-primary" type="button" href="edit-task?task_id=<?php  echo $encodedId; ?>" title="Edit Task">
+                </div>
+                <div class="col-md-auto mt-4 mt-md-0">
+                    <a class="btn btn-sm btn-outline-primary me-2" type="button" href="edit-task?task_id=<?php  echo $encodedId; ?>" title="Edit Task">
                         <i class="fas fa-edit" aria-hidden="true"></i>
                         <span class="ms-1 d-none d-sm-inline-block">Edit Task</span>
                     </a>
-                    <div class="bg-300 mx-3 d-none d-lg-block" style="width:1px; height:29px"></div>
-                    <div class="d-flex align-items-center" id="table-ticket-replace-element">
-                        <a class="btn btn-outline-info btn-sm mx-2" type="button" href="duplicate-task?task_id=<?php echo $encodedId; ?>" title="Duplicate Task" onclick="return confirmDuplicate();">
-                            <i class="fas fa-copy" aria-hidden="true"></i>
-                            <span class="d-none d-sm-inline-block d-xl-none d-xxl-inline-block ms-1">Duplicate</span>
-                        </a>
-                        <a class="btn btn-outline-danger btn-sm mx-2" type="button" id="favorite-btn" onclick="toggleFavorite(<?php echo $taskId; ?>)">
-                            <i id="favorite-icon" class="fas <?php $is_favorite = $rowTask['is_favorite']; echo ($is_favorite == 1) ? 'fa-heart' : 'fa-heart-broken'; ?>" aria-hidden="true"></i>
-                            <span id="favorite-text" class="d-none d-sm-inline-block d-xl-none d-xxl-inline-block ms-1"><?php echo ($is_favorite == 1) ? 'Unfavorite' : 'Favorite'; ?></span>
-                        </a>
-                        <?php if ($taskStatus =='Submitted'): ?>
+                    <a class="btn btn-outline-info btn-sm mx-2" type="button" href="duplicate-task?task_id=<?php echo $encodedId; ?>" title="Duplicate Task" onclick="return confirmDuplicate();">
+                        <i class="fas fa-copy" aria-hidden="true"></i>
+                        <span class="d-none d-sm-inline-block d-xl-none d-xxl-inline-block ms-1">Duplicate</span>
+                    </a>
+                    <a class="btn btn-outline-danger btn-sm mx-2" type="button" id="favorite-btn" onclick="toggleFavorite(<?php echo $taskId; ?>)">
+                        <i id="favorite-icon" class="fas <?php $is_favorite = $rowTask['is_favorite']; echo ($is_favorite == 1) ? 'fa-heart' : 'fa-heart-broken'; ?>" aria-hidden="true"></i>
+                        <span id="favorite-text" class="d-none d-sm-inline-block d-xl-none d-xxl-inline-block ms-1"><?php echo ($is_favorite == 1) ? 'Unfavorite' : 'Favorite'; ?></span>
+                    </a>
+                    <?php if ($taskStatus =='Submitted'): ?>
                         <a class="btn btn-outline-success btn-sm mx-2" type="button" id="complete-task-btn-<?php echo $taskId; ?>" title="Complete Task" onclick="completeTask('<?php echo $encodedId; ?>', <?php echo $taskId; ?>)">
                             <i class="fas fa-check-circle" aria-hidden="true"></i>
                             <span id="complete-task-text-<?php echo $taskId; ?>" class="d-none d-sm-inline-block d-xl-none d-xxl-inline-block ms-1">Complete</span>
                         </a>
-                        <?php endif; ?>
-                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -207,11 +206,11 @@ if (isset($_SESSION['alert'])) {
             </div>
             <!--/.bg-holder-->
 
-            <div class="$rowTask">
+            <div class="row">
                 <div class="card-body position-relative">
-                    <div class="$rowTask g-3 align-items-center">
+                    <div class="row g-3 align-items-center">
                         <div class="col">
-                            <div class="$rowTask align-items-center">
+                            <div class="row align-items-center">
                                 <div class="col col-sm-12">
                                     <h6 class="fw-semi-bold text-400 fs-9"><span class="fas fa-book text-white me-1"> </span><?php  echo $taskSubject;?></h6>
                                     <h2 class="fw-bold text-white"><?php  echo $taskTopic;?> </h2>
@@ -271,7 +270,7 @@ if (isset($_SESSION['alert'])) {
             </div>
         </div>
     </div>
-    <div class="$rowTask ">
+    <div class="row ">
         <div class="col-lg-12 order-1 order-lg-0">
             <div class="card mb-3">
                 <div class="card-header bg-body-tertiary">
@@ -301,7 +300,7 @@ if (isset($_SESSION['alert'])) {
     </div>
 
             <div class="col mb-3">
-                <div class="$rowTask g-3">
+                <div class="row g-3">
                     <div class="col-xxl-12">
                         <div class="card h-100 h-xxl-auto mt-xxl-3">
                             <div class="card-header d-flex flex-between-center bg-body-tertiary py-2">
@@ -351,7 +350,7 @@ if (isset($_SESSION['alert'])) {
             </div>
 
             <div class="col mb-3">
-                <div class="$rowTask g-3">
+                <div class="row g-3">
                     <div class="col-xxl-12">
                         <div class="card h-100 h-xxl-auto mt-xxl-3">
                             <div class="card-header d-flex flex-between-center bg-body-tertiary py-2">

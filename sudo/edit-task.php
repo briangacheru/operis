@@ -210,6 +210,7 @@ if ($row = mysqli_fetch_array($result)) {
                                                         <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
                                                         <div class="fs-10"><span class="fw-semi-bold"><?php echo $fileSize; ?></span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                                         <input type="hidden" name="existingFiles[]" value="<?php echo htmlspecialchars($filePath); ?>">
+                                                        <input type="hidden" id="removedFiles" name="removedFiles" value="">
                                                         <!-- Add or adjust action buttons as necessary -->
                                                         <div class="hover-actions end-0 top-50 translate-middle-y">
                                                             <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="../assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
@@ -398,7 +399,6 @@ if ($row = mysqli_fetch_array($result)) {
                 const index = uploadedFilePaths.findIndex(f => f.fileName === file.name);
                 if (index > -1) {
                     const filePath = uploadedFilePaths[index].filePath;
-                    deleteFileFromServer(filePath);
                     uploadedFilePaths.splice(index, 1);
                     updateUploadedFilesInput();
                 }
@@ -446,30 +446,6 @@ if ($row = mysqli_fetch_array($result)) {
                 console.error('Error:', error);
                 li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload error.`;
                 li.style.color = 'red';
-            }
-        }
-
-
-        async function deleteFileFromServer(filePath) {
-            const url = 'delete_file'; // URL to the PHP file handling deletions
-            const formData = new FormData();
-            formData.append('filePath', filePath);
-            formData.append('action', 'deleteFile');
-
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                const data = await response.json();
-                if (data.status !== 'success') {
-                    console.error('Failed to delete file: ' + data.message);
-                } else {
-                    console.log('File deleted successfully');
-                }
-            } catch (error) {
-                console.error('Error:', error);
             }
         }
 
@@ -542,39 +518,27 @@ if ($row = mysqli_fetch_array($result)) {
         const fileContainer = document.querySelector('.card-body');
 
         fileContainer.addEventListener('click', function(e) {
-            if (e.target.classList.contains('delete-btn')) {
+            if (e.target.closest('.delete-btn')) {
                 e.preventDefault();
-                const filePath = e.target.getAttribute('data-file-path');
-                // Call the function to delete the file
-                deleteFile(filePath, e.target.closest('.d-flex'));
+                const filePath = e.target.closest('.delete-btn').getAttribute('data-file-path');
+                // Call the function to remove the file reference
+                removeFileReference(filePath, e.target.closest('.d-flex'));
             }
         });
     });
-    function deleteFile(filePath, elementToRemove) {
-        if (confirm('Are you sure you want to delete this file?')) {
-            fetch('delete-file', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'filePath=' + encodeURIComponent(filePath)
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // If the file was successfully deleted, remove the element
-                        elementToRemove.remove();
-                    } else {
-                        alert('Failed to delete the file. Please try again.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred. Please try again.');
-                });
+
+    function removeFileReference(filePath, elementToRemove) {
+        if (confirm('Are you sure you want to remove this file from the task?')) {
+            elementToRemove.remove();
+            // Add the removed file path to a hidden input field
+            const removedFilesInput = document.getElementById('removedFiles');
+            let removedFiles = removedFilesInput.value ? JSON.parse(removedFilesInput.value) : [];
+            removedFiles.push(filePath);
+            removedFilesInput.value = JSON.stringify(removedFiles);
         }
     }
 </script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const updateTaskButton = document.getElementById('updateTaskButton');

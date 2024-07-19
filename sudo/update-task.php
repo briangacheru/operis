@@ -34,6 +34,12 @@ if ($_POST['action'] == 'submitForm') {
     $sendEmail = isset($_POST['sendEmail']) ? mysqli_real_escape_string($con, $_POST['sendEmail']) : '0';
 
     $existingFiles = $_POST['existingFiles'] ?? [];
+    $removedFiles = !empty($_POST['removedFiles']) ? json_decode($_POST['removedFiles'], true) : [];
+
+    // Filter out the removed files from the existing files array
+    $remainingFiles = array_filter($existingFiles, function($filePath) use ($removedFiles) {
+        return !in_array($filePath, $removedFiles);
+    });
 
     $uploadedFiles = json_decode($_POST['uploadedFiles'], true);
     if (!is_array($uploadedFiles)) {
@@ -46,7 +52,7 @@ if ($_POST['action'] == 'submitForm') {
         return basename($file['filePath']);
     }, $uploadedFiles);
 
-    $allFiles = array_merge($existingFiles, $uploadedFileNames);
+    $allFiles = array_merge($remainingFiles, $uploadedFileNames);
     $filesString = implode(',', $allFiles);
 
     $sql = "UPDATE tbltasks SET topic=?, subject=?, account=?, description=?, writer=?, email=?, status=?, due_date=?, cpp=?, pages=?, is_confirmed=?, task_files=? WHERE id=?";

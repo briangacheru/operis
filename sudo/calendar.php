@@ -37,6 +37,27 @@ $tasksJson = json_encode($tasks);
             <div class="col-lg-auto d-flex align-items-center">
                 <h4 class="mb-0 text-primary fw-bold">Tasks <span class="text-info fw-medium"> Calendar</span></h4>
             </div>
+            <div class="col-md-auto p-3">
+                <form class="row align-items-center g-3">
+                    <div class="col-md-auto position-relative">
+                        <div class="dropdown font-sans-serif me-md-2">
+                            <button class="btn btn-falcon-default text-600 btn-sm dropdown-toggle dropdown-caret-none" type="button" id="view-selector" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <span id="current-view">Month View</span>
+                                <svg class="svg-inline--fa fa-sort fa-w-10 ms-2 fs-10" aria-hidden="true" focusable="false" data-prefix="fas" data-icon="sort" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" data-fa-i2svg="">
+                                    <path fill="currentColor" d="M41 288h238c21.4 0 32.1 25.9 17 41L177 448c-9.4 9.4-24.6 9.4-33.9 0L24 329c-15.1-15.1-4.4-41 17-41zm255-105L177 64c-9.4-9.4-24.6-9.4-33.9 0L24 183c-15.1 15.1-4.4 41 17 41h238c21.4 0 32.1-25.9 17-41z"></path>
+                                </svg>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="view-selector">
+                                <a class="dropdown-item d-flex justify-content-between active" href="#" data-fc-view="dayGridMonth">Month View<span class="icon-check"></span></a>
+                                <a class="dropdown-item d-flex justify-content-between" href="#" data-fc-view="timeGridWeek">Week View<span class="icon-check"></span></a>
+                                <a class="dropdown-item d-flex justify-content-between" href="#" data-fc-view="timeGridDay">Day View<span class="icon-check"></span></a>
+                                <a class="dropdown-item d-flex justify-content-between" href="#" data-fc-view="listWeek">List View<span class="icon-check"></span></a>
+                                <a class="dropdown-item d-flex justify-content-between" href="#" data-fc-view="year">Year View<span class="icon-check"></span></a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -76,6 +97,18 @@ include "footer.php";
         var calendarEl = document.getElementById('appCalendar');
         var calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: ''
+            },
+            views: {
+                year: {
+                    type: 'dayGrid',
+                    duration: { years: 1 },
+                    buttonText: 'Year'
+                }
+            },
             events: <?php echo $tasksJson; ?>,
             eventClick: function(info) {
                 var badges = {
@@ -92,12 +125,12 @@ include "footer.php";
                 var formattedDueDate = dueDate.toLocaleTimeString('en-US', options);
 
                 var taskDetails = `
-                    <p><strong>ID:</strong> ${info.event.id}</p>
-                    <p><strong>Account:</strong> ${info.event.extendedProps.account}</p>
-                    <p><strong>Topic:</strong> ${info.event.extendedProps.topic}</p>
-                    <p><strong>Status:</strong> ${badges[info.event.extendedProps.status]}</p>
-                    <p><strong>Due Date:</strong> ${info.event.start.toLocaleDateString()} ${formattedDueDate}</p>
-                `;
+                        <p><strong>ID:</strong> ${info.event.id}</p>
+                        <p><strong>Account:</strong> ${info.event.extendedProps.account}</p>
+                        <p><strong>Topic:</strong> ${info.event.extendedProps.topic}</p>
+                        <p><strong>Status:</strong> ${badges[info.event.extendedProps.status]}</p>
+                        <p><strong>Due Date:</strong> ${info.event.start.toLocaleDateString()} ${formattedDueDate}</p>
+                    `;
                 document.getElementById('taskDetails').innerHTML = taskDetails;
 
                 // Set the link to view the task
@@ -129,5 +162,21 @@ include "footer.php";
             }
         });
         calendar.render();
+
+        // Handle view change from dropdown
+        document.querySelectorAll('.dropdown-item').forEach(function(item) {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                var view = this.getAttribute('data-fc-view');
+                calendar.changeView(view);
+                document.getElementById('current-view').textContent = this.textContent.trim();
+
+                // Remove active class from all items and add to the clicked one
+                document.querySelectorAll('.dropdown-item').forEach(function(item) {
+                    item.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
+        });
     });
 </script>
