@@ -327,6 +327,41 @@ if (isset($_GET['delete'])) {
             </div>
         </div>
 
+    <div class="modal fade" id="overdraft-view-modal" tabindex="-1" role="dialog" aria-labelledby="authentication-modal-label" aria-hidden="true">
+        <div class="modal-dialog mt-6" role="document">
+            <div class="modal-content border-0">
+                <div class="modal-header px-5 position-relative modal-shape-header bg-shape">
+                    <div class="position-relative z-1">
+                        <h4 class="mb-0 text-white" id="authentication-modal-label">Edit Overdraft</h4>
+                    </div>
+                    <button class="btn-close position-absolute top-0 end-0 mt-2 me-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-4 px-5">
+                    <div id="modal-alert" class="alert d-none"></div>
+                    <form id="overdraft-form">
+                        <input type="hidden" id="overdraft-id" name="id">
+                        <div class="mb-3">
+                            <label class="form-label" for="modal-auth-name">Writer</label>
+                            <input class="form-control" type="text" autocomplete="on" name="writer" id="modal-auth-name" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="modal-auth-amount">Amount</label>
+                            <input class="form-control" type="number" autocomplete="on" name="amount" id="modal-auth-amount" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="modal-auth-date">Date</label>
+                            <input class="form-control datetimepicker" type="text" autocomplete="on" name="od_date" id="modal-auth-date" placeholder="YYYY-mm.dd H:i" data-options='{"enableTime":true,"dateFormat":"Y-m-d H:i","disableMobile":true,"allowInput":true}' />
+                        </div>
+                        <div class="mb-3">
+                            <button class="btn btn-primary d-block w-100 mt-3" type="submit">Update Overdraft</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <script>
         function clearForm() {
             document.getElementById('overdraftForm').reset();

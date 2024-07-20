@@ -46,7 +46,7 @@
                             <div class="card-body">
                                 <div class="row gx-2">
                                     <div class="col-12 mb-3">
-                                        <label class="form-label" for="manufacturar-name">Topic:</label>
+                                        <label class="form-label" for="manufacturer-name">Topic:</label>
                                         <input class="form-control" name="topic" type="text" required="required" />
                                         <div class="invalid-feedback">This field is required</div>
                                     </div>
@@ -75,8 +75,8 @@
                                         </select>
                                     </div>
                                     <div class="col-sm-6 mb-3">
-                                        <label class="form-label" for="dateTimepickerVal">Due Date & Time:</label>
-                                        <input class="form-control datetimepicker" name="due_date" type="text" required="required" placeholder="YYYY-mm.dd H:i" data-options='{"enableTime":true,"dateFormat":"Y-m-d H:i","disableMobile":true,"allowInput":true, "minDate": "today"}' />
+                                        <label class="form-label" for="basic-form-due">Deadline:</label>
+                                        <input class="form-control" name="due_date" required="required" id="due_date" type="datetime-local" />
                                         <div class="invalid-feedback">This field is required</div>
                                     </div>
                                     <div class="col-sm-6 mb-3">

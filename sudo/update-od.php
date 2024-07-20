@@ -1,27 +1,29 @@
 <?php
-include('check-login.php');
+include "check-login.php";
 
 $response = array('success' => false, 'message' => '');
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = $_POST['id'];
-    $writer = $_POST['writer'];
-    $amount = $_POST['amount'];
-    $od_date = $_POST['od_date'];
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $id = mysqli_real_escape_string($con, $_POST['id']);
+    $amount = mysqli_real_escape_string($con, $_POST['amount']);
+    $od_date = mysqli_real_escape_string($con, $_POST['od_date']);
+    $writer = mysqli_real_escape_string($con, $_POST['writer']);
 
-    // SQL to update the overdraft record
-    $sql = "UPDATE tbloverdrafts SET writer = ?, amount = ?, od_date = ? WHERE id = ?";
-    $stmt = $con->prepare($sql);
-    $stmt->bind_param("sssi", $writer, $amount, $od_date, $id);
+    $stmt = mysqli_prepare($con, "UPDATE tbloverdrafts SET amount = ?, od_date = ?, writer = ? WHERE id = ?");
+    mysqli_stmt_bind_param($stmt, 'sssi', $amount, $od_date, $writer, $id);
 
-    if ($stmt->execute()) {
+    if (mysqli_stmt_execute($stmt)) {
         $response['success'] = true;
-        $response['message'] = 'Record updated successfully';
+        $response['message'] = 'Overdraft record updated successfully.';
     } else {
-        $response['message'] = 'Error updating record: ' . $stmt->error;
+        $response['message'] = 'Something went wrong. Please try again!';
     }
-    $stmt->close();
+
+    mysqli_stmt_close($stmt);
+} else {
+    $response['message'] = 'Invalid request method.';
 }
 
+header('Content-Type: application/json');
 echo json_encode($response);
 ?>

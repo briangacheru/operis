@@ -260,12 +260,41 @@ if (isset($_SESSION['alert'])) {
                         </div>
                     </div>
                     <hr class="text-secondary text-opacity-50" />
-                    <ul class="list-unstyled d-flex flex-wrap gap-3 fs-9 fw-semi-bold text-300 mt-3 mb-0">
-                        <li><span class="fas fa-user-graduate text-white me-1"> </span><?php  echo $taskWriter;?></li>
-                        <li><span class="fas fa-user text-white me-1"> </span><?php  echo $taskAccount;?></li>
-                        <li><span class="fas fa-file text-white me-1"> </span><?php  echo $taskPages;?> Pages</li>
-                        <li><span class="fas fa-credit-card text-white me-1"> </span>Ksh. <?php  echo $taskCPP;?> Per page</li>
-                    </ul>
+                    <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-md-start">
+                        <span class="badge rounded-pill badge-subtle-dark border border-300 text-info py-2 px-3">
+                            <?php
+                            if ($taskWriter) {
+                                // Fetch the writerID from tblwriters based on the username (taskWriter)
+                                $stmt = $con->prepare("SELECT id FROM tblwriters WHERE username = ?");
+                                $stmt->bind_param("s", $taskWriter);
+                                $stmt->execute();
+                                $result = $stmt->get_result();
+                                $writerId = $result->fetch_assoc()['id'];
+
+                                if ($writerId) {
+                                    // Encode writerID for use in the link
+                                    $encodedWriterId = base64_encode($writerId);
+                                    ?>
+                                    <span class="fas fa-user-graduate text-white me-1"></span>
+                                    <a class="text-info" href="writer.php?writerID=<?php echo $encodedWriterId; ?>"><?php echo htmlspecialchars($taskWriter); ?></a>
+                                    <?php
+                                } else {
+                                    echo "Writer not found.";
+                                    exit;
+                                }
+                            } else {
+                                echo "Task writer not found.";
+                                exit;
+                            }
+                            ?>
+                        </span>
+                        <span class="badge rounded-pill badge-subtle-dark border border-300 text-info py-2 px-3">
+                            <span class="fas fa-user text-white me-1"> </span><?php  echo $taskAccount;?></span>
+                        <span class="badge rounded-pill badge-subtle-dark border border-300 text-info py-2 px-3">
+                            <span class="fas fa-file text-white me-1"> </span><?php  echo $taskPages;?> Pages</span>
+                        <span class="badge rounded-pill badge-subtle-dark border border-300 text-info py-2 px-3">
+                            <span class="fas fa-credit-card text-white me-1"> </span>Ksh. <?php  echo $taskCPP;?> Per page</span>
+                    </div>
                 </div>
             </div>
         </div>
