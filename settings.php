@@ -351,15 +351,6 @@ if (isset($_POST['update_password'])) {
                         </form>
                     </div>
                 </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0 text-info">Danger Zone</h5>
-                    </div>
-                    <div class="card-body bg-body-tertiary">
-                        <h5 class="fs-9">Delete this account</h5>
-                        <p class="fs-10">Once you delete an account, there is no going back. Please be certain.</p><a class="btn btn-falcon-danger d-block" href="#!">Deactivate Account</a>
-                    </div>
-                </div>
             </div>
         </div>
     </div>

@@ -24,8 +24,9 @@ if ($rowWriter->is_verified == 1) {
             <div class="card-body p-0">
                 <div class="card bg-transparent-50 overflow-hidden">
                     <div class="card-header position-relative">
-                        <div class="bg-holder d-none d-md-block bg-card z-1" style="background-image:url(assets/img/illustrations/tasking.png);background-size:230px;background-position:right bottom;z-index:-1;">
+                        <div class="bg-holder d-none d-md-block bg-card z-1" style="background-image:url(https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExejMxdm5saGptc3YydGdlODJueDJiOTRlYWJjZzEwaTA0czhkNDJybCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/VRtHA7ucvzkUMNEN0j/giphy.gif);background-size:230px;background-position:right bottom;z-index:-1;">
                         </div>
+
                         <!--/.bg-holder-->
 
                         <div class="position-relative z-2">
@@ -49,11 +50,11 @@ if ($rowWriter->is_verified == 1) {
                             </div>
                             <div class="d-flex py-3">
                                 <div class="pe-3">
-                                    <p class="text-600 fs-10 fw-medium">Tasks due Today</p>
+                                    <p class="text-900 fs-10 fw-medium">Tasks due Today</p>
                                     <?php
                                     $todayTasks = "";
                                     // Added condition to filter tasks posted today
-                                    $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND DATE(due_date) = CURDATE() AND email = '$aid'";
+                                    $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND DATE(due_date) <= CURDATE() AND status ='In Progress' AND email = '$aid'";
                                     $result = mysqli_query($con, $query);
                                     if ($result) {
                                         $rowWriter = mysqli_fetch_assoc($result);
@@ -70,7 +71,7 @@ if ($rowWriter->is_verified == 1) {
                                     <h4 class="text-800 mb-0"><?php echo $todayTasks; ?></h4>
                                 </div>
                                 <div class="ps-3">
-                                    <p class="text-600 fs-10">Total amount due</p>
+                                    <p class="text-900 fs-10">Total amount due</p>
                                     <?php
                                     // Query to sum CPP*pages for completed, unpaid tasks
                                     $query1 = mysqli_query($con, "SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed' AND email = '$aid'");
@@ -85,7 +86,7 @@ if ($rowWriter->is_verified == 1) {
                                     // Calculate amount due by subtracting total completed task costs from total overdrafts
                                     $amount_due = $totalCompletedTasks - $totalOverdrafts;
                                     ?>
-                                    <h4 class="text-800 mb-0"><?php echo number_format($amount_due, 2, '.', ','); ?></h4>
+                                    <h4 class="text-800 mb-0">Ksh. <?php echo number_format($amount_due, 2, '.', ','); ?></h4>
                                 </div>
                             </div>
                         </div>
@@ -98,7 +99,7 @@ if ($rowWriter->is_verified == 1) {
                                     <div class="col">
                                         <div class="d-flex">
                                             <div class="fas fa-circle mt-1 fs-11"></div>
-                                            <p class="fs-10 ps-2 mb-0"><strong><?php echo $lateTasksCount; ?> tasks</strong> are late</p>
+                                            <p class="fs-10 ps-2 mb-0 text-900"> <strong><?php echo $lateTasksCount; ?> tasks</strong> are late</p>
                                         </div>
                                     </div>
                                     <div class="col-auto d-flex align-items-center"><a class="fs-10 fw-medium text-warning-emphasis" href="tasks-in-progress">View tasks<i class="fas fa-chevron-right ms-1 fs-11"></i></a></div>
@@ -127,7 +128,7 @@ if ($rowWriter->is_verified == 1) {
                                     <div class="col">
                                         <div class="d-flex">
                                             <div class="fas fa-circle mt-1 fs-11 text-primary"></div>
-                                            <p class="fs-10 ps-2 mb-0"><strong><?php echo $allUnpaid ?> tasks</strong> are unpaid</p>
+                                            <p class="fs-10 ps-2 mb-0 text-900"> <strong><?php echo $allUnpaid ?> tasks</strong> are unpaid</p>
                                         </div>
                                     </div>
                                     <div class="col-auto d-flex align-items-center"><a class="fs-10 fw-medium" href="unpaid-tasks">View payments<i class="fas fa-chevron-right ms-1 fs-11"></i></a></div>
@@ -156,7 +157,7 @@ if ($rowWriter->is_verified == 1) {
                                     <div class="col">
                                         <div class="d-flex">
                                             <div class="fas fa-circle mt-1 fs-11 text-primary"></div>
-                                            <p class="fs-10 ps-2 mb-0"><strong><?php echo $allSubmitted?> tasks</strong> need to be completed by Admin</p>
+                                            <p class="fs-10 ps-2 mb-0 text-900"> <strong><?php echo $allSubmitted?> tasks</strong> need to be completed by Admin</p>
                                         </div>
                                     </div>
                                     <div class="col-auto d-flex align-items-center"><a class="fs-10 fw-medium" href="submitted-tasks">View tasks<i class="fas fa-chevron-right ms-1 fs-11"></i></a></div>

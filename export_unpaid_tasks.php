@@ -1,6 +1,14 @@
 <?php
 include "check-login.php"; // Make sure you include your database connection file here
 
+// Check if the user is logged in and session variable is set
+if (isset($_SESSION['sessionWriter'])) {
+    $aid = $_SESSION['sessionWriter'];
+} else {
+    header('Location: login.php');
+    exit();
+}
+
 header('Content-Type: text/csv; charset=utf-8');
 header('Content-Disposition: attachment; filename=unpaid_tasks.csv');
 
@@ -9,9 +17,10 @@ $output = fopen('php://output', 'w');
 // Output the column headings
 fputcsv($output, array('Task Id', 'Topic', 'Pages', 'CPP', 'Amount', 'Payment'));
 
-$query=mysqli_query($con,"select * from tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND is_paid = 0 ORDER BY id DESC");
+$query=mysqli_query($con,"select * from tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND is_paid = 0 AND email = '$aid' ORDER BY id DESC");
 while ($row = mysqli_fetch_assoc($query)) {
     $totalprice = $row["cpp"] * $row["pages"];
+    $status = $row["status"]; // Simplified for CSV
     $is_paid = ($row['is_paid'] == 1) ? 'Paid' : 'Unpaid';
 
     // Populate data rows

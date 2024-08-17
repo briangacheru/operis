@@ -114,18 +114,7 @@ $confirmation = "<span class='badge $confirmationClass'>$confirmationText</span>
                         <p class='mb-0 flex-1'>$message</p>
                     <button class='btn-close' type='button' data-bs-dismiss='alert' aria-label='Close'></button>
                 </div>
-                <script>
-            // Use JavaScript to hide the alert after 5 seconds
-            setTimeout(function() {
-                var alertElement = document.querySelector('.alert');
-                if (alertElement) {
-                    alertElement.classList.add('fade'); // Add Bootstrap's fade class
-                    alertElement.addEventListener('transitionend', function() {
-                        alertElement.remove();
-                    });
-                }
-            }, 5000); // 5000 milliseconds = 5 seconds
-        </script>
+                
                 ";
         }
         ?>

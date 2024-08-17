@@ -5,5 +5,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="task" />
+    <orderEntry type="module" module-name="eggAdmin" />
+    <orderEntry type="module" module-name="poultry" />
   </component>
 </module>

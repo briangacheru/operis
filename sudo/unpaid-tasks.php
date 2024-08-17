@@ -139,15 +139,22 @@ $msg = "";
                                                     <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
                                                 </div>
                                             </td>
-                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><?php echo $row["id"];?></td>
-                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><a class="stretched-link" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></td>
+                                            <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["id"];?></td>
+                                            <td>
+                                                <div class="d-flex align-items-center position-relative">
+                                                    <div class="flex-1 ms-3">
+                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
+                                                        <p class="fw-semi-bold mb-0 text-500"><?php echo $row["pages"];?> Page(s) | CPP: <?php echo $row["cpp"];?></p>
+                                                    </div>
+                                                </div>
+                                            </td>
                                             <td class="align-middle white-space-nowrap product"><?php echo $statusBadge;?>
                                             <?php if ($is_confirmed == 1): ?>
                                                 <?php echo $confirmation;?>
                                             <?php endif; ?>
                                             </td>
-                                            <td class="align-middle white-space-nowrap email"><?php echo $row["account"];?></td>
-                                            <td class="align-middle white-space-nowrap email"><?php echo $row["subject"];?></td>
+                                            <td class="align-middle white-space-nowrap text-900"><?php echo $row["account"];?></td>
+                                            <td class="align-middle white-space-nowrap text-900"><?php echo $row["subject"];?></td>
                                             <td class="align-middle text-end amount">
                                                 <h6 class="mb-0"><?php echo number_format($totalprice,2); ?></h6>
                                                 <p class="fs-11 mb-0"><?php echo $statusBadgePay;?></p>

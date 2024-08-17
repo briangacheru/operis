@@ -98,7 +98,7 @@ $msg = "";
                                                     <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
                                                 </div>
                                             </td>
-                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><?php echo $row["id"];?></td>
+                                            <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["id"];?></td>
                                             <td class="align-middle white-space-nowrap fw-semi-bold name"><?php echo $row["writer"];?></td>
                                             <td class="align-middle white-space-nowrap email"><?php echo $row["amount"];?></td>
                                             <td class="align-middle white-space-nowrap payment"><?php echo date("jS M, Y h:i A", strtotime($row['od_date'])); ?></td>

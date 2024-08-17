@@ -50,7 +50,7 @@ if ($query->rowCount() > 0) {
                                     <?php
                                     $todayTasks = "";
                                     // Added condition to filter tasks posted today
-                                    $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND DATE(due_date) = CURDATE()";
+                                    $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND DATE(due_date) <= CURDATE() AND status = 'In Progress'";
                                     $result = mysqli_query($con, $query);
                                     if ($result) {
                                         $rowAdmin = mysqli_fetch_assoc($result);

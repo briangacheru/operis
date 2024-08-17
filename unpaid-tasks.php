@@ -44,7 +44,7 @@
                                         </div>
                                         <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                                             <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
-                                                <button class="btn btn-falcon-primary btn-sm" onclick="exportTableToCSVWithConfirmation('unpaid-tasks.csv')" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
+                                                <button class="btn btn-falcon-primary btn-sm" onclick="exportUnpaid()" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
                                             </div>
                                         </div>
                                     </div>
@@ -61,9 +61,7 @@
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task Id</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Topic</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center">Status</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Pages</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">CPP</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">Amount</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Amount</th>
                                         </tr>
                                         </thead>
                                         <tbody class="list" id="table-simple-pagination-body">
@@ -115,18 +113,22 @@
                                                     <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
                                                 </div>
                                             </td>
-                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><?php echo $row["id"];?></td>
-                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><a class="stretched-link" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></td>
+                                            <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["id"];?></td>
+                                            <td>
+                                                <div class="d-flex align-items-center position-relative">
+                                                    <div class="flex-1 ms-3">
+                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
+                                                        <p class="fw-semi-bold mb-0 text-500"><?php echo $row["pages"];?> Page(s) | CPP: <?php echo $row["cpp"];?></p>
+                                                    </div>
+                                                </div>
+                                            </td>
                                             <td class="align-middle white-space-nowrap product"><?php echo $statusBadge;?>
                                             <?php if ($is_confirmed == 1): ?>
                                                 <?php echo $confirmation;?>
-                                            <?php endif; ?>
+                                            <?php endif; ?> | <?php echo $statusBadgePay;?>
                                             </td>
-                                            <td class="align-middle white-space-nowrap email"><?php echo $row["pages"];?></td>
-                                            <td class="align-middle white-space-nowrap email"><?php echo $row["cpp"];?></td>
-                                            <td class="align-middle text-end amount" data-amount="<?php echo number_format($totalprice, 2, '.', ''); ?>">
+                                            <td class="align-middle amount" data-amount="<?php echo number_format($totalprice, 2, '.', ''); ?>">
                                                 <h6 class="mb-0"><?php echo number_format($totalprice, 2, '.', ''); ?></h6>
-                                                <p class="fs-11 mb-0"><?php echo $statusBadgePay;?></p>
                                             </td>
                                         </tr>
                                         <?php
@@ -143,59 +145,6 @@
                 </div>
             </div>
         </div>
-
-    <script>
-        function exportTableToCSVWithConfirmation(filename) {
-            if (confirm("Are you sure you want to export the table as a CSV file?")) {
-                exportTableToCSV(filename);
-            }
-        }
-
-        function exportTableToCSV(filename) {
-            var csv = [];
-            var rows = document.querySelectorAll("table tr");
-
-            for (var i = 0; i < rows.length; i++) {
-                var row = [], cols = rows[i].querySelectorAll("td, th");
-                var numCols = cols.length;
-
-                for (var j = 0; j < numCols; j++) {
-                    if (j === numCols - 1) {
-                        // Replace the last column with the amount
-                        var amount = cols[j].getAttribute('data-amount');
-                        row.push(amount ? amount : cols[j].innerText);
-                    } else {
-                        row.push(cols[j].innerText);
-                    }
-                }
-
-                csv.push(row.join(","));
-            }
-
-            // Download CSV
-            downloadCSV(csv.join("\n"), filename);
-        }
-
-        function downloadCSV(csv, filename) {
-            var csvFile;
-            var downloadLink;
-
-            csvFile = new Blob([csv], {type: "text/csv"});
-
-            downloadLink = document.createElement("a");
-
-            downloadLink.download = filename;
-
-            downloadLink.href = window.URL.createObjectURL(csvFile);
-
-            downloadLink.style.display = "none";
-
-            document.body.appendChild(downloadLink);
-
-            downloadLink.click();
-        }
-    </script>
-
 
 <?php
 include "footer.php";

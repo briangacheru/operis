@@ -155,7 +155,7 @@ if (isset($_SESSION['alert'])) {
                                                         <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
                                                     </div>
                                                 </td>
-                                                <td class="align-middle white-space-nowrap fw-semi-bold name"><?php echo $row["id"];?></td>
+                                                <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["id"];?></td>
                                                 <td class="align-middle white-space-nowrap fw-semi-bold name"><a href="writer?writerID=<?php echo $encodedId;?>"><?php echo $row["username"];?></a></td>
                                                 <td class="align-middle white-space-nowrap email"><?php echo $row["email"];?></td>
                                                 <td class="align-middle white-space-nowrap email"><?php echo date("jS M, Y", strtotime($row['created_at'])); ?></td>

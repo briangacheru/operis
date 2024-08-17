@@ -22,34 +22,35 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     $('#overdraft-form').on('submit', function (e) {
-    e.preventDefault();
+        e.preventDefault();
 
-    $.ajax({
-    type: 'POST',
-    url: 'update-od', // Your PHP file to handle the update
-    data: $(this).serialize(),
-    dataType: 'json',
-    success: function (response) {
-    let alertDiv = $('#modal-alert');
-    if (response.success) {
-    alertDiv.removeClass('d-none alert-danger').addClass('alert-success').text(response.message);
-    // Refresh the table data
-    $('#table-simple-pagination-body').load(' #table-simple-pagination-body > *');
-    // Hide the modal after 5 seconds
-    setTimeout(function() {
-    $('#overdraft-view-modal').modal('hide');
-}, 5000);
-} else {
-    alertDiv.removeClass('d-none alert-success').addClass('alert-danger').text(response.message);
-}
-},
-    error: function (jqXHR, textStatus, errorThrown) {
-    let alertDiv = $('#modal-alert');
-    alertDiv.removeClass('d-none alert-success').addClass('alert-danger').text('An error occurred: ' + textStatus + ' - ' + errorThrown);
-}
+        $.ajax({
+            type: 'POST',
+            url: 'update-od', // Your PHP file to handle the update
+            data: $(this).serialize(),
+            dataType: 'json',
+            success: function (response) {
+                let alertDiv = $('#modal-alert');
+                if (response.success) {
+                    alertDiv.removeClass('d-none alert-danger').addClass('alert-success').text(response.message);
+                    // Refresh the table data
+                    $('#table-simple-pagination-body').load(' #table-simple-pagination-body > *');
+                    // Hide the modal after 5 seconds
+                    setTimeout(function () {
+                        $('#overdraft-view-modal').modal('hide');
+                    }, 5000);
+                } else {
+                    alertDiv.removeClass('d-none alert-success').addClass('alert-danger').text(response.message);
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                let alertDiv = $('#modal-alert');
+                alertDiv.removeClass('d-none alert-success').addClass('alert-danger').text('An error occurred: ' + textStatus + ' - ' + errorThrown);
+            }
+        });
+    });
 });
-});
-});
+
 
 /* -------------------------------------------------------------------------- */
 /*                              Other user js functions                       */

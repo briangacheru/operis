@@ -141,9 +141,9 @@
                                                             <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]" />
                                                         </div>
                                                     </td>
-                                                    <td class="align-middle white-space-nowrap fw-semi-bold name"><?php echo $row["id"]; ?></td>
-                                                    <td class="align-middle white-space-nowrap email"><?php echo $row["amount"]; ?></td>
-                                                    <td class="align-middle text-center white-space-nowrap payment"><?php echo date("jS M, Y h:i A", strtotime($row['od_date'])); ?></td>
+                                                    <td class="align-middle white-space-nowrap"><?php echo $row["id"]; ?></td>
+                                                    <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["amount"]; ?></td>
+                                                    <td class="align-middle text-center white-space-nowrap payment text-900"><?php echo date("jS M, Y h:i A", strtotime($row['od_date'])); ?></td>
                                                     <td class="align-middle white-space-nowrap text-end position-relative">
                                                         <div class="hover-actions bg-100">
                                                             <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" href="#overdraft-view-modal" title="View Overdraft" data-id="<?php echo $row['id']; ?>" data-writer="<?php echo $row['writer']; ?>" data-amount="<?php echo $row['amount']; ?>" data-date="<?php echo $row['od_date']; ?>"><span class="far fa-eye"></span></a>
