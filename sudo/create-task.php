@@ -69,9 +69,12 @@
                                         <label class="form-label" for="cpp">CPP: </label>
                                         <select class="form-select" id="cpp" name="cpp" required="required">
                                             <option value="375">375</option>
+                                            <option value="190">190 </option>
                                             <option value="350">350 </option>
                                             <option value="200">200 </option>
                                             <option value="400">400</option>
+                                            <option value="500">500</option>
+                                            <option value="750">750</option>
                                         </select>
                                     </div>
                                     <div class="col-sm-6 mb-3">

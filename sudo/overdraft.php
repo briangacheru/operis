@@ -158,7 +158,7 @@ if (isset($_GET['delete'])) {
                             $result = mysqli_query($con, $query);
 
                             if(mysqli_num_rows($result) > 0) {
-                                echo "<select name='writer' id='writer' class='form-select' onchange='updateAmountDue();'>";
+                                echo "<select name='writer' id='writer' class='form-select' onchange='checkFormCompletion();'>";
                                 echo "<option value='' selected disabled>Select Writer</option>"; // Added disabled and selected attributes
                                 while ($row = mysqli_fetch_assoc($result)) {
                                     $displayText = htmlspecialchars($row['username'], ENT_QUOTES, 'UTF-8') . " | " . htmlspecialchars($row['email'], ENT_QUOTES, 'UTF-8');
@@ -173,12 +173,12 @@ if (isset($_GET['delete'])) {
                         </div>
                         <label class="col-sm-2 col-form-label" for="inputPassword">Amount </label>
                         <div class="col-sm-10">
-                            <input type="number" name="amount" value="" min="0" placeholder="Enter Overdraft amount" class="form-control" id="amount" required>
+                            <input type="number" name="amount" value="" min="0" placeholder="Enter Overdraft amount" class="form-control" id="amount" onchange="checkFormCompletion();" required>
                             <div class="mb-3 row"></div>
                         </div>
                         <label class="col-sm-2 col-form-label" for="inputPassword">Date </label>
                         <div class="col-sm-10">
-                            <input class="form-control datetimepicker" name="od_date" type="text" required="required" placeholder="YYYY-mm.dd H:i" data-options='{"enableTime":true,"dateFormat":"Y-m-d H:i","disableMobile":true,"allowInput":true}' />
+                            <input class="form-control" name="od_date" type="datetime-local" required="required" id="od_date" onchange="checkFormCompletion();" />
                             <div class="mb-3 row"></div>
                         </div>
                     </div>
@@ -186,11 +186,11 @@ if (isset($_GET['delete'])) {
                         <div class="card-body">
                             <div class="row justify-content-between align-items-center">
                                 <div class="col-md">
-                                    <h5 class="mb-2 mb-md-0">You're almost done!</h5>
+                                    <h5 class="mb-2 mb-md-0" style="display: none;">You're almost done!</h5>
                                 </div>
                                 <div class="col-auto">
-                                    <button class="btn btn-link text-secondary p-0 me-3 fw-medium" type="button" id="discardButton" role="button" onclick="clearForm()">Discard</button>
-                                    <button class="btn btn-primary" name="save" type="submit" role="button">Add Overdraft</button>
+                                    <button class="btn btn-link text-secondary p-0 me-3 fw-medium" type="button" id="discardButton" role="button" onclick="clearForm()" style="display: none;">Discard</button>
+                                    <button class="btn btn-primary" name="save" type="submit" role="button" style="display: none;">Add Overdraft</button>
                                 </div>
                             </div>
                         </div>
@@ -262,8 +262,6 @@ if (isset($_GET['delete'])) {
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
-                                                <a class="btn btn-falcon-info btn-sm mx-2" href="overdraft" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Overdraft</span></a>
-<!--                                                <button class="btn btn-falcon-default btn-sm mx-2" type="button"><span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Filter</span></button>-->
                                                 <button class="btn btn-falcon-primary btn-sm" onclick="exportOverdraft()" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
                                             </div>
                                         </div>
@@ -298,10 +296,10 @@ if (isset($_GET['delete'])) {
                                                             <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]" />
                                                         </div>
                                                     </td>
-                                                    <td class="align-middle white-space-nowrap fw-semi-bold name"><?php echo $row["id"]; ?></td>
-                                                    <td class="align-middle white-space-nowrap email"><?php echo $row["writer"]; ?></td>
-                                                    <td class="align-middle white-space-nowrap email">Ksh. <?php echo $row["amount"]; ?></td>
-                                                    <td class="align-middle text-center white-space-nowrap payment"><?php echo date("jS M, Y h:i A", strtotime($row['od_date'])); ?></td>
+                                                    <td class="align-middle white-space-nowrap  text-900"><?php echo $row["id"]; ?></td>
+                                                    <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["writer"]; ?></td>
+                                                    <td class="align-middle white-space-nowrap fw-semi-bold text-900">Ksh. <?php echo $row["amount"]; ?></td>
+                                                    <td class="align-middle text-center white-space-nowrap text-900"><?php echo date("jS M, Y h:i A", strtotime($row['od_date'])); ?></td>
                                                     <td class="align-middle white-space-nowrap text-end position-relative">
                                                         <div class="hover-actions bg-100">
                                                             <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" href="#overdraft-view-modal" title="Edit task" data-id="<?php echo $row['id']; ?>" data-writer="<?php echo $row['writer']; ?>" data-amount="<?php echo $row['amount']; ?>" data-date="<?php echo $row['od_date']; ?>"><span class="far fa-edit"></span></a>
@@ -350,7 +348,7 @@ if (isset($_GET['delete'])) {
                         </div>
                         <div class="mb-3">
                             <label class="form-label" for="modal-auth-date">Date</label>
-                            <input class="form-control datetimepicker" type="text" autocomplete="on" name="od_date" id="modal-auth-date" placeholder="YYYY-mm.dd H:i" data-options='{"enableTime":true,"dateFormat":"Y-m-d H:i","disableMobile":true,"allowInput":true}' />
+                            <input class="form-control" type="datetime-local" name="od_date" id="modal-auth-date" />
                         </div>
                         <div class="mb-3">
                             <button class="btn btn-primary d-block w-100 mt-3" type="submit">Update Overdraft</button>
@@ -363,10 +361,6 @@ if (isset($_GET['delete'])) {
 
 
     <script>
-        function clearForm() {
-            document.getElementById('overdraftForm').reset();
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {
                 let alertElement = document.querySelector('.alert');
@@ -378,6 +372,38 @@ if (isset($_GET['delete'])) {
                 }
             }, 10000); // 10 seconds
         });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            checkFormCompletion(); // Initial check when the page loads
+
+            // Attach event listeners to form inputs
+            document.getElementById('writer').addEventListener('change', checkFormCompletion);
+            document.getElementById('amount').addEventListener('input', checkFormCompletion);
+            document.getElementById('od_date').addEventListener('input', checkFormCompletion);
+        });
+
+        function checkFormCompletion() {
+            var writer = document.getElementById('writer').value;
+            var amount = document.getElementById('amount').value;
+            var od_date = document.getElementById('od_date').value;
+
+            var discardButton = document.getElementById('discardButton');
+            var submitButton = document.querySelector("button[name='save']");
+
+            if (writer && amount && od_date) {
+                discardButton.style.display = 'inline-block';
+                submitButton.style.display = 'inline-block';
+            } else {
+                discardButton.style.display = 'none';
+                submitButton.style.display = 'none';
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('overdraftForm').reset();
+            checkFormCompletion(); // Re-check the form state after clearing
+        }
+
     </script>
 <?php
 include "footer.php";

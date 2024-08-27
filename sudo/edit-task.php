@@ -108,14 +108,17 @@ if ($row = mysqli_fetch_array($result)) {
                                     <label class="form-label" for="cpp">CPP: </label>
                                     <select class="form-select" id="cpp" name="cpp" required="required">
                                         <option value="375" <?php echo ($taskCPP == '375') ? 'selected' : ''; ?>>375</option>
+                                        <option value="190" <?php echo ($taskCPP == '190') ? 'selected' : ''; ?>>190</option>
                                         <option value="350" <?php echo ($taskCPP == '350') ? 'selected' : ''; ?>>350</option>
                                         <option value="200" <?php echo ($taskCPP == '200') ? 'selected' : ''; ?>>200</option>
                                         <option value="400" <?php echo ($taskCPP == '400') ? 'selected' : ''; ?>>400</option>
+                                        <option value="500" <?php echo ($taskCPP == '500') ? 'selected' : ''; ?>>500</option>
+                                        <option value="700" <?php echo ($taskCPP == '700') ? 'selected' : ''; ?>>700</option>
                                     </select>
                                 </div>
                                 <div class="col-sm-6 mb-3">
                                     <label class="form-label" for="dateTimepickerVal">Due Date & Time:</label>
-                                    <input class="form-control datetimepicker" name="due_date" type="text" required="required"  value="<?php echo htmlspecialchars($taskDueDate, ENT_QUOTES); ?>" placeholder="YYYY-mm.dd H:i" data-options='{"enableTime":true,"dateFormat":"Y-m-d H:i","disableMobile":true,"allowInput":true, "minDate": "today"}' />
+                                    <input class="form-control" name="due_date" type="datetime-local" required="required"  value="<?php echo htmlspecialchars($taskDueDate, ENT_QUOTES); ?>" id="due_date" />
                                     <div class="invalid-feedback">This field is required</div>
                                 </div>
                                 <div class="col-sm-6 mb-3">

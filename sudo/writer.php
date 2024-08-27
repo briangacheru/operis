@@ -58,8 +58,8 @@ if ($writerID) {
                             </span>
                         </h4>
                         <h5 class="fs-9 fw-normal text-primary"><?php echo htmlspecialchars($rowWriter['email'] ?? ''); ?></h5>
-                        <p class="text-500"><?php echo htmlspecialchars($rowWriter['username'] ?? ''); ?></p>
-                        <p class="text-500"><?php echo htmlspecialchars($rowWriter['phone'] ?? ''); ?></p>
+                        <p class="text-900"><?php echo htmlspecialchars($rowWriter['username'] ?? ''); ?></p>
+                        <p class="text-900"><?php echo htmlspecialchars($rowWriter['phone'] ?? ''); ?></p>
                         <div class="border-bottom border-dashed my-4 d-lg-none"></div>
                     </div>
                     <div class="col ps-2 ps-lg-5">

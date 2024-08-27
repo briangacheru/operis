@@ -136,7 +136,7 @@ if (isset($_SESSION['alert'])) {
                                             </th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Writer ID</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Name</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center">Email</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Email</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Date Registered</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Verification</th>
                                             <th class="text-900 no-sort pe-1 align-middle data-table-row-action"></th>
@@ -155,10 +155,10 @@ if (isset($_SESSION['alert'])) {
                                                         <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
                                                     </div>
                                                 </td>
-                                                <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["id"];?></td>
-                                                <td class="align-middle white-space-nowrap fw-semi-bold name"><a href="writer?writerID=<?php echo $encodedId;?>"><?php echo $row["username"];?></a></td>
-                                                <td class="align-middle white-space-nowrap email"><?php echo $row["email"];?></td>
-                                                <td class="align-middle white-space-nowrap email"><?php echo date("jS M, Y", strtotime($row['created_at'])); ?></td>
+                                                <td class="align-middle white-space-nowrap "><?php echo $row["id"];?></td>
+                                                <td class="align-middle white-space-nowrap fw-semi-bold"><a href="writer?writerID=<?php echo $encodedId;?>"><?php echo $row["username"];?></a></td>
+                                                <td class="align-middle white-space-nowrap text-900"><?php echo $row["email"];?></td>
+                                                <td class="align-middle white-space-nowrap text-900"><?php echo date("jS M, Y", strtotime($row['created_at'])); ?></td>
                                                 <td class="align-middle white-space-nowrap email">
                                                     <?php
                                                     if ($row['is_verified'] == 1) {
