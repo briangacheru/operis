@@ -22,7 +22,7 @@ $msg = "";
                         <div class="col-auto">
                         </div>
                         <div class="col-md-auto position-relative">
-                            <h6 class="mb-1 text-info"><?php echo date("jS F Y / H:i"); ?></h6>
+                            <h6 class="mb-1 badge rounded-pill badge-subtle-info"><?php echo date("jS F Y"); ?> | <span id="timeDisplay"></span></h6>
                         </div>
                     </form>
                 </div>
@@ -136,9 +136,9 @@ $msg = "";
                                                 <div class="dropstart font-sans-serif position-static d-inline-block">
                                                     <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal float-end" type="button" id="dropdown-simple-pagination-table-item-0" data-bs-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false" data-bs-reference="parent"><span class="fas fa-ellipsis-h fs-10"></span></button>
                                                     <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="dropdown-simple-pagination-table-item-0">
-                                                        <a class="dropdown-item text-info" href="view-task?task_id=<?php echo $encodedId; ?>"><span class="fas fa-eye" data-fa-transform="shrink-2"></span> View</a>
-                                                        <a class="dropdown-item text-success" href="edit-task?task_id=<?php echo $encodedId; ?>"><span class="bi bi-pen" data-fa-transform="shrink-2"></span> Edit</a>
-                                                        <a class="dropdown-item text-warning" href="duplicate-task?task_id=<?php echo $encodedId; ?>" ><span class="fas fa-copy" data-fa-transform="shrink-2"></span> Duplicate</a>
+                                                        <a class="dropdown-item text-info" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><span class="fas fa-eye" data-fa-transform="shrink-2"></span> View</a>
+                                                        <a class="dropdown-item text-success" target="_blank" href="edit-task?task_id=<?php echo $encodedId; ?>"><span class="bi bi-pen" data-fa-transform="shrink-2"></span> Edit</a>
+                                                        <a class="dropdown-item text-warning" target="_blank" href="duplicate-task?task_id=<?php echo $encodedId; ?>" ><span class="fas fa-copy" data-fa-transform="shrink-2"></span> Duplicate</a>
                                                         <div class="dropdown-divider"></div>
                                                         <a class="dropdown-item text-danger" href="all-tasks?del=<?php echo $encodedId; ?>" onclick="return confirm('Do you really want to cancel task?');"><span class="fas fa-trash" data-fa-transform="shrink-2"></span> Cancel</>
                                                     </div>

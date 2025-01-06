@@ -3,7 +3,7 @@ function email_exists($email)
 {
     global $con;
 
-    $sql = "SELECT id FROM tbladmin WHERE email = '$email'";
+    $sql = "SELECT id FROM tblwriters WHERE email = '$email'";
 
     $result = $con->query($sql);
 
@@ -17,7 +17,7 @@ function username_exists($username)
 {
     global $con;
 
-    $sql = "SELECT id FROM tbladmin WHERE username = '$username'";
+    $sql = "SELECT id FROM tblwriters WHERE username = '$username'";
 
     $result = $con->query($sql);
 

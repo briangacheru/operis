@@ -67,7 +67,7 @@ if (isset($_GET['del'])) {
                         <div class="col-auto">
                         </div>
                         <div class="col-md-auto position-relative">
-                            <h6 class="mb-1 text-info"><?php echo date("jS F Y / H:i"); ?></h6>
+                            <h6 class="mb-1 badge rounded-pill badge-subtle-info"><?php echo date("jS F Y"); ?> | <span id="timeDisplay"></span></h6>
                         </div>
                     </form>
                 </div>
@@ -157,6 +157,9 @@ if (isset($_GET['del'])) {
                                                     case 'In Progress':
                                                         $statusBadge = '<span class="badge badge rounded-pill badge-subtle-warning">In Progress<span class="ms-1 fas fa-stream" data-fa-transform="shrink-2"></span></span>';
                                                         break;
+                                                    case 'In Revision':
+                                                        $statusBadge = '<span class="badge badge rounded-pill badge-subtle-warning">In Revision<span class="ms-1 fas fa-flag" data-fa-transform="shrink-2"></span></span>';
+                                                        break;
                                                     case 'Cancelled':
                                                         $statusBadge = '<span class="badge badge rounded-pill badge-subtle-danger">Cancelled<span class="ms-1 fas fa-ban" data-fa-transform="shrink-2"></span></span>';
                                                         break;
@@ -195,7 +198,7 @@ if (isset($_GET['del'])) {
                                             <td>
                                                 <div class="d-flex align-items-center position-relative">
                                                     <div class="flex-1 ms-3">
-                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
+                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
                                                         <p class="fw-semi-bold mb-0 text-500"><?php echo $row["pages"];?> Page(s) | CPP: <?php echo $row["cpp"];?></p>
                                                     </div>
                                                 </div>

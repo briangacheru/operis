@@ -111,7 +111,7 @@ if (isset($_GET['delete'])) {
                         <div class="col-auto">
                         </div>
                         <div class="col-md-auto position-relative">
-                            <h6 class="mb-1 text-info"><?php echo date("jS F Y / H:i"); ?></h6>
+                            <h6 class="mb-1 badge rounded-pill badge-subtle-info"><?php echo date("jS F Y"); ?> | <span id="timeDisplay"></span></h6>
                         </div>
                     </form>
                 </div>
@@ -153,7 +153,7 @@ if (isset($_GET['delete'])) {
                         <label class="col-sm-2 col-form-label" for="staticEmail">Select Writer</label>
                         <div class="col-sm-10">
                             <?php
-                            $query = "SELECT username, email FROM tblwriters WHERE is_deleted = 0 ORDER BY username DESC"; // Fetching the ID as well might be useful for future needs
+                            $query = "SELECT username, email FROM tblwriters WHERE is_deleted = 0 AND is_verified = 1 ORDER BY username DESC"; // Fetching the ID as well might be useful for future needs
 
                             $result = mysqli_query($con, $query);
 

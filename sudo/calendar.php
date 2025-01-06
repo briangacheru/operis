@@ -125,11 +125,42 @@ include "footer.php";
                 var formattedDueDate = dueDate.toLocaleTimeString('en-US', options);
 
                 var taskDetails = `
-                        <p><strong>ID:</strong> ${info.event.id}</p>
-                        <p><strong>Account:</strong> ${info.event.extendedProps.account}</p>
-                        <p><strong>Topic:</strong> ${info.event.extendedProps.topic}</p>
-                        <p><strong>Status:</strong> ${badges[info.event.extendedProps.status]}</p>
-                        <p><strong>Due Date:</strong> ${info.event.start.toLocaleDateString()} ${formattedDueDate}</p>
+                <div class="col-lg">
+                  <div class="row">
+                    <div class="col-5 col-sm-4">
+                      <p class="fw-semi-bold mb-1">ID</p>
+                    </div>
+                    <div class="col">${info.event.id}</div>
+                  </div>
+                  <div class="row">
+                    <div class="col-5 col-sm-4">
+                      <p class="fw-semi-bold mb-1">Account</p>
+                    </div>
+                    <div class="col">${info.event.extendedProps.account}</div>
+                  </div>
+                  <div class="row">
+                    <div class="col-5 col-sm-4">
+                      <p class="fw-semi-bold mb-1">Topic</p>
+                    </div>
+                    <div class="col">${info.event.extendedProps.topic}</div>
+                  </div>
+                  <div class="row">
+                    <div class="col-5 col-sm-4">
+                      <p class="fw-semi-bold mb-1">Status</p>
+                    </div>
+                    <div class="col">
+                      <p class="fst-italic mb-1">${badges[info.event.extendedProps.status]}</p>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-5 col-sm-4">
+                      <p class="fw-semi-bold mb-0">Due Date</p>
+                    </div>
+                    <div class="col">
+                      <p class="fst-italic mb-0">${info.event.start.toLocaleDateString()} ${formattedDueDate}</p>
+                    </div>
+                  </div>
+                </div>
                     `;
                 document.getElementById('taskDetails').innerHTML = taskDetails;
 

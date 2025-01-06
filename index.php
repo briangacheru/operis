@@ -45,7 +45,16 @@ if ($rowWriter->is_verified == 1) {
                                     $greeting = 'Good Evening';
                                 }
                                 ?>
-                                <h3 class="text-primary mb-1"><?php echo $greeting; ?>, <span class="text-info"><?php echo $rowWriter->username; ?>!</span></h3>
+                                <div class="row flex-between-center">
+                                    <div class="col">
+                                        <div class="d-flex">
+                                            <h3 class="text-primary mb-1"><?php echo $greeting; ?>, <span class="text-info"><?php echo $rowWriter->username; ?>!</span></h3>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto d-flex align-items-center">
+                                        <h4 class="text-800 mb-1"><span class="badge rounded-pill badge-subtle-success" id="timeDisplay"></span></span></h4>
+                                    </div>
+                                </div>
                                 <p>Here’s what happening with your tasks today </p>
                             </div>
                             <div class="d-flex py-3">
@@ -68,7 +77,7 @@ if ($rowWriter->is_verified == 1) {
                                         $todayTasks = "No data"; // Set "No Data" if query fails
                                     }
                                     ?>
-                                    <h4 class="text-800 mb-0"><?php echo $todayTasks; ?></h4>
+                                    <h4 class="text-800 mb-0"><span class="badge rounded-pill badge-subtle-success"><?php echo $todayTasks; ?></span></h4>
                                 </div>
                                 <div class="ps-3">
                                     <p class="text-900 fs-10">Total amount due</p>
@@ -86,7 +95,7 @@ if ($rowWriter->is_verified == 1) {
                                     // Calculate amount due by subtracting total completed task costs from total overdrafts
                                     $amount_due = $totalCompletedTasks - $totalOverdrafts;
                                     ?>
-                                    <h4 class="text-800 mb-0">Ksh. <?php echo number_format($amount_due, 2, '.', ','); ?></h4>
+                                    <h4 class="text-800 mb-0"><span class="badge rounded-pill badge-subtle-info">Ksh. <?php echo number_format($amount_due, 2, '.', ','); ?></span></h4>
                                 </div>
                             </div>
                         </div>
@@ -123,7 +132,7 @@ if ($rowWriter->is_verified == 1) {
                             }
                             ?>
                             <?php if ($allUnpaid >= 1): ?>
-                            <li class="list-group-item mb-0 rounded-0 py-3 px-x1 greetings-item text-700 border-x-0 border-top-0">
+                            <li class="list-group-item mb-0 rounded-0 py-3 px-x1 list-group-item-primary text-700 border-x-0 border-top-0">
                                 <div class="row flex-between-center">
                                     <div class="col">
                                         <div class="d-flex">
@@ -152,7 +161,7 @@ if ($rowWriter->is_verified == 1) {
                             }
                             ?>
                             <?php if ($allSubmitted >= 1): ?>
-                            <li class="list-group-item mb-0 rounded-0 py-3 px-x1 greetings-item text-700  border-0">
+                            <li class="list-group-item mb-0 rounded-0 py-3 px-x1 list-group-item-primary text-700 border-x-0 border-top-0">
                                 <div class="row flex-between-center">
                                     <div class="col">
                                         <div class="d-flex">

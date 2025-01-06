@@ -95,7 +95,7 @@
                                             <option selected disabled value="">Select Writer</option>
                                             <?php
                                             // Assuming $con is your database connection
-                                            $query = mysqli_query($con, "SELECT id, username, email FROM tblwriters WHERE is_deleted = 0");
+                                            $query = mysqli_query($con, "SELECT id, username, email FROM tblwriters WHERE is_deleted = 0 AND is_verified=1 ORDER BY id ASC");
                                             while ($row = mysqli_fetch_assoc($query)) {
                                                 echo "<option value='" . $row['username'] . "|" . $row['email'] . "'>" . $row['username'] . "</option>";
                                             }

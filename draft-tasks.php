@@ -50,7 +50,7 @@ if (isset($_GET['del'])) {
                         <div class="col-auto">
                         </div>
                         <div class="col-md-auto position-relative">
-                            <h6 class="mb-1 text-info"><?php echo date("jS F Y / H:i"); ?></h6>
+                            <h6 class="mb-1 badge rounded-pill badge-subtle-info"><?php echo date("jS F Y"); ?> | <span id="timeDisplay"></span></h6>
                         </div>
                     </form>
                 </div>
@@ -151,7 +151,10 @@ if (isset($_GET['del'])) {
                                                 <?php echo $confirmation;?>
                                             <?php endif; ?>
                                             </td>
-                                            <td class="align-middle white-space-nowrap text-900"><?php echo $row["account"];?></td>
+                                            <td class="align-middle white-space-nowrap text-900">
+                                                <h6 class="mb-1 fw-semi-bold text-nowrap"><?php echo $row["account"];?></h6>
+                                                <p class="fw-semi-bold mb-0 text-500"><?php echo $row["writer"];?></p>
+                                                </td>
                                             <td class="align-middle white-space-nowrap text-900"><?php echo $row["subject"];?></td>
                                             <td class="align-middle text-end amount">
                                                 <h6 class="mb-0"><?php echo number_format($totalprice,2); ?></h6>

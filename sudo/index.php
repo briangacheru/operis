@@ -41,8 +41,18 @@ if ($query->rowCount() > 0) {
                                     $greeting = 'Good Evening';
                                 }
                                 ?>
-                                <h3 class="text-primary mb-1"><?php echo $greeting; ?>, <span class="text-info"><?php echo $rowAdmin->username; ?>!</span></h3>
-                                <p>Here’s what happening with your tasks today </p>
+
+                                <div class="row flex-between-center">
+                                    <div class="col">
+                                        <div class="d-flex">
+                                            <h3 class="text-primary mb-1"><?php echo $greeting; ?>, <span class="text-info"><?php echo $rowAdmin->username; ?>!</span></h3>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto d-flex align-items-center">
+                                        <h4 class="text-800 mb-1"><span class="badge rounded-pill badge-subtle-success" id="timeDisplay"></span></span></h4>
+                                    </div>
+                                </div>
+                                <p class="mb-2">Here’s what happening with your tasks today </p>
                             </div>
                             <div class="d-flex py-3">
                                 <div class="pe-3">
@@ -64,10 +74,10 @@ if ($query->rowCount() > 0) {
                                         $todayTasks = "No data"; // Set "No Data" if query fails
                                     }
                                     ?>
-                                    <h4 class="text-800 mb-0"><?php echo $todayTasks; ?></h4>
+                                    <h4 class="text-800 mb-0"><span class="badge rounded-pill badge-subtle-success"><?php echo $todayTasks; ?></span></h4>
                                 </div>
                                 <div class="ps-3">
-                                    <p class="text-600 fs-10">Unpaid tasks total amount </p>
+                                    <p class="text-600 fs-10">Completed | Unpaid</p>
                                     <?php
                                     // Query to sum CPP*pages for completed, unpaid tasks
                                     $query1 = mysqli_query($con, "SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed'");
@@ -75,14 +85,32 @@ if ($query->rowCount() > 0) {
                                     $totalCompletedTasks = (float) $result1['total']; // Cast to float to ensure arithmetic operation
 
                                     // Query to sum amount from tbloverdrafts
-                                    $query2 = mysqli_query($con, "SELECT SUM(amount) AS total FROM tbloverdrafts WHERE is_settled = 0 AND is_deleted = 0");
+                                    $query2 = mysqli_query($con, "SELECT SUM(amount) AS total2 FROM tbloverdrafts WHERE is_settled = 0 AND is_deleted = 0");
                                     $result2 = mysqli_fetch_assoc($query2);
-                                    $totalOverdrafts = (float) $result2['total']; // Cast to float to ensure arithmetic operation
+                                    $totalOverdrafts = (float) $result2['total2']; // Cast to float to ensure arithmetic operation
 
                                     // Calculate amount due by subtracting total completed task costs from total overdrafts
                                     $amount_due = $totalCompletedTasks - $totalOverdrafts;
                                     ?>
-                                    <h4 class="text-800 mb-0"><?php echo number_format($amount_due, 2, '.', ','); ?></h4>
+                                    <h4 class="text-800 mb-0"><span class="badge rounded-pill badge-subtle-info">Ksh. <?php echo number_format($amount_due, 2, '.', ','); ?></span></h4>
+                                </div>
+                                <div class="ps-3">
+                                    <p class="text-600 fs-10">Submitted|Completed|Unpaid </p>
+                                    <?php
+                                    // Query to sum CPP*pages for completed, unpaid tasks
+                                    $query3 = mysqli_query($con, "SELECT SUM(CPP*pages) AS total3 FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status IN ('Submitted', 'Completed')");
+                                    $result3 = mysqli_fetch_assoc($query3);
+                                    $totalSubComTasks = (float) $result3['total3']; // Cast to float to ensure arithmetic operation
+
+                                    // Query to sum amount from tbloverdrafts
+                                    $query4 = mysqli_query($con, "SELECT SUM(amount) AS total4 FROM tbloverdrafts WHERE is_settled = 0 AND is_deleted = 0");
+                                    $result4 = mysqli_fetch_assoc($query4);
+                                    $totalOver = (float) $result4['total4']; // Cast to float to ensure arithmetic operation
+
+                                    // Calculate amount due by subtracting total completed task costs from total overdrafts
+                                    $amount_due1 = $totalSubComTasks - $totalOver;
+                                    ?>
+                                    <h4 class="text-800 mb-0"><span class="badge rounded-pill badge-subtle-info">Ksh. <?php echo number_format($amount_due1, 2, '.', ','); ?></span></h4>
                                 </div>
                             </div>
                         </div>
@@ -161,7 +189,7 @@ if ($query->rowCount() > 0) {
                                             <p class="fs-10 ps-2 mb-0"><strong><?php echo $allUnpaid ?> tasks</strong> are unpaid</p>
                                         </div>
                                     </div>
-                                    <div class="col-auto d-flex align-items-center"><a class="fs-10 fw-medium" href="unpaid-tasks">View payments<i class="fas fa-chevron-right ms-1 fs-11"></i></a></div>
+                                    <div class="col-auto d-flex align-items-center"><a class="fs-10 fw-medium" href="unpaid-tasks">View unpaid tasks<i class="fas fa-chevron-right ms-1 fs-11"></i></a></div>
                                 </div>
                             </li>
                             <?php endif; ?>
@@ -321,7 +349,7 @@ if ($query->rowCount() > 0) {
             <div class="card-body position-relative">
                 <?php
                 $allUnconfirmed = "";
-                $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Unconfirmed'";
+                $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND is_confirmed = 1";
                 $result = mysqli_query($con, $query);
                 if ($result) {
                     $rowAdmin = mysqli_fetch_assoc($result);
@@ -341,6 +369,92 @@ if ($query->rowCount() > 0) {
         </div>
     </div>
 </div>
+<div class="row g-3 mb-3">
+                <div class=" col-md-4">
+                    <div class="card overflow-hidden" style="min-width: 12rem">
+                        <div class="bg-holder bg-card" style="background-image:url(../assets/img/icons/spot-illustrations/corner-1.png);">
+                        </div>
+                        <!--/.bg-holder-->
+
+                        <div class="card-body position-relative">
+                            <?php
+                            $allProgress = "";
+                            $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress'";
+                            $result = mysqli_query($con, $query);
+                            if ($result) {
+                                $rowAdmin = mysqli_fetch_assoc($result);
+                                $count = $rowAdmin['taskCount'];
+                                if ($count > 0) {
+                                    $allProgress = $count; // Set the count to output variable
+                                } else {
+                                    $allProgress = "0"; // Set "0" if count is 0
+                                }
+                            } else {
+                                $allProgress = "No data"; // Set "No Data" if query fails
+                            }
+                            ?>
+                            <h6>Tasks in progress</h6>
+                            <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-warning" data-countup='{"endValue":<?php echo $allProgress; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-warning" href="tasks-in-progress">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class=" col-md-4">
+                    <div class="card overflow-hidden" style="min-width: 12rem">
+                        <div class="bg-holder bg-card" style="background-image:url(../assets/img/icons/spot-illustrations/corner-2.png);">
+                        </div>
+                        <!--/.bg-holder-->
+
+                        <div class="card-body position-relative">
+                            <?php
+                            $allSubmitted = "";
+                            $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Submitted'";
+                            $result = mysqli_query($con, $query);
+                            if ($result) {
+                                $rowAdmin = mysqli_fetch_assoc($result);
+                                $count = $rowAdmin['taskCount'];
+                                if ($count > 0) {
+                                    $allSubmitted = $count; // Set the count to output variable
+                                } else {
+                                    $allSubmitted = "0"; // Set "0" if count is 0
+                                }
+                            } else {
+                                $allSubmitted = "No data"; // Set "No Data" if query fails
+                            }
+                            ?>
+                            <h6>Submitted Tasks</h6>
+                            <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $allSubmitted; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-info" href="submitted-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card overflow-hidden" style="min-width: 12rem">
+                        <div class="bg-holder bg-card" style="background-image:url(../assets/img/icons/spot-illustrations/corner-3.png);">
+                        </div>
+                        <!--/.bg-holder-->
+
+                        <div class="card-body position-relative">
+                            <?php
+                            $allCompleted = "";
+                            $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed'";
+                            $result = mysqli_query($con, $query);
+                            if ($result) {
+                                $rowAdmin = mysqli_fetch_assoc($result);
+                                $count = $rowAdmin['taskCount'];
+                                if ($count > 0) {
+                                    $allCompleted = $count; // Set the count to output variable
+                                } else {
+                                    $allCompleted = "0"; // Set "0" if count is 0
+                                }
+                            } else {
+                                $allCompleted = "No data"; // Set "No Data" if query fails
+                            }
+                            ?>
+                            <h6>Completed Tasks</h6>
+                            <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $allCompleted; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-primary" href="completed-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
 <div class="row g-3 mb-3">
     <div class=" col-md-4">
         <div class="card overflow-hidden" style="min-width: 12rem">
@@ -423,92 +537,6 @@ if ($query->rowCount() > 0) {
                 ?>
                 <h6>Cancelled Tasks</h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $allCancelled; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-primary" href="cancelled-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
-            </div>
-        </div>
-    </div>
-</div>
-<div class="row g-3 mb-3">
-    <div class=" col-md-4">
-        <div class="card overflow-hidden" style="min-width: 12rem">
-            <div class="bg-holder bg-card" style="background-image:url(../assets/img/icons/spot-illustrations/corner-1.png);">
-            </div>
-            <!--/.bg-holder-->
-
-            <div class="card-body position-relative">
-                <?php
-                $allProgress = "";
-                $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress'";
-                $result = mysqli_query($con, $query);
-                if ($result) {
-                    $rowAdmin = mysqli_fetch_assoc($result);
-                    $count = $rowAdmin['taskCount'];
-                    if ($count > 0) {
-                        $allProgress = $count; // Set the count to output variable
-                    } else {
-                        $allProgress = "0"; // Set "0" if count is 0
-                    }
-                } else {
-                    $allProgress = "No data"; // Set "No Data" if query fails
-                }
-                ?>
-                <h6>Tasks in progress</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-warning" data-countup='{"endValue":<?php echo $allProgress; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-warning" href="tasks-in-progress">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
-            </div>
-        </div>
-    </div>
-    <div class=" col-md-4">
-        <div class="card overflow-hidden" style="min-width: 12rem">
-            <div class="bg-holder bg-card" style="background-image:url(../assets/img/icons/spot-illustrations/corner-2.png);">
-            </div>
-            <!--/.bg-holder-->
-
-            <div class="card-body position-relative">
-                <?php
-                $allSubmitted = "";
-                $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Submitted'";
-                $result = mysqli_query($con, $query);
-                if ($result) {
-                    $rowAdmin = mysqli_fetch_assoc($result);
-                    $count = $rowAdmin['taskCount'];
-                    if ($count > 0) {
-                        $allSubmitted = $count; // Set the count to output variable
-                    } else {
-                        $allSubmitted = "0"; // Set "0" if count is 0
-                    }
-                } else {
-                    $allSubmitted = "No data"; // Set "No Data" if query fails
-                }
-                ?>
-                <h6>Submitted Tasks</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $allSubmitted; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-info" href="submitted-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card overflow-hidden" style="min-width: 12rem">
-            <div class="bg-holder bg-card" style="background-image:url(../assets/img/icons/spot-illustrations/corner-3.png);">
-            </div>
-            <!--/.bg-holder-->
-
-            <div class="card-body position-relative">
-                <?php
-                $allCompleted = "";
-                $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed'";
-                $result = mysqli_query($con, $query);
-                if ($result) {
-                    $rowAdmin = mysqli_fetch_assoc($result);
-                    $count = $rowAdmin['taskCount'];
-                    if ($count > 0) {
-                        $allCompleted = $count; // Set the count to output variable
-                    } else {
-                        $allCompleted = "0"; // Set "0" if count is 0
-                    }
-                } else {
-                    $allCompleted = "No data"; // Set "No Data" if query fails
-                }
-                ?>
-                <h6>Completed Tasks</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $allCompleted; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-primary" href="completed-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
     </div>

@@ -37,12 +37,18 @@ if ($rowTask = mysqli_fetch_array($result)) {
     $taskSubmitTime = $rowTask['submitted_on'];
     $submittedOn = $rowTask['submitted_on'];
 }
-
+$due_date = new DateTime($rowTask['due_date']);
+$currentDateTime = new DateTime(); // Assuming you've already got this
+$interval = $currentDateTime->diff($due_date);
+$isLate = ($due_date < $currentDateTime) ? true : false;
 // Determine badge based on task status
 $statusBadge = '';
 switch ($rowTask["status"]) {
     case 'In Progress':
         $statusBadge = '<div class="badge rounded-pill badge-subtle-warning fs-11">In progress<span class="fas fa-stream ms-1" data-fa-transform="shrink-2"></span></div>';
+        break;
+    case 'In Revision':
+        $statusBadge = '<span class="badge badge rounded-pill badge-subtle-warning">In Revision<span class="ms-1 fas fa-flag" data-fa-transform="shrink-2"></span></span>';
         break;
     case 'Cancelled':
         $statusBadge = '<div class="badge rounded-pill badge-subtle-danger fs-11">Cancelled<span class="fas fa-ban ms-1" data-fa-transform="shrink-2"></span></div>';
@@ -59,6 +65,9 @@ switch ($rowTask["status"]) {
     case 'Completed':
         $statusBadge = '<div class="badge rounded-pill badge-subtle-success fs-11">Completed<span class="fas fa-check ms-1" data-fa-transform="shrink-2"></span></div>';
         break;
+}
+if ($isLate && $rowTask["status"] === 'In Progress') {
+    $statusBadge .= ' <span class="badge badge rounded-pill badge-subtle-danger">Late<span class="ms-1 fa fa-exclamation-triangle" data-fa-transform="shrink-2"></span></span>';
 }
     // Correctly retrieve is_paid status from the $rowTask
     $is_paid = $rowTask['is_paid']; // Assuming 'is_paid' is the column name in your database
@@ -111,7 +120,7 @@ if (isset($_GET['task_id'])) {
                         <div class="col-auto">
                         </div>
                         <div class="col-md-auto position-relative">
-                            <h6 class="mb-1 text-primary"></h6>
+                            <h6 class="mb-1 badge rounded-pill badge-subtle-info"><?php echo date("jS F Y"); ?> | <span id="timeDisplay"></span></h6>
                         </div>
                     </form>
                 </div>
@@ -181,7 +190,7 @@ if (isset($_SESSION['alert'])) {
                         <i class="fas fa-edit" aria-hidden="true"></i>
                         <span class="ms-1 d-none d-sm-inline-block">Edit Task</span>
                     </a>
-                    <a class="btn btn-outline-info btn-sm mx-2" type="button" href="duplicate-task?task_id=<?php echo $encodedId; ?>" title="Duplicate Task" onclick="return confirmDuplicate();">
+                    <a class="btn btn-outline-info btn-sm mx-2" type="button" target="_blank" href="duplicate-task?task_id=<?php echo $encodedId; ?>" title="Duplicate Task" onclick="return confirmDuplicate();">
                         <i class="fas fa-copy" aria-hidden="true"></i>
                         <span class="d-none d-sm-inline-block d-xl-none d-xxl-inline-block ms-1">Duplicate</span>
                     </a>
@@ -218,13 +227,10 @@ if (isset($_SESSION['alert'])) {
                                      </p>
                                     <?php
                                     $due_date = new DateTime($rowTask['due_date']);
-                                    $currentDateTime = new DateTime(); // Assuming you've already got this
-                                    $interval = $currentDateTime->diff($due_date);
-                                    $isLate = ($due_date < $currentDateTime) ? true : false;
+                                    $currentDateTime = new DateTime();
+                                    $isLate = ($due_date < $currentDateTime);
 
-                                    // Calculate total hours and minutes
-                                    $totalHours = ($interval->days * 24) + $interval->h;
-                                    $totalMinutes = $interval->i;
+                                    $remainingSeconds = $isLate ? 0 : $due_date->getTimestamp() - $currentDateTime->getTimestamp();
 
                                     // Format the difference as a string, and choose color based on whether it's late
                                     if ($rowTask['status'] == 'Completed') {
@@ -237,20 +243,29 @@ if (isset($_SESSION['alert'])) {
                                         $timeDiff = "<span style='font-weight: bold;'>Declined</span>";
                                     } else {
                                         if ($isLate) {
-                                            $timeDiff = "<span style='color: red; font-weight: bold;'> Past Due by: $totalHours hrs $totalMinutes min </span>";
+                                            $timeDiff = "<span id='time-remaining' style='color: red; font-weight: bold;'>Past Due</span>";
                                         } else {
-                                            $timeDiff = "<span style='color: green; font-weight: bold;'>Time Remaining: $totalHours hrs $totalMinutes min </span>";
+                                            $timeDiff = "<span id='time-remaining' class='fw-bold text-green fs-8'></span>";
                                         }
                                     }
                                     ?>
                                     <?php if ($taskStatus !='Completed'): ?>
-                                        <p class="text-danger fs-9 fw-semi-bold"><span class="far fa-clock text-white me-1"></span><?php echo $timeDiff; ?></p>
+                                        <p class="text-danger fs-9 fw-semi-bold"><span class="far fa-clock text-white me-2"></span><?php echo $timeDiff; ?></p>
                                     <?php elseif ($taskIsPaid = 1): ?>
-                                        <?php echo $statusBadgePay; ?>
-                                        <?php if ($is_paid == 1):
-                                            $paidOn = $rowTask['paid_on'];
-                                            $paidDate = date("d M Y, g:i A", strtotime($paidOn));
-                                            ?> <span class="text-info ms-2 fs-10"><?php echo $paidDate; ?></span>
+                                        <?php if ($is_paid == 0): ?>
+                                            <!-- Unpaid Badge as a Button -->
+                                            <button class="badge rounded-pill badge-subtle-warning fs-10 fw-semi-bold" onclick="markAsPaidConfirm('<?php echo $encodedId; ?>', <?php echo $taskId; ?>)">
+                                                Unpaid
+                                            </button>
+                                        <?php else: ?>
+                                            <!-- Paid Badge Display -->
+                                            <?php echo $statusBadgePay; ?>
+                                            <?php if ($is_paid == 1):
+                                                $paidOn = $rowTask['paid_on'];
+                                                $paidDate = date("d M Y, g:i A", strtotime($paidOn));
+                                                ?>
+                                                <span class="text-info ms-2 fs-10"><?php echo $paidDate; ?></span>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                     <?php endif; ?>
                                     <?php $totalCost = $taskPages * $taskCPP;  ?>
@@ -477,6 +492,53 @@ if (isset($_SESSION['alert'])) {
             }
         }
 
+    </script>
+    <script>
+        function markAsPaidConfirm(encodedId, taskId) {
+            if (confirm('Are you sure you have paid task ID: #' + taskId + '?')) {
+                $.ajax({
+                    url: 'confirm-paid',
+                    type: 'POST',
+                    data: { task_id: encodedId },
+                    success: function() {
+                        // Redirect to the task details page after completing the task
+                        window.location.href = 'view-task?task_id=' + encodedId;
+                    },
+                    error: function() {
+                        alert('An error occurred while marking the task as paid.');
+                    }
+                });
+            }
+        }
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const timeElement = document.getElementById('time-remaining');
+            let remainingSeconds = <?= $remainingSeconds ?>;
+
+            function updateTime() {
+                if (remainingSeconds <= 0) {
+                    timeElement.style.color = 'red';
+                    timeElement.innerHTML = "Past Due";
+                    return;
+                }
+
+                const hours = Math.floor(remainingSeconds / 3600);
+                const minutes = Math.floor((remainingSeconds % 3600) / 60);
+                const seconds = remainingSeconds % 60;
+
+                timeElement.innerHTML = `Time Remaining: ${hours} hrs ${minutes} min ${seconds} sec`;
+                timeElement.style.color = 'green';
+
+                remainingSeconds--;
+            }
+
+            // Update every second
+            setInterval(updateTime, 1000);
+
+            // Initialize immediately
+            updateTime();
+        });
     </script>
 <?php
 include "footer.php";

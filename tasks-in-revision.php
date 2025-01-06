@@ -1,5 +1,5 @@
 <?php include "head.php";?>
-    <title>Submitted Tasks | iTasker</title>
+    <title>Tasks in Revision | iTasker</title>
 <?php include "navi.php";?>
 
     <div class="card shadow-none border mb-3">
@@ -10,7 +10,7 @@
         <div class="card-header z-1">
             <div class="row flex-between-center gx-0">
                 <div class="col-lg-auto d-flex align-items-center">
-                    <h4 class="mb-0 text-primary fw-bold">Submitted <span class="text-info fw-medium"> Tasks</span></h4>
+                    <h4 class="mb-0 text-primary fw-bold">In Revision <span class="text-info fw-medium"> Tasks</span></h4>
                 </div>
                 <div class="col-lg-auto pt-3 pt-lg-0">
                     <form class="row flex-lg-column flex-xxl-row gx-3 gy-2 align-items-center align-items-lg-start align-items-xxl-center">
@@ -56,24 +56,54 @@
                                             </th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task Id</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Topic</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Deadline</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center">Status</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">Amount</th>
                                         </tr>
                                         </thead>
                                         <tbody class="list" id="table-simple-pagination-body">
                                         <?php
-                                            $query=mysqli_query($con,"select * from tbltasks WHERE is_deleted = 0 AND status = 'Submitted' AND email='$aid' ORDER BY id DESC");
+                                            $query=mysqli_query($con,"select * from tbltasks WHERE is_deleted = 0 AND status = 'In Revision' AND email='$aid' ORDER BY id DESC");
                                             $cnt=1;
                                             while($row=mysqli_fetch_array($query))
                                             {
                                                 $totalprice=$row["cpp"]*$row["pages"];
                                                 $encodedId = base64_encode($row["id"]); // Encode the id
 
+                                                $due_date = new DateTime($row['due_date']);
+                                                $currentDateTime = new DateTime(); // Assuming you've already got this
+                                                $interval = $currentDateTime->diff($due_date);
+                                                $isLate = ($due_date < $currentDateTime) ? true : false;
+
+                                                // Calculate total hours and minutes
+                                                $totalHours = ($interval->days * 24) + $interval->h;
+                                                $totalMinutes = $interval->i;
+
+                                                // Format the difference as a string, and choose color based on whether it's late
+                                                if ($row['status'] == 'Completed') {
+                                                    $timeDiff = "<span class='text-success fw-semi-bold'>Completed</span>";
+                                                } elseif ($row['status'] == 'Cancelled') {
+                                                    $timeDiff = "<span class='text-danger fw-semi-bold'>Cancelled</span>";
+                                                } elseif ($row['status'] == 'Submitted') {
+                                                    $timeDiff = "<span class='text-primary fw-semi-bold'>Submitted</span>";
+                                                } elseif ($row['is_confirmed'] == 2) {
+                                                    $timeDiff = "<span class='text-danger fw-semi-bold'>Declined</span>";
+                                                } else {
+                                                    if ($isLate) {
+                                                        $timeDiff = "<span class='text-danger fw-semi-bold'>$totalHours hrs $totalMinutes min </span>";
+                                                    } else {
+                                                        $timeDiff = "<span class='text-success fw-semi-bold'>$totalHours hrs $totalMinutes min </span>";
+                                                    }
+                                                }
+
                                                 // Determine badge based on task status
                                                 $statusBadge = '';
                                                 switch ($row["status"]) {
                                                     case 'In Progress':
                                                         $statusBadge = '<span class="badge badge rounded-pill badge-subtle-warning">In Progress<span class="ms-1 fas fa-stream" data-fa-transform="shrink-2"></span></span>';
+                                                        break;
+                                                    case 'In Revision':
+                                                        $statusBadge = '<span class="badge badge rounded-pill badge-subtle-warning">In Revision<span class="ms-1 fas fa-flag" data-fa-transform="shrink-2"></span></span>';
                                                         break;
                                                     case 'Cancelled':
                                                         $statusBadge = '<span class="badge badge rounded-pill badge-subtle-danger">Cancelled<span class="ms-1 fas fa-ban" data-fa-transform="shrink-2"></span></span>';
@@ -118,6 +148,7 @@
                                                     </div>
                                                 </div>
                                             </td>
+                                            <td class="align-middle white-space-nowrap email"><?php echo $timeDiff;?></td>
                                             <td class="align-middle white-space-nowrap product"><?php echo $statusBadge;?>
                                             <?php if ($is_confirmed == 1): ?>
                                                 <?php echo $confirmation;?>

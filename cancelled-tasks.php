@@ -21,7 +21,7 @@ $msg = "";
                         <div class="col-auto">
                         </div>
                         <div class="col-md-auto position-relative">
-                            <h6 class="mb-1 text-info"><?php echo date("jS F Y / H:i"); ?></h6>
+                            <h6 class="mb-1 badge rounded-pill badge-subtle-info"><?php echo date("jS F Y"); ?> | <span id="timeDisplay"></span></h6>
                         </div>
                     </form>
                 </div>
@@ -59,7 +59,7 @@ if (isset($_SESSION['alert'])) {
                                             </th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task Id</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Topic</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center">Status</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Status</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">Amount</th>
                                             <th class="text-900 no-sort pe-1 align-middle data-table-row-action"></th>
                                         </tr>
@@ -117,7 +117,7 @@ if (isset($_SESSION['alert'])) {
                                                 <td>
                                                 <div class="d-flex align-items-center position-relative">
                                                     <div class="flex-1 ms-3">
-                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
+                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
                                                         <p class="fw-semi-bold mb-0 text-500"><?php echo $row["pages"];?> Page(s) | CPP: <?php echo $row["cpp"];?></p>
                                                     </div>
                                                 </div>
@@ -126,15 +126,12 @@ if (isset($_SESSION['alert'])) {
                                                     <?php if ($is_confirmed == 1): ?>
                                                         <?php echo $confirmation;?>
                                                     <?php endif; ?>
+                                                    | <?php echo $statusBadgePay;?>
                                                 </td>
-                                                <td class="align-middle white-space-nowrap email"><?php echo $row["pages"];?></td>
-                                                <td class="align-middle white-space-nowrap email"><?php echo $row["cpp"];?></td>
-                                                <td class="align-middle text-end amount"><?php echo number_format($totalprice,2); ?></td>
-                                                <td class="align-middle text-center fs-9 white-space-nowrap payment"><?php echo $statusBadgePay;?></td>
-
+                                                <td class="align-middle text-end amount text-900"><?php echo number_format($totalprice,2); ?></td>
                                                 <td class="align-middle white-space-nowrap text-end position-relative">
                                                     <div class="hover-actions bg-100">
-                                                        <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="view-task?task_id=<?php echo $encodedId; ?>" title="View task" ><span class="far fa-eye"></span></a>
+                                                        <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>" title="View task" ><span class="far fa-eye"></span></a>
                                                     </div>
                                                     <div class="dropdown font-sans-serif btn-reveal-trigger">
                                                         <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal-sm transition-none" type="button" id="crm-recent-leads-4" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-chevron-left fs-11"></span></button>

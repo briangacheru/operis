@@ -214,6 +214,25 @@
                                         ?></span>
                                 </div>
                             </a>
+                            <!-- parent pages--><a class="nav-link" href="tasks-in-revision" role="button">
+                                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-flag"></span></span><span class="nav-link-text ps-1">In Revision</span>
+                                    <span class="badge rounded-pill ms-2 badge-subtle-primary"><?php
+                                        // Query to count tasks where is_deleted = 0
+                                        $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'In Revision'  AND email = '$aid'";
+                                        $result = mysqli_query($con, $query);
+                                        if ($result) {
+                                            $row = mysqli_fetch_assoc($result);
+                                            $count = $row['taskCount'];
+                                            // Check if count is greater than 0
+                                            if ($count > 0) {
+                                                echo $count; // Display the count
+                                            } else {
+                                                echo "0"; // Display "No Data" if count is 0
+                                            }
+                                        }
+                                        ?></span>
+                                </div>
+                            </a>
                             <!-- parent pages--><a class="nav-link" href="submitted-tasks" role="button">
                                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-check"></span></span><span class="nav-link-text ps-1">Submitted</span>
                                     <span class="badge rounded-pill ms-2 badge-subtle-info"><?php
@@ -615,6 +634,40 @@
                 }
             } else {
                 echo '<div class="alert alert-danger" role="alert">Error fetching notification settings.</div>';
+            }
+            ?>
+
+            <!-- Alert for Unconfirmed Tasks -->
+            <?php
+            $query_unconfirmed = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND is_confirmed = 1 AND email = '$aid'";
+            $result_unconfirmed = mysqli_query($con, $query_unconfirmed);
+            if ($result_unconfirmed) {
+                $row_unconfirmed = mysqli_fetch_assoc($result_unconfirmed);
+                $count_unconfirmed = $row_unconfirmed['taskCount'];
+                if ($count_unconfirmed > 0) {
+                    echo '<div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        You have ' . $count_unconfirmed . ' unconfirmed tasks! 
+                        <a href="unconfirmed" class="alert-link">View Tasks</a>
+                        <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>';
+                }
+            }
+            ?>
+
+            <!-- Alert for Tasks in Revision -->
+            <?php
+            $query_revision = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'In Revision' AND email = '$aid'";
+            $result_revision = mysqli_query($con, $query_revision);
+            if ($result_revision) {
+                $row_revision = mysqli_fetch_assoc($result_revision);
+                $count_revision = $row_revision['taskCount'];
+                if ($count_revision > 0) {
+                    echo '<div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        You have ' . $count_revision . ' tasks in revision!
+                        <a href="tasks-in-revision" class="alert-link">View Tasks</a>
+                    <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button> 
+                    </div>';
+                }
             }
             ?>
 

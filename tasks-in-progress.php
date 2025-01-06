@@ -17,7 +17,7 @@
                         <div class="col-auto">
                         </div>
                         <div class="col-md-auto position-relative">
-                            <h6 class="mb-1 text-info"><?php echo date("jS F Y / H:i"); ?></h6>
+                            <h6 class="mb-1 badge rounded-pill badge-subtle-info"><?php echo date("jS F Y"); ?> | <span id="timeDisplay"></span></h6>
                         </div>
                     </form>
                 </div>
@@ -118,6 +118,9 @@
                                                         $statusBadge = '<span class="badge badge rounded-pill badge-subtle-success">Completed<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span>';
                                                         break;
                                                 }
+                                                if ($isLate) {
+                                                    $statusBadge .= ' <span class="badge badge rounded-pill badge-subtle-danger">Late<span class="ms-1 fa fa-exclamation-triangle" data-fa-transform="shrink-2"></span></span>';
+                                                }
                                                 // Correctly retrieve is_paid status from the row
                                                 $is_paid = $row['is_paid']; // Assuming 'is_paid' is the column name in your database
                                                 // Determine badge based on payment status
@@ -140,12 +143,15 @@
                                             <td>
                                                 <div class="d-flex align-items-center position-relative">
                                                     <div class="flex-1 ms-3">
-                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
+                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
                                                         <p class="fw-semi-bold mb-0 text-500"><?php echo $row["pages"];?> Page(s) | CPP: <?php echo $row["cpp"];?></p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td class="align-middle white-space-nowrap email"><?php echo $timeDiff;?></td>
+                                            <td class="align-middle white-space-nowrap email">
+                                                <h6 class="mb-1 fw-semi-bold text-nowrap"><?php echo $timeDiff;?></h6>
+                                                <p class="fw-semi-bold mb-0 text-500"><?php echo date('M j, gA', strtotime($row["due_date"]));?></p>
+                                            </td>
                                             <td class="align-middle white-space-nowrap product"><?php echo $statusBadge;?>
                                             <?php if ($is_confirmed == 1): ?>
                                                 <?php echo $confirmation;?>

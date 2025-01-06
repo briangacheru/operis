@@ -1,7 +1,7 @@
 <footer class="footer">
     <div class="row g-0 justify-content-between fs-10 mt-4 mb-3">
         <div class="col-12 col-sm-auto text-center">
-            <p class="mb-0 text-600">Developed with <i class="fa fa-heart"></i> by Brian  <span class="d-none d-sm-inline-block">| </span><br class="d-sm-none" /> 2024 &copy; </p>
+            <p class="mb-0 text-600">Developed with <i class="fa fa-heart" style="color: red;"></i> by Brian  <span class="d-none d-sm-inline-block">| </span><br class="d-sm-none" /> 2024 - <?php echo date("Y");?> &copy; </p>
         </div>
         <div class="col-12 col-sm-auto text-center">
             <p class="mb-0 text-600">v2.0.0</p>
@@ -166,7 +166,8 @@
             </div>
         </div>
     </div>
-</div><a class="card setting-toggle" href="#settings-offcanvas" data-bs-toggle="offcanvas">
+</div>
+<a class="card setting-toggle" href="#settings-offcanvas" data-bs-toggle="offcanvas">
     <div class="card-body d-flex align-items-center py-md-2 px-2 py-1">
         <div class="bg-primary-subtle position-relative rounded-start" style="height:34px;width:28px">
             <div class="settings-popover"><span class="ripple"><span class="fa-spin position-absolute all-0 d-flex flex-center"><span class="icon-spin position-absolute all-0 d-flex flex-center">
@@ -177,12 +178,33 @@
     </div>
 </a>
 
+<!-- Modal for inactivity -->
+<div class="modal" id="inactivityModal">
+    <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 500px">
+        <div class="modal-content position-relative">
+            <div class="modal-header">
+                <h5 class="modal-title">Inactivity</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>You have been inactive. Do you want to stay logged in?</p>
+                <p id="countdown">30</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="stayLoggedIn()">Stay Logged In</button>
+                <button type="button" class="btn btn-secondary" onclick="logOut()">Log Out</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <!-- ===============================================-->
 <!--    JavaScripts-->
 <!-- ===============================================-->
 
 <script src="vendors/select2/select2.min.js"></script>
+<script src="vendors/myjs/myjs.js"></script>
 <script src="vendors/select2/select2.full.min.js"></script>
 <script src="vendors/datatables.net/jquery.dataTables.min.js"></script>
 <script src="vendors/datatables.net-bs5/dataTables.bootstrap5.min.js"></script>

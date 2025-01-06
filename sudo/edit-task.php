@@ -153,6 +153,7 @@ if ($row = mysqli_fetch_array($result)) {
                                     <select class="form-select" id="status" name="status" required="required">
                                         <option value="Draft" <?php echo ($taskStatus == 'Draft') ? 'selected' : ''; ?>>Draft</option>
                                         <option value="In Progress" <?php echo ($taskStatus == 'In Progress') ? 'selected' : ''; ?>>In Progress</option>
+                                        <option value="In Revision" <?php echo ($taskStatus == 'In Revision') ? 'selected' : ''; ?>>In Revision</option>
                                         <option value="Submitted" <?php echo ($taskStatus == 'Submitted') ? 'selected' : ''; ?>>Submitted</option>
                                     </select>
                                     <div class="invalid-feedback">This field is required</div>

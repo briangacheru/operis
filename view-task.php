@@ -39,12 +39,18 @@ if ($rowTask = mysqli_fetch_array($result)) {
     $taskSubmitTime = $rowTask['submitted_on'];
     $submittedOn = $rowTask['submitted_on'];
 }
-
+$due_date = new DateTime($rowTask['due_date']);
+$currentDateTime = new DateTime(); // Assuming you've already got this
+$interval = $currentDateTime->diff($due_date);
+$isLate = ($due_date < $currentDateTime) ? true : false;
 // Determine badge based on task status
 $statusBadge = '';
 switch ($rowTask["status"]) {
     case 'In Progress':
         $statusBadge = '<div class="badge rounded-pill badge-subtle-warning fs-11">In progress<span class="fas fa-stream ms-1" data-fa-transform="shrink-2"></span></div>';
+        break;
+    case 'In Revision':
+        $statusBadge = '<span class="badge badge rounded-pill badge-subtle-warning">In Revision<span class="ms-1 fas fa-flag" data-fa-transform="shrink-2"></span></span>';
         break;
     case 'Cancelled':
         $statusBadge = '<div class="badge rounded-pill badge-subtle-danger fs-11">Cancelled<span class="fas fa-ban ms-1" data-fa-transform="shrink-2"></span></div>';
@@ -61,6 +67,9 @@ switch ($rowTask["status"]) {
     case 'Completed':
         $statusBadge = '<div class="badge rounded-pill badge-subtle-success fs-11">Completed<span class="fas fa-check ms-1" data-fa-transform="shrink-2"></span></div>';
         break;
+}
+if ($isLate && $rowTask["status"] === 'In Progress') {
+    $statusBadge .= ' <span class="badge badge rounded-pill badge-subtle-danger">Late<span class="ms-1 fa fa-exclamation-triangle" data-fa-transform="shrink-2"></span></span>';
 }
 // Correctly retrieve is_paid status from the row
 $is_paid = $rowTask['is_paid']; // Assuming 'is_paid' is the column name in your database
@@ -95,7 +104,7 @@ $confirmation = "<span class='badge $confirmationClass'>$confirmationText</span>
                         <div class="col-auto">
                         </div>
                         <div class="col-md-auto position-relative">
-                            <h6 class="mb-1 text-primary"></h6>
+                            <h6 class="mb-1 badge rounded-pill badge-subtle-info"><?php echo date("jS F Y"); ?> | <span id="timeDisplay"></span></h6>
                         </div>
                     </form>
                 </div>
@@ -132,12 +141,21 @@ if (isset($_SESSION['alert'])) {
 
         <div class="card-body position-relative">
             <div class="row g-2 align-items-sm-center">
-                <div class="col-auto"><img src="assets/img/icons/connect-circle.png" alt="" height="55" /></div>
+                <div class="col-auto"><div class="calendar me-2">
+                            <span class="calendar-month">
+                                <?php // Get the current month and date
+                                $currentMonth = date('M'); // Current month abbreviation (e.g., 'Jul')
+                                $currentDay = date('d'); // Current day of the month (e.g., '19')
+                                echo $currentMonth;?>
+                            </span>
+                        <span class="calendar-day"><?php echo $currentDay; ?> </span>
+                    </div>
+                </div>
                     <div class="col">
                     <div class="row align-items-center">
                         <div class="col col-lg-8">
                             <h5 class="mb-sm-0 text-primary fs-7">Task ID: <span class="text-info fw-medium">#<?php  echo $taskId;?></span></h5>
-                            <p class="fw-semi-bold fs-10"><span class="me-1">Posted</span><span class="text-info ms-2"><?php  echo date("d M Y, g:i A", strtotime($taskCreatedOn));?></span>
+                            <p class="fw-semi-bold fs-10"><span class="me-1">Posted: </span><span class="text-info ms-2"><?php  echo date("d M Y, g:i A", strtotime($taskCreatedOn));?></span>
                             </p>
                             <div class="fs-9 mb-3 mb-sm-0 text-primary"><strong class="me-2">Status: </strong><?php  echo $statusBadge;?>
                                 <?php if ($is_confirmed == 1): ?>
@@ -148,10 +166,10 @@ if (isset($_SESSION['alert'])) {
                         <div class="col-12 col-sm-auto ms-auto">
                             <?php if ($taskStatus == 'In Progress'): ?>
                                 <a class="btn btn-outline-primary btn-lg fs-9" href="submission?task_id=<?php $encodedId = $_GET['task_id']; echo $encodedId; ?>#filesSubmission">Submit Task</a>
-                            <?php elseif ($is_confirmed == 1): ?>
+                            <?php elseif ($is_confirmed == 1 && $taskStatus != 'Cancelled'): ?>
                                 <a class="btn btn-outline-success btn-sm fs-10" href="#" onclick="confirmAction('<?php $encodedId = $_GET['task_id']; echo $encodedId; ?>', 'accept')">Accept Task</a>
                                 <a class="btn btn-outline-danger btn-sm fs-10" href="#" onclick="confirmAction('<?php $encodedId = $_GET['task_id']; echo $encodedId; ?>', 'decline')">Decline Task</a>
-                            <?php elseif ($taskStatus == 'Submitted'): ?>
+                            <?php elseif ($taskStatus == 'Submitted' || $taskStatus == 'In Revision'): ?>
                                 <a class="btn btn-outline-primary btn-lg fs-9" href="#" onclick="confirmAction('<?php $encodedId = $_GET['task_id']; echo $encodedId; ?>', 'resubmit')">Resubmit Task</a>
                             <?php endif; ?>
                         </div>
@@ -179,23 +197,19 @@ if (isset($_SESSION['alert'])) {
                                      </p>
                                     <?php
                                     $due_date = new DateTime($rowTask['due_date']);
-                                    $currentDateTime = new DateTime(); // Assuming you've already got this
-                                    $interval = $currentDateTime->diff($due_date);
-                                    $isLate = ($due_date < $currentDateTime) ? true : false;
+                                    $currentDateTime = new DateTime();
+                                    $isLate = ($due_date < $currentDateTime);
 
-                                    // Calculate total hours and minutes
-                                    $totalHours = ($interval->days * 24) + $interval->h;
-                                    $totalMinutes = $interval->i;
+                                    $remainingSeconds = $isLate ? 0 : $due_date->getTimestamp() - $currentDateTime->getTimestamp();
 
-                                    // Format the difference as a string, and choose color based on whether it's late
                                     if ($isLate) {
-                                        $timeDiff = "<span style='color: red; font-weight: bold;'> Past Due by: $totalHours hrs $totalMinutes min </span>";
+                                        $timeDiff = "<span id='time-remaining' style='color: red; font-weight: bold;'>Past Due</span>";
                                     } else {
-                                        $timeDiff = "<span style='color: green; font-weight: bold;'>Time Remaining: $totalHours hrs $totalMinutes min </span>";
+                                        $timeDiff = "<span id='time-remaining' class='fw-bold text-green fs-8'></span>";
                                     }
                                     ?>
                                     <?php if ($taskStatus !='Completed'): ?>
-                                        <p class="text-danger fs-9 fw-semi-bold"><span class="far fa-clock text-white me-1"></span><?php echo $timeDiff; ?></p>
+                                        <p class="text-danger fs-9 fw-semi-bold"><span class="far fa-clock text-white me-2"></span><?php echo $timeDiff; ?></p>
                                     <?php elseif ($taskIsPaid = 1): ?>
                                         <?php echo $statusBadgePay; ?>
                                         <?php if ($is_paid == 1):
@@ -211,12 +225,14 @@ if (isset($_SESSION['alert'])) {
                         </div>
                     </div>
                     <hr class="text-secondary text-opacity-50" />
-                    <ul class="list-unstyled d-flex flex-wrap gap-3 fs-9 fw-semi-bold text-300 mt-3 mb-0">
-                        <li><span class="fas fa-user-graduate text-white me-1"> </span><?php  echo $taskWriter;?></li>
-                        <li><span class="fas fa-user text-white me-1"> </span><?php  echo $taskAccount;?></li>
-                        <li><span class="fas fa-file text-white me-1"> </span><?php  echo $taskPages;?> Pages</li>
-                        <li><span class="fas fa-credit-card text-white me-1"> </span>Ksh. <?php  echo $taskCPP;?> Per page</li>
-                    </ul>
+                    <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-md-start">
+                        <span class="badge rounded-pill badge-subtle-dark border border-300 text-info py-2 px-3">
+                            <span class="fas fa-user text-white me-1"> </span><?php  echo $taskWriter;?></span>
+                        <span class="badge rounded-pill badge-subtle-dark border border-300 text-info py-2 px-3">
+                            <span class="fas fa-file text-white me-1"> </span><?php  echo $taskPages;?> Pages</span>
+                        <span class="badge rounded-pill badge-subtle-dark border border-300 text-info py-2 px-3">
+                            <span class="fas fa-credit-card text-white me-1"> </span>Ksh. <?php  echo $taskCPP;?> CPP</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -361,6 +377,35 @@ if (isset($_SESSION['alert'])) {
                 }
             }
         }
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const timeElement = document.getElementById('time-remaining');
+            let remainingSeconds = <?= $remainingSeconds ?>;
+
+            function updateTime() {
+                if (remainingSeconds <= 0) {
+                    timeElement.style.color = 'red';
+                    timeElement.innerHTML = "Past Due";
+                    return;
+                }
+
+                const hours = Math.floor(remainingSeconds / 3600);
+                const minutes = Math.floor((remainingSeconds % 3600) / 60);
+                const seconds = remainingSeconds % 60;
+
+                timeElement.innerHTML = `Time Remaining: ${hours} hrs ${minutes} min ${seconds} sec`;
+                timeElement.style.color = 'green';
+
+                remainingSeconds--;
+            }
+
+            // Update every second
+            setInterval(updateTime, 1000);
+
+            // Initialize immediately
+            updateTime();
+        });
     </script>
 
 <?php

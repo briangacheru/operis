@@ -51,7 +51,7 @@ if (isset($_GET['task_id'])) {
                         <div class="col-auto">
                         </div>
                         <div class="col-md-auto position-relative">
-                            <h6 class="mb-1 text-info"><?php echo date("jS F Y / H:i"); ?></h6>
+                            <h6 class="mb-1 badge rounded-pill badge-subtle-info"><?php echo date("jS F Y"); ?> | <span id="timeDisplay"></span></h6>
                         </div>
                     </form>
                 </div>
@@ -155,7 +155,7 @@ if (isset($_GET['task_id'])) {
                                             <td>
                                                 <div class="d-flex align-items-center position-relative">
                                                     <div class="flex-1 ms-3">
-                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
+                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
                                                         <p class="fw-semi-bold mb-0 text-500"><?php echo $row["pages"];?> Page(s) | CPP: <?php echo $row["cpp"];?></p>
                                                     </div>
                                                 </div>
@@ -165,7 +165,10 @@ if (isset($_GET['task_id'])) {
                                                 <?php echo $confirmation;?>
                                             <?php endif; ?>
                                             </td>
-                                            <td class="align-middle white-space-nowrap text-900"><?php echo $row["account"];?></td>
+                                            <td class="align-middle white-space-nowrap text-900">
+                                                <h6 class="mb-1 fw-semi-bold text-nowrap"><?php echo $row["account"];?></h6>
+                                                <p class="fw-semi-bold mb-0 text-500"><?php echo $row["writer"];?></p>
+                                                </td>
                                             <td class="align-middle white-space-nowrap text-900"><?php echo $row["subject"];?></td>
                                             <td class="align-middle text-end amount">
                                                 <h6 class="mb-0"><?php echo number_format($totalprice,2); ?></h6>
@@ -173,7 +176,7 @@ if (isset($_GET['task_id'])) {
                                             </td>
                                             <td class="align-middle white-space-nowrap text-end position-relative">
                                                 <div class="hover-actions bg-100">
-                                                    <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="view-task?task_id=<?php echo $encodedId; ?>" title="View task" ><span class="far fa-eye"></span></a>
+                                                    <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>" title="View task" ><span class="far fa-eye"></span></a>
                                                     <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="cancelled-tasks?task_id=<?php echo $encodedId; ?>" title="Restore Task" onclick="return confirm('Do you want to restore this task?');"><span class="fas fa-recycle"></span></a>
                                                 </div>
                                                 <div class="dropdown font-sans-serif btn-reveal-trigger">

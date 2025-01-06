@@ -8,7 +8,7 @@ if (isset($_GET['delid'])) {
     $cmpid = $_GET['delid'];
     if (is_numeric($cmpid) && !empty($cmpid)) {
         // Perform the delete operation
-        $query = mysqli_query($con, "UPDATE tblwriters SET is_deleted = 1 WHERE id='$cmpid'");
+        $query = mysqli_query($con, "DELETE FROM tblwriters WHERE id='$cmpid'");
         if ($query) {
             $_SESSION['alert'] = '<div class="alert alert-danger alert-dismissible fade show" role="alert"><i class="bi bi-check-circle"></i> User record deleted.
                                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -75,7 +75,7 @@ if (isset($_GET['verifyid'])) {
                         <div class="col-auto">
                         </div>
                         <div class="col-md-auto position-relative">
-                            <h6 class="mb-1 text-info"><?php echo date("jS F Y / H:i"); ?></h6>
+                            <h6 class="mb-1 badge rounded-pill badge-subtle-info"><?php echo date("jS F Y"); ?> | <span id="timeDisplay"></span></h6>
                         </div>
                     </form>
                 </div>
@@ -144,7 +144,7 @@ if (isset($_SESSION['alert'])) {
                                         </thead>
                                         <tbody class="list" id="table-simple-pagination-body">
                                         <?php
-                                        $query=mysqli_query($con,"SELECT * FROM tblwriters WHERE is_deleted = 0 ORDER BY id DESC");
+                                        $query=mysqli_query($con,"SELECT * FROM tblwriters ORDER BY id ASC");
                                         $cnt=1;
                                         while($row=mysqli_fetch_array($query)) {
                                             $encodedId = base64_encode($row["id"]); // Encode the id
@@ -172,7 +172,10 @@ if (isset($_SESSION['alert'])) {
                                                     <div class="hover-actions bg-100">
                                                         <a class="btn btn-outline-info bg-info icon-item rounded-3 me-2 fs-11 icon-item-sm" href="writer?writerID=<?php echo $encodedId;?>" title="View Writer"><span class="fas fa-eye"></span></a>
                                                         <a class="btn btn-outline-primary bg-primary icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" href="#user-edit-modal" title="Edit Writer" data-writer-id="<?php echo $row['id']; ?>" data-writer="<?php echo $row['username']; ?>" data-email="<?php echo $row['email']; ?>" data-phone="<?php echo $row['phone']; ?>"><span class="far fa-edit"></span></a>
-                                                        <a href="usermanagement?verifyid=<?php echo $row['id'];?>" class="btn bg-<?php echo $row['is_verified'] ? 'danger' : 'success'; ?> icon-item rounded-3 me-2 fs-11 icon-item-sm" onclick="return confirm('Do you want to <?php echo $row['is_verified'] ? 'unverify' : 'verify'; ?> this writer?');" title="<?php echo $row['is_verified'] ? 'Unverify' : 'Verify'; ?> Writer"><i class="bi bi-<?php echo $row['is_verified'] ? 'x-circle-fill' : 'check-circle-fill'; ?>"></i></a>
+                                                        <a href="usermanagement?verifyid=<?php echo $row['id'];?>" class="btn btn-outline-danger bg-<?php echo $row['is_verified'] ? 'danger' : 'success'; ?> icon-item rounded-3 me-2 fs-11 icon-item-sm" onclick="return confirm('Do you want to <?php echo $row['is_verified'] ? 'unverify' : 'verify'; ?> this writer?');" title="<?php echo $row['is_verified'] ? 'Unverify' : 'Verify'; ?> Writer"><i class="bi bi-<?php echo $row['is_verified'] ? 'x-circle-fill' : 'check-circle-fill'; ?>"></i></a>
+                                                        <?php if ($row['is_verified'] == 0) { ?>
+                                                            <a href="usermanagement?delid=<?php echo $row['id'];?>" class="btn btn-outline-danger bg-danger icon-item rounded-3 me-2 fs-11 icon-item-sm" onclick="return confirm('Are you sure you want to delete this writer?');" title="Delete Writer"><span class="fas fa-trash"></span></a>
+                                                        <?php } ?>
                                                     </div>
                                                     <div class="dropdown font-sans-serif btn-reveal-trigger">
                                                         <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal-sm transition-none" type="button" id="user-view-edit" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-chevron-left fs-11"></span></button>

@@ -56,7 +56,7 @@ if (isset($_REQUEST['logout'])) {
     // Destroy the PHP session cookie
     setcookie('PHPSESSID', '', time() - 3600, '/', '', isset($_SERVER["HTTPS"]), true);
 
-    // Redirect to the login page
+    // Redirect to the logout page
     header('Location: logout');
     exit();
 }

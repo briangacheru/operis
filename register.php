@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
         // Prepare SQL statement to prevent SQL injection
-        $stmt = $con->prepare("INSERT INTO tblwriters (name, email, password) VALUES (?, ?, ?)");
+        $stmt = $con->prepare("INSERT INTO tblwriters (username, email, password) VALUES (?, ?, ?)");
         $stmt->bind_param("sss", $username, $email, $hashed_password);
 
         if ($stmt->execute()) {
@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['odmsaid'] = $email;
 
                 // Set a session variable for the success message
-                $_SESSION['success_message'] = "Registration successful. Redirecting to dashboard...";
+                $_SESSION['success_message'] = "Registration successful. Redirecting to login...";
 
                 // Redirect to the same page to display the success message
                 header("Location: register.php");

@@ -2,10 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../eggAdmin/.idea/eggAdmin.iml" filepath="$PROJECT_DIR$/../eggAdmin/.idea/eggAdmin.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/falcon.iml" filepath="$PROJECT_DIR$/.idea/falcon.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../poultry/.idea/poultry.iml" filepath="$PROJECT_DIR$/../poultry/.idea/poultry.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../task/.idea/task.iml" filepath="$PROJECT_DIR$/../task/.idea/task.iml" />
     </modules>
   </component>
 </project>
