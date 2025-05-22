@@ -112,8 +112,10 @@ if ($row = mysqli_fetch_array($result)) {
                                         <option value="350" <?php echo ($taskCPP == '350') ? 'selected' : ''; ?>>350</option>
                                         <option value="200" <?php echo ($taskCPP == '200') ? 'selected' : ''; ?>>200</option>
                                         <option value="400" <?php echo ($taskCPP == '400') ? 'selected' : ''; ?>>400</option>
+                                        <option value="450" <?php echo ($taskCPP == '450') ? 'selected' : ''; ?>>450</option>
                                         <option value="500" <?php echo ($taskCPP == '500') ? 'selected' : ''; ?>>500</option>
                                         <option value="700" <?php echo ($taskCPP == '700') ? 'selected' : ''; ?>>700</option>
+                                        <option value="750" <?php echo ($taskCPP == '750') ? 'selected' : ''; ?>>750</option>
                                     </select>
                                 </div>
                                 <div class="col-sm-6 mb-3">
@@ -134,7 +136,7 @@ if ($row = mysqli_fetch_array($result)) {
                                         <option disabled value="">Select Writer</option>
                                         <?php
                                         // Assuming $con is your database connection
-                                        $query = mysqli_query($con, "SELECT id, username, email FROM tblwriters WHERE is_deleted = 0");
+                                        $query = mysqli_query($con, "SELECT id, username, email FROM tblwriters WHERE is_deleted = 0 AND is_verified=1 ORDER BY id ASC");
                                         while ($writer = mysqli_fetch_assoc($query)) {
                                             // Check if this writer is the current selection
                                             $selected = ($writer['username'] == $taskWriter) ? 'selected' : '';
@@ -176,10 +178,41 @@ if ($row = mysqli_fetch_array($result)) {
                             <div class="row gx-2">
                                 <div class="col-12 mb-3">
                                     <label class="form-label" for="task-description">Task description:</label>
-                                    <div class="create-product-description-textarea">
-                                        <textarea class="tinymce d-none" data-tinymce="data-tinymce" name="description" id="description" required="required"><?php echo htmlspecialchars($taskDescription); ?></textarea>
-                                        <div class="invalid-feedback">This field is required</div>
-                                    </div>
+                                    <div class="min-vh-25" id="description"><?php echo ($taskDescription); ?></div>
+                                    <input type="hidden" name="description" id="description-input">
+                                    <script>
+                                        const quill = new Quill('#description', {
+                                            theme: 'snow',
+                                            modules: {
+                                                toolbar: [
+                                                    ['bold', 'italic', 'underline', 'strike'],
+                                                    ['blockquote', 'code-block'],
+                                                    [{ 'header': 1 }, { 'header': 2 }],
+                                                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                                    [{ 'script': 'sub'}, { 'script': 'super' }],
+                                                    [{ 'indent': '-1'}, { 'indent': '+1' }],
+                                                    [{ 'direction': 'rtl' }],
+                                                    [{ 'size': ['small', false, 'large', 'huge'] }],
+                                                    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                                                    [{ 'color': [] }, { 'background': [] }],
+                                                    [{ 'font': [] }],
+                                                    [{ 'align': [] }],
+                                                    ['clean'],
+                                                    ['link', 'image', 'video']
+                                                ]
+                                            }
+                                        });
+                                        // Correctly insert a link
+                                        function insertLink(url) {
+                                            let index = quill.getSelection().index;
+                                            quill.insertText(index, url, { 'link': url });
+                                            quill.setSelection(index + url.length);
+                                        }
+                                        document.getElementById('taskForm').addEventListener('submit', function(e) {
+                                            document.getElementById('description-input').value = quill.root.innerHTML;
+                                        });
+                                    </script>
+                                    <div class="invalid-feedback">This field is required</div>
                                 </div>
                             </div>
                         </div>
@@ -542,7 +575,6 @@ if ($row = mysqli_fetch_array($result)) {
         }
     }
 </script>
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const updateTaskButton = document.getElementById('updateTaskButton');

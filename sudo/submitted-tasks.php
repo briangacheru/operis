@@ -102,7 +102,7 @@ $msg = "";
                                         </thead>
                                         <tbody class="list" id="table-simple-pagination-body">
                                         <?php
-                                            $query=mysqli_query($con,"select * from tbltasks WHERE is_deleted = 0 AND status = 'Submitted' ORDER BY id DESC");
+                                            $query=mysqli_query($con,"select * from tbltasks WHERE is_deleted = 0 AND status = 'Submitted' ORDER BY submitted_on DESC");
                                             $cnt=1;
                                             while($row=mysqli_fetch_array($query))
                                             {

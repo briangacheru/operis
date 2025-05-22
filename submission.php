@@ -218,12 +218,14 @@ if (isset($_SESSION['alert'])) {
                         </div>
                     </div>
                     <hr class="text-secondary text-opacity-50" />
-                    <ul class="list-unstyled d-flex flex-wrap gap-3 fs-9 fw-semi-bold text-300 mt-3 mb-0">
-                        <li><span class="fas fa-user-graduate text-white me-1"> </span><?php  echo $taskWriter;?></li>
-                        <li><span class="fas fa-user text-white me-1"> </span><?php  echo $taskAccount;?></li>
-                        <li><span class="fas fa-file text-white me-1"> </span><?php  echo $taskPages;?> Pages</li>
-                        <li><span class="fas fa-credit-card text-white me-1"> </span>Ksh. <?php  echo $taskCPP;?> Per page</li>
-                    </ul>
+                    <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-md-start">
+                        <span class="badge rounded-pill badge-subtle-dark border border-300 text-info py-2 px-3">
+                            <span class="fas fa-user text-white me-1"> </span><?php  echo $taskWriter;?></span>
+                        <span class="badge rounded-pill badge-subtle-dark border border-300 text-info py-2 px-3">
+                            <span class="fas fa-file text-white me-1"> </span><?php  echo $taskPages;?> Pages</span>
+                        <span class="badge rounded-pill badge-subtle-dark border border-300 text-info py-2 px-3">
+                            <span class="fas fa-credit-card text-white me-1"> </span>Ksh. <?php  echo $taskCPP;?> CPP</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -380,7 +382,7 @@ if (isset($_SESSION['alert'])) {
                     </div>
                     <div class="col-auto">
                         <button class="btn btn-link text-secondary p-0 me-3 fw-medium" type="button" id="discardButton" role="button">Discard</button>
-                        <button class="btn btn-primary" name="save" type="submit" role="button" id="submitTaskButton">
+                        <button class="btn btn-primary d-none" name="save" type="submit" role="button" id="submitTaskButton">
                             <span id="buttonText">Submit Task</span>
                             <span id="loadingSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                         </button>
@@ -400,21 +402,21 @@ if (isset($_SESSION['alert'])) {
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const discardButton = document.getElementById('discardButton');
-            const form = document.getElementById('taskForm');
-
-            discardButton.addEventListener('click', function() {
-                form.reset();
-                // Optionally, scroll to the top if you want to reset the view as well
-                window.scrollTo(0, 0);
-            });
-        });
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
+            // Element references
             const dropArea = document.getElementById('dropArea');
             const form = document.getElementById('taskForm');
-            let uploadedFilePaths = []; // To store paths of successfully uploaded files
+            const fileInput = document.getElementById('fileInput');
+            const submitTaskButton = document.getElementById('submitTaskButton');
+            const buttonText = document.getElementById('buttonText');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const alertPlaceholder = document.getElementById('alertPlaceholder');
+            const discardButton = document.getElementById('discardButton');
+            const fileContainer = document.querySelector('.card-body');
+
+            let uploadedFilePaths = []; // Store paths of successfully uploaded files
+
+            // Initially hide submit button
+            submitTaskButton.classList.add('d-none');
 
             // Prevent default drag behaviors
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -422,7 +424,7 @@ if (isset($_SESSION['alert'])) {
                 document.body.addEventListener(eventName, preventDefaults, false);
             });
 
-            // Highlight drop area when item is dragged over it
+            // Drag and drop handlers
             ['dragenter', 'dragover'].forEach(eventName => {
                 dropArea.addEventListener(eventName, highlight, false);
             });
@@ -431,14 +433,48 @@ if (isset($_SESSION['alert'])) {
                 dropArea.addEventListener(eventName, unhighlight, false);
             });
 
-            // Handle dropped files
+            // Event Listeners
             dropArea.addEventListener('drop', handleDrop, false);
-
-            // Add change event listener to file input for direct file selection
-            document.getElementById('fileInput').addEventListener('change', function(e) {
+            fileInput.addEventListener('change', function(e) {
                 handleFiles(e.target.files);
             });
 
+            discardButton.addEventListener('click', function() {
+                form.reset();
+                uploadedFilePaths = [];
+                document.getElementById('fileNamesList').innerHTML = '';
+                updateUploadedFilesInput();
+                toggleSubmitButton();
+                window.scrollTo(0, 0);
+            });
+
+            // File container click handler for delete buttons
+            fileContainer.addEventListener('click', function(e) {
+                if (e.target.classList.contains('delete-btn')) {
+                    e.preventDefault();
+                    const filePath = e.target.getAttribute('data-file-path');
+                    deleteFile(filePath, e.target.closest('.d-flex'));
+                }
+            });
+
+            // Form submission handler
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                if (!form.checkValidity() || uploadedFilePaths.length === 0) {
+                    displayBootstrapAlert('Please fill in all required fields and upload at least one file.', 'danger');
+                    return;
+                }
+
+                buttonText.classList.add('d-none');
+                loadingSpinner.classList.remove('d-none');
+                submitTaskButton.disabled = true;
+
+                document.getElementById('uploadedFiles').value = JSON.stringify(uploadedFilePaths);
+                handleSubmit();
+            });
+
+            // Utility Functions
             function preventDefaults(e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -453,19 +489,23 @@ if (isset($_SESSION['alert'])) {
             }
 
             function handleDrop(e) {
-                var dt = e.dataTransfer;
-                var files = dt.files;
+                handleFiles(e.dataTransfer.files);
+            }
 
-                handleFiles(files);
+            function toggleSubmitButton() {
+                if (uploadedFilePaths.length > 0) {
+                    submitTaskButton.classList.remove('d-none');
+                } else {
+                    submitTaskButton.classList.add('d-none');
+                }
             }
 
             function handleFiles(files) {
-                files = [...files]; // Convert files to an array
-                files.forEach(file => uploadFile(file));
+                [...files].forEach(file => uploadFile(file));
             }
 
             async function uploadFile(file) {
-                const url = 'upload_update'; // Ensure this path is correct
+                const url = 'upload_update';
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('action', 'upload');
@@ -482,14 +522,14 @@ if (isset($_SESSION['alert'])) {
                 const removeBtn = document.createElement('button');
                 removeBtn.textContent = 'Remove';
                 removeBtn.classList.add('btn', 'btn-outline-warning', 'btn-sm', 'ms-2');
-                removeBtn.onclick = function () {
+                removeBtn.onclick = function() {
                     li.parentNode.removeChild(li);
                     const index = uploadedFilePaths.findIndex(f => f.fileName === file.name);
                     if (index > -1) {
-                        const filePath = uploadedFilePaths[index].filePath;
-                        deleteFileFromServer(filePath);
+                        deleteFileFromServer(uploadedFilePaths[index].filePath);
                         uploadedFilePaths.splice(index, 1);
                         updateUploadedFilesInput();
+                        toggleSubmitButton();
                     }
                 };
 
@@ -500,7 +540,7 @@ if (isset($_SESSION['alert'])) {
                     const xhr = new XMLHttpRequest();
                     xhr.open('POST', url, true);
 
-                    xhr.upload.addEventListener('progress', function (e) {
+                    xhr.upload.addEventListener('progress', function(e) {
                         if (e.lengthComputable) {
                             const percentComplete = (e.loaded / e.total) * 100;
                             progressBar.value = percentComplete;
@@ -510,22 +550,22 @@ if (isset($_SESSION['alert'])) {
                         }
                     });
 
-                    xhr.onload = function () {
+                    xhr.onload = function() {
                         if (xhr.status === 200) {
                             const response = JSON.parse(xhr.responseText);
                             if (response.status === 'success') {
-                                const filePath = response.filePath;
                                 li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload complete!`;
                                 li.style.color = 'green';
                                 li.appendChild(removeBtn);
-                                uploadedFilePaths.push({ fileName: file.name, filePath: filePath });
+                                uploadedFilePaths.push({ fileName: file.name, filePath: response.filePath });
                                 updateUploadedFilesInput();
+                                toggleSubmitButton();
                             } else {
-                                li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload failed: ${response.message}`;
+                                li.textContent = `${file.name} - Upload failed: ${response.message}`;
                                 li.style.color = 'red';
                             }
                         } else {
-                            li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload error.`;
+                            li.textContent = `${file.name} - Upload error.`;
                             li.style.color = 'red';
                         }
                     };
@@ -533,14 +573,13 @@ if (isset($_SESSION['alert'])) {
                     xhr.send(formData);
                 } catch (error) {
                     console.error('Error:', error);
-                    li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload error.`;
+                    li.textContent = `${file.name} - Upload error.`;
                     li.style.color = 'red';
                 }
             }
 
-
             async function deleteFileFromServer(filePath) {
-                const url = 'delete_file'; // URL to the PHP file handling deletions
+                const url = 'delete_file';
                 const formData = new FormData();
                 formData.append('filePath', filePath);
                 formData.append('action', 'deleteFile');
@@ -550,37 +589,42 @@ if (isset($_SESSION['alert'])) {
                         method: 'POST',
                         body: formData,
                     });
-
                     const data = await response.json();
                     if (data.status !== 'success') {
                         console.error('Failed to delete file: ' + data.message);
-                    } else {
-                        console.log('File deleted successfully');
                     }
                 } catch (error) {
                     console.error('Error:', error);
                 }
             }
 
-            function updateUploadedFilesInput() {
-                document.getElementById('uploadedFiles').value = JSON.stringify(uploadedFilePaths); // Update hidden input value
-            }
-
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault(); // Prevent the default form submission
-                // Example validation check
-                if (!form.checkValidity()) {
-                    // Display an error message or highlight the invalid fields
-                    displayBootstrapAlert('Please fill in all required fields.', 'danger');
-                    return; // Stop the function if validation fails
+            function deleteFile(filePath, elementToRemove) {
+                if (confirm('Are you sure you want to delete this file?')) {
+                    fetch('delete-file', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: 'filePath=' + encodeURIComponent(filePath)
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                elementToRemove.remove();
+                            } else {
+                                alert('Failed to delete the file. Please try again.');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred. Please try again.');
+                        });
                 }
-                document.getElementById('uploadedFiles').value = JSON.stringify(uploadedFilePaths); // Set hidden input value
-                handleSubmit();
-            });
+            }
 
             async function handleSubmit() {
                 const formData = new FormData(form);
-                formData.append('action', 'submitForm'); // Append the action field here
+                formData.append('action', 'submitForm');
 
                 try {
                     const response = await fetch('submission_upload', {
@@ -589,20 +633,14 @@ if (isset($_SESSION['alert'])) {
                     });
 
                     if (response.ok) {
-                        const data = await response.json(); // Assuming the response from your PHP script is JSON
+                        const data = await response.json();
                         if (data.status === 'success') {
-                            // Display a success alert
-                            //displayBootstrapAlert('Task created successfully.', 'success');
-                            // Optionally, redirect or clear the form here
-                            //window.location.href = `view-task?task_id=${data.task_id}`;
                             const message = encodeURIComponent(data.message);
                             window.location.href = `view-task?task_id=${data.task_id}&message=${message}`;
-                        } else if (data.status === 'error') {
-                            // Display an error alert with the message from the PHP script
+                        } else {
                             displayBootstrapAlert(`Failed to update the form: ${data.message}`, 'danger');
                         }
                     } else {
-                        // The HTTP request failed for some reason
                         console.error("Failed to submit form. HTTP status: " + response.status);
                         displayBootstrapAlert('Failed to update form. Please try again.', 'warning');
                     }
@@ -612,87 +650,19 @@ if (isset($_SESSION['alert'])) {
                 }
             }
 
+            function updateUploadedFilesInput() {
+                document.getElementById('uploadedFiles').value = JSON.stringify(uploadedFilePaths);
+            }
+
             function displayBootstrapAlert(message, type) {
                 const alertContainer = document.getElementById('alert-container');
                 const alertHTML = `
-        <div class="alert alert-${type} border-0 d-flex align-items-center" role="alert">
-            <!--<div class="bg-success me-3 icon-item"><span class="fas fa-check-circle text-white fs-6"></span></div>-->
+            <div class="alert alert-${type} border-0 d-flex align-items-center" role="alert">
                 <p class="mb-0 flex-1">${message}</p>
-            <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>`;
+                <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>`;
                 alertContainer.innerHTML = alertHTML;
-                // Scroll the alert container into view
                 alertContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        });
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const fileContainer = document.querySelector('.card-body');
-
-            fileContainer.addEventListener('click', function(e) {
-                if (e.target.classList.contains('delete-btn')) {
-                    e.preventDefault();
-                    const filePath = e.target.getAttribute('data-file-path');
-                    // Call the function to delete the file
-                    deleteFile(filePath, e.target.closest('.d-flex'));
-                }
-            });
-        });
-        function deleteFile(filePath, elementToRemove) {
-            if (confirm('Are you sure you want to delete this file?')) {
-                fetch('delete-file', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'filePath=' + encodeURIComponent(filePath)
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // If the file was successfully deleted, remove the element
-                            elementToRemove.remove();
-                        } else {
-                            alert('Failed to delete the file. Please try again.');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('An error occurred. Please try again.');
-                    });
-            }
-        }
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const submitTaskButton = document.getElementById('submitTaskButton');
-            const buttonText = document.getElementById('buttonText');
-            const loadingSpinner = document.getElementById('loadingSpinner');
-            const taskForm = document.getElementById('taskForm');
-            const fileInput = document.getElementById('fileInput');
-            const alertPlaceholder = document.getElementById('alertPlaceholder');
-
-            taskForm.addEventListener('submit', function(event) {
-                if (fileInput.files.length === 0) {
-                    event.preventDefault();
-                    showAlert('You must submit at least one file.');
-                } else {
-                    // Show the spinner and hide the button text
-                    buttonText.classList.add('d-none');
-                    loadingSpinner.classList.remove('d-none');
-
-                    // Disable the button to prevent multiple submissions
-                    submitTaskButton.disabled = true;
-                }
-            });
-
-            function showAlert(message) {
-                const alert = document.createElement('div');
-                alert.className = 'alert alert-danger alert-dismissible fade show';
-                alert.role = 'alert';
-                alert.innerHTML = message + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
-                alertPlaceholder.appendChild(alert);
             }
         });
     </script>

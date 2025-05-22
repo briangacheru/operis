@@ -109,15 +109,29 @@ include "footer.php";
                     buttonText: 'Year'
                 }
             },
-            events: <?php echo $tasksJson; ?>,
-            eventClick: function(info) {
+            // Adjust events to ensure they end at 11:59:59 PM of the same day
+            events: JSON.parse(<?php echo json_encode($tasksJson); ?>).map(event => {
+                let start = new Date(event.start);
+
+                // Ensure the end time does not exceed 11:59:59 PM of the same day
+                let end = new Date(event.start);
+                end.setHours(23, 59, 59, 999);
+
+                // Return the adjusted event
+                return {
+                    ...event,
+                    end: end.toISOString() // Ensure the event ends within the same day
+                };
+            }),
+            eventClick: function (info) {
                 var badges = {
                     'Completed': '<span class="badge badge rounded-pill badge-subtle-success">Completed<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span>',
                     'Submitted': '<span class="badge badge rounded-pill badge-subtle-info">Submitted<span class="ms-1 fas fa-file" data-fa-transform="shrink-2"></span></span>',
                     'Unconfirmed': '<span class="badge badge rounded-pill badge-subtle-primary">Unconfirmed<span class="ms-1 fas fa-question" data-fa-transform="shrink-2"></span></span>',
                     'Draft': '<span class="badge badge rounded-pill badge-subtle-danger">Draft<span class="ms-1 fas fa-edit" data-fa-transform="shrink-2"></span></span>',
                     'Cancelled': '<span class="badge badge rounded-pill badge-subtle-danger">Cancelled<span class="ms-1 fas fa-ban" data-fa-transform="shrink-2"></span></span>',
-                    'In Progress': '<span class="badge badge rounded-pill badge-subtle-warning">In Progress<span class="ms-1 fas fa-stream" data-fa-transform="shrink-2"></span></span>'
+                    'In Progress': '<span class="badge badge rounded-pill badge-subtle-warning">In Progress<span class="ms-1 fas fa-stream" data-fa-transform="shrink-2"></span></span>',
+                    'In Revision': '<span class="badge badge rounded-pill badge-subtle-warning">In Revision<span class="ms-1 fas fa-flag" data-fa-transform="shrink-2"></span></span>'
                 };
 
                 var dueDate = new Date(info.event.start);
@@ -125,46 +139,45 @@ include "footer.php";
                 var formattedDueDate = dueDate.toLocaleTimeString('en-US', options);
 
                 var taskDetails = `
-                <div class="col-lg">
-                  <div class="row">
-                    <div class="col-5 col-sm-4">
-                      <p class="fw-semi-bold mb-1">ID</p>
-                    </div>
-                    <div class="col">${info.event.id}</div>
-                  </div>
-                  <div class="row">
-                    <div class="col-5 col-sm-4">
-                      <p class="fw-semi-bold mb-1">Account</p>
-                    </div>
-                    <div class="col">${info.event.extendedProps.account}</div>
-                  </div>
-                  <div class="row">
-                    <div class="col-5 col-sm-4">
-                      <p class="fw-semi-bold mb-1">Topic</p>
-                    </div>
-                    <div class="col">${info.event.extendedProps.topic}</div>
-                  </div>
-                  <div class="row">
-                    <div class="col-5 col-sm-4">
-                      <p class="fw-semi-bold mb-1">Status</p>
-                    </div>
-                    <div class="col">
-                      <p class="fst-italic mb-1">${badges[info.event.extendedProps.status]}</p>
-                    </div>
-                  </div>
-                  <div class="row">
-                    <div class="col-5 col-sm-4">
-                      <p class="fw-semi-bold mb-0">Due Date</p>
-                    </div>
-                    <div class="col">
-                      <p class="fst-italic mb-0">${info.event.start.toLocaleDateString()} ${formattedDueDate}</p>
-                    </div>
-                  </div>
+            <div class="col-lg">
+              <div class="row">
+                <div class="col-5 col-sm-4">
+                  <p class="fw-semi-bold mb-1">ID</p>
                 </div>
-                    `;
+                <div class="col">${info.event.id}</div>
+              </div>
+              <div class="row">
+                <div class="col-5 col-sm-4">
+                  <p class="fw-semi-bold mb-1">Account</p>
+                </div>
+                <div class="col">${info.event.extendedProps.account}</div>
+              </div>
+              <div class="row">
+                <div class="col-5 col-sm-4">
+                  <p class="fw-semi-bold mb-1">Topic</p>
+                </div>
+                <div class="col">${info.event.extendedProps.topic}</div>
+              </div>
+              <div class="row">
+                <div class="col-5 col-sm-4">
+                  <p class="fw-semi-bold mb-1">Status</p>
+                </div>
+                <div class="col">
+                  <p class="fst-italic mb-1">${badges[info.event.extendedProps.status]}</p>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-5 col-sm-4">
+                  <p class="fw-semi-bold mb-0">Due Date</p>
+                </div>
+                <div class="col">
+                  <p class="fst-italic mb-0">${info.event.start.toLocaleDateString()} ${formattedDueDate}</p>
+                </div>
+              </div>
+            </div>
+                `;
                 document.getElementById('taskDetails').innerHTML = taskDetails;
 
-                // Set the link to view the task
                 var viewTaskLink = document.getElementById('viewTaskLink');
                 viewTaskLink.href = 'view-task?task_id=' + btoa(info.event.id);
 
@@ -176,14 +189,14 @@ include "footer.php";
                 var content = document.createElement('div');
                 content.classList.add('event-content');
 
-                // Use badge for event appearance based on status
                 var badges = {
                     'Completed': 'badge-subtle-success',
                     'Submitted': 'badge-subtle-info',
                     'Unconfirmed': 'badge-subtle-primary',
                     'Draft': 'badge-subtle-danger',
                     'Cancelled': 'badge-subtle-danger',
-                    'In Progress': 'badge-subtle-warning'
+                    'In Progress': 'badge-subtle-warning',
+                    'In Revision': 'badge-subtle-warning'
                 };
 
                 var badgeClass = badges[status] || 'badge-subtle-secondary';
@@ -194,7 +207,6 @@ include "footer.php";
         });
         calendar.render();
 
-        // Handle view change from dropdown
         document.querySelectorAll('.dropdown-item').forEach(function(item) {
             item.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -202,7 +214,6 @@ include "footer.php";
                 calendar.changeView(view);
                 document.getElementById('current-view').textContent = this.textContent.trim();
 
-                // Remove active class from all items and add to the clicked one
                 document.querySelectorAll('.dropdown-item').forEach(function(item) {
                     item.classList.remove('active');
                 });

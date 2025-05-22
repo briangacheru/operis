@@ -71,6 +71,15 @@ usort($users, function($a, $b) {
             <div class="col-lg-auto d-flex align-items-center">
                 <h4 class="mb-0 text-primary fw-bold">My <span class="text-info fw-medium"> Chats</span></h4>
             </div>
+            <div class="col-lg-auto pt-3 pt-lg-0">
+                <form class="row flex-lg-column flex-xxl-row gx-3 gy-2 align-items-center align-items-lg-start align-items-xxl-center">
+                    <div class="col-auto">
+                    </div>
+                    <div class="col-md-auto position-relative">
+                        <h6 class="mb-1 badge rounded-pill badge-subtle-info"><?php echo date("jS F Y"); ?> | <span id="timeDisplay"></span></h6>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>

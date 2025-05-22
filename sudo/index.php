@@ -85,7 +85,7 @@ if ($query->rowCount() > 0) {
                                     $totalCompletedTasks = (float) $result1['total']; // Cast to float to ensure arithmetic operation
 
                                     // Query to sum amount from tbloverdrafts
-                                    $query2 = mysqli_query($con, "SELECT SUM(amount) AS total2 FROM tbloverdrafts WHERE is_settled = 0 AND is_deleted = 0");
+                                    $query2 = mysqli_query($con, "SELECT SUM(amount) AS total2 FROM tbloverdrafts WHERE is_settled = 0 AND description = 'iTasker' AND is_deleted = 0");
                                     $result2 = mysqli_fetch_assoc($query2);
                                     $totalOverdrafts = (float) $result2['total2']; // Cast to float to ensure arithmetic operation
 
@@ -93,6 +93,48 @@ if ($query->rowCount() > 0) {
                                     $amount_due = $totalCompletedTasks - $totalOverdrafts;
                                     ?>
                                     <h4 class="text-800 mb-0"><span class="badge rounded-pill badge-subtle-info">Ksh. <?php echo number_format($amount_due, 2, '.', ','); ?></span></h4>
+                                    <div class="form-text">Invoice updated
+                                            <?php
+                                            $query = mysqli_query($con, "SELECT created_at FROM tbloverdrafts 
+                                                WHERE is_settled = 0 AND description = 'iTasker' AND is_deleted = 0
+                                                ORDER BY created_at DESC 
+                                                LIMIT 1");
+
+                                            if($query) {
+                                                $row = mysqli_fetch_assoc($query);
+                                                ?>
+                                            <?php
+                                            if($row) {
+                                                $created_at = new DateTime($row["created_at"]);
+                                                $now = new DateTime();
+                                                $interval = $now->diff($created_at);
+
+                                                if ($interval->y > 0) {
+                                                    echo $interval->y . " year" . ($interval->y > 1 ? "s" : "") . " ago";
+                                                } elseif ($interval->m > 0) {
+                                                    echo $interval->m . " month" . ($interval->m > 1 ? "s" : "") . " ago";
+                                                } elseif ($interval->d > 6) {
+                                                    $weeks = floor($interval->d / 7);
+                                                    echo $weeks . " week" . ($weeks > 1 ? "s" : "") . " ago";
+                                                } elseif ($interval->d > 0) {
+                                                    echo $interval->d . " day" . ($interval->d > 1 ? "s" : "") . " ago";
+                                                } elseif ($interval->h > 0) {
+                                                    echo $interval->h . " hour" . ($interval->h > 1 ? "s" : "") . " ago";
+                                                } elseif ($interval->i > 0) {
+                                                    echo $interval->i . " minute" . ($interval->i > 1 ? "s" : "") . " ago";
+                                                } else {
+                                                    echo $interval->s . " second" . ($interval->s > 1 ? "s" : "") . " ago";
+                                                }
+                                            } else {
+                                                echo "No invoice found";
+                                            }
+                                            ?>
+                                                <?php
+                                            } else {
+                                                echo "Error fetching invoice information";
+                                            }
+                                            ?>
+                                    </div>
                                 </div>
                                 <div class="ps-3">
                                     <p class="text-600 fs-10">Submitted|Completed|Unpaid </p>
@@ -103,7 +145,7 @@ if ($query->rowCount() > 0) {
                                     $totalSubComTasks = (float) $result3['total3']; // Cast to float to ensure arithmetic operation
 
                                     // Query to sum amount from tbloverdrafts
-                                    $query4 = mysqli_query($con, "SELECT SUM(amount) AS total4 FROM tbloverdrafts WHERE is_settled = 0 AND is_deleted = 0");
+                                    $query4 = mysqli_query($con, "SELECT SUM(amount) AS total4 FROM tbloverdrafts WHERE is_settled = 0 AND description = 'iTasker' AND is_deleted = 0");
                                     $result4 = mysqli_fetch_assoc($query4);
                                     $totalOver = (float) $result4['total4']; // Cast to float to ensure arithmetic operation
 
@@ -614,7 +656,7 @@ if ($query->rowCount() > 0) {
                 $totalCompletedTasks = (float) $result1['total']; // Cast to float to ensure arithmetic operation
 
                 // Query to sum amount from tbloverdrafts
-                $query2 = mysqli_query($con, "SELECT SUM(amount) AS total FROM tbloverdrafts WHERE is_settled = 0 AND is_deleted = 0");
+                $query2 = mysqli_query($con, "SELECT SUM(amount) AS total FROM tbloverdrafts WHERE is_settled = 0 AND description = 'iTasker' AND is_deleted = 0");
                 $result2 = mysqli_fetch_assoc($query2);
                 $totalOverdrafts = (float) $result2['total']; // Cast to float to ensure arithmetic operation
 
@@ -658,7 +700,7 @@ if ($query->rowCount() > 0) {
                 <?php
                 $totalOverDraftsFormatted = "No data"; // Default message if the query fails
                 $totalOverDraftsRaw = 0; // Raw total for JavaScript
-                $query = mysqli_query($con, "select sum(amount) as totalDraft  from tbloverdrafts  WHERE is_settled = 0");
+                $query = mysqli_query($con, "select sum(amount) as totalDraft  from tbloverdrafts  WHERE is_settled = 0 AND description = 'iTasker' AND is_deleted = 0");
                 if ($query) {
                     $rowAdmin = mysqli_fetch_array($query);
                     if ($rowAdmin && $rowAdmin['totalDraft'] !== null) {
@@ -671,7 +713,7 @@ if ($query->rowCount() > 0) {
                     $totalOverDraftsFormatted = "Error: " . mysqli_error($con);
                 }
                 ?>
-                <h6>Total Total Overdraft Amount</h6>
+                <h6>Total Overdraft Amount</h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $totalOverDraftsRaw; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div>
                 <a class="fw-semi-bold fs-10 text-nowrap text-info" href="overdraft">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>

@@ -28,34 +28,19 @@ if ($_POST['action'] == 'submitForm') {
     $pages = mysqli_real_escape_string($con, $_POST['pages']);
     $is_confirmed = mysqli_real_escape_string($con, $_POST['is_confirmed']);
 
-    // Replace single quote/apostrophe with its HTML entity
-    //$descriptionNew = htmlentities(str_replace("'","&#x2019;",$description));
-    //$descriptionNew = htmlentities($description, ENT_QUOTES, 'UTF-8');
-
-//    $config = HTMLPurifier_Config::createDefault();
-//    $config->set('HTML.Allowed', 'table,tr,td,th,tbody,thead,tfoot,a[href|title],ul,ol,li,p[style],br,span[style],img[alt|src]');
-//    $purifier = new HTMLPurifier($config);
-//    $description = $purifier->purify($description);
-
-    // Decode and process uploaded file paths as before
     $uploadedFiles = json_decode($_POST['uploadedFiles'], true);
-    // Map full paths to just their basename components
     $fileNames = array_map(function($filePath) {
         return basename($filePath);
     }, $uploadedFiles);
 
-    // Convert the array of file names to a string to store in your database
     $filesString = implode(',', $fileNames);
 
-    // Prepare SQL statement with placeholders
     $sql = "INSERT INTO tbltasks (topic, subject, account, description, writer, email, due_date, cpp, pages, is_confirmed, task_files) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     if ($stmt = mysqli_prepare($con, $sql)) {
-        // Bind parameters and execute statement
         mysqli_stmt_bind_param($stmt, 'sssssssssss', $topic, $subject, $account, $description, $writer, $writerEmail, $due_date, $cpp, $pages, $is_confirmed, $filesString);
 
         if (mysqli_stmt_execute($stmt)) {
-            // Check if insert was successful
             if (mysqli_stmt_affected_rows($stmt) > 0) {
                 header('Content-Type: application/json');
                 $task_id = mysqli_insert_id($con); // This gets the last inserted ID

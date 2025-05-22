@@ -327,13 +327,11 @@ if (isset($_SESSION['alert'])) {
 
                     <ul class="list-unstyled position-relative fs-9 p-0 m-0">
                         <li class="mb-2">
-<!--                            <div class="d-flex"><dd>--><?php //echo $taskDescription; ?><!--</dd></div>-->
                             <div class="d-flex">
                                 <dd>
                                     <?php
-                                    // Remove `\r\n` from the task description
-                                    $taskDescription = str_replace("\r\n", "<br>", $taskDescription);
-                                    echo html_entity_decode($taskDescription) ?>
+                                    echo $taskDescription;
+                                    ?>
                                 </dd>
                             </div>
                         </li>

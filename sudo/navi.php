@@ -21,7 +21,6 @@
 <!-- ===============================================-->
 <!--    Stylesheets-->
 <!-- ===============================================-->
-<link href="../vendors/glightbox/glightbox.min.css" rel="stylesheet">
 <link rel="preconnect" href="https://fonts.gstatic.com">
 <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700%7cPoppins:300,400,500,600,700,800,900&amp;display=swap" rel="stylesheet">
 <link href="../vendors/simplebar/simplebar.min.css" rel="stylesheet">
@@ -29,10 +28,12 @@
 <link href="../assets/css/theme.css" rel="stylesheet" id="style-default">
 <link href="../assets/css/user-rtl.css" rel="stylesheet" id="user-style-rtl">
 <link href="../assets/css/user.css" rel="stylesheet" id="user-style-default">
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
 <script src="../vendors/datatables.net-bs5/dataTables.bootstrap5.min.css"></script>
 <script src="../vendors/select2/select2.min.css"></script>
+<script src="../vendors/tinymce/tinymce.js"></script>
 <script src="../vendors/select2-bootstrap-5-theme/select2-bootstrap-5-theme.min.css"></script>
-<link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.css" rel="stylesheet">
 <link href="../vendors/flatpickr/flatpickr.min.css" rel="stylesheet" />
 <link href="../vendors/dropzone/dropzone.css" rel="stylesheet" />
 <style>
@@ -68,6 +69,58 @@
         margin-left: 20px;
 
     }
+
+    .blurred-text {
+        filter: blur(5px);
+        transition: filter 0.3s ease-in-out;
+    }
+    .visible-text {
+        filter: none;
+    }
+    .blur-financial-data {
+        filter: blur(5px);
+        transition: filter 0.3s ease-in-out;
+    }
+
+    .visible-financial-data {
+        filter: none;
+    }
+    .event-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 5px;
+        vertical-align: middle;
+    }
+
+    .badge-subtle-primary .event-dot {
+        background-color: #007bff; /* Example color for Income */
+    }
+
+    .badge-subtle-danger .event-dot {
+        background-color: #dc3545; /* Example color for Expense */
+    }
+
+    .badge-subtle-success .event-dot {
+        background-color: #28a745; /* Example color for Savings */
+    }
+
+    /*.create-product-description-textarea textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 12px;
+        border: 1.5px solid #ced4da;
+        border-radius: 6px;
+        font-size: 1rem;
+        resize: vertical;
+        transition: border-color 0.2s;
+    }
+
+    .create-product-description-textarea textarea:focus {
+        border-color: #86b7fe;
+        outline: none;
+    }*/
 </style>
 
 <script>
@@ -85,12 +138,14 @@
         userLinkRTL.setAttribute('disabled', true);
     }
 </script>
+
 </head>
 <body>
 
 <!-- ===============================================-->
 <!--    Main Content-->
 <!-- ===============================================-->
+
 <main class="main" id="top">
     <div class="container" data-layout="container">
         <script>
@@ -368,8 +423,43 @@
                                     <span class="badge rounded-pill ms-2 badge-subtle-success">New</span>
                                 </div>
                             </a>
-
-
+                            <!-- label-->
+                            <a class="nav-link dropdown-indicator collapsed" href="#budget" role="button" data-bs-toggle="collapse" aria-expanded="false" aria-controls="budget">
+                                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-wallet"></span></span><span class="nav-link-text ps-1">iFinance</span>
+                                </div>
+                            </a>
+                            <ul class="nav collapse" id="budget" style="">
+                                <li class="nav-item"><a class="nav-link" href="budget">
+                                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">iBudget</span>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li class="nav-item"><a class="nav-link" href="transactions">
+                                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">iTransactions</span>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li class="nav-item"><a class="nav-link" href="analytics">
+                                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">iChart</span>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li class="nav-item"><a class="nav-link" href="t-calendar">
+                                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">iCalendar</span>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li class="nav-item"><a class="nav-link" href="saving-goals">
+                                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">iGoals</span>
+                                        </div>
+                                    </a>
+                                </li>
+                                <li class="nav-item"><a class="nav-link" href="projects.php">
+                                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">iProjects</span>
+                                        </div>
+                                    </a>
+                                </li>
+                            </ul>
                             <!-- label-->
                             <div class="row navbar-vertical-label-wrapper mt-3 mb-2">
                                 <div class="col-auto navbar-vertical-label">PAYMENT

@@ -57,6 +57,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !empty($_POST['taskIds'])) {
 }
 
 // Redirect back to the tasks page
-header('Location: completed-tasks.php');
+header('Location: archived-tasks');
 exit;
 ?>

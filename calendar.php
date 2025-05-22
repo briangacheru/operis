@@ -10,7 +10,7 @@ while ($row = mysqli_fetch_assoc($query)) {
     $formatted_due_date = $due_date->format('Y-m-d\TH:i:s');
 
     // Conditionally include time in title
-    if ($row['status'] == 'In Progress' || $row['status'] == 'Unconfirmed') {
+    if ($row['status'] == 'In Progress' || $row['status'] == 'Unconfirmed' || $row['status'] == 'In Revision') {
         $title = $row['id'] . ' ' . $due_date->format('h:i A');
     } else {
         $title = $row['id'];
@@ -37,6 +37,15 @@ $tasksJson = json_encode($tasks);
         <div class="row flex-between-center gx-0">
             <div class="col-lg-auto d-flex align-items-center">
                 <h4 class="mb-0 text-primary fw-bold">Tasks <span class="text-info fw-medium"> Calendar</span></h4>
+            </div>
+            <div class="col-lg-auto pt-3 pt-lg-0">
+                <form class="row flex-lg-column flex-xxl-row gx-3 gy-2 align-items-center align-items-lg-start align-items-xxl-center">
+                    <div class="col-auto">
+                    </div>
+                    <div class="col-md-auto position-relative">
+                        <h6 class="mb-1 badge rounded-pill badge-subtle-info"><?php echo date("jS F Y"); ?> | <span id="timeDisplay"></span></h6>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -77,7 +86,32 @@ include "footer.php";
         var calendarEl = document.getElementById('appCalendar');
         var calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
-            events: <?php echo $tasksJson; ?>,
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: ''
+            },
+            views: {
+                year: {
+                    type: 'dayGrid',
+                    duration: { years: 1 },
+                    buttonText: 'Year'
+                }
+            },
+            // Adjust events to ensure they end at 11:59:59 PM of the same day
+            events: JSON.parse(<?php echo json_encode($tasksJson); ?>).map(event => {
+                let start = new Date(event.start);
+
+                // Ensure the end time does not exceed 11:59:59 PM of the same day
+                let end = new Date(event.start);
+                end.setHours(23, 59, 59, 999);
+
+                // Return the adjusted event
+                return {
+                    ...event,
+                    end: end.toISOString() // Ensure the event ends within the same day
+                };
+            }),
             eventClick: function(info) {
                 var badges = {
                     'Completed': '<span class="badge badge rounded-pill badge-subtle-success">Completed<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span>',
@@ -85,7 +119,9 @@ include "footer.php";
                     'Unconfirmed': '<span class="badge badge rounded-pill badge-subtle-primary">Unconfirmed<span class="ms-1 fas fa-question" data-fa-transform="shrink-2"></span></span>',
                     'Draft': '<span class="badge badge rounded-pill badge-subtle-danger">Draft<span class="ms-1 fas fa-edit" data-fa-transform="shrink-2"></span></span>',
                     'Cancelled': '<span class="badge badge rounded-pill badge-subtle-danger">Cancelled<span class="ms-1 fas fa-ban" data-fa-transform="shrink-2"></span></span>',
-                    'In Progress': '<span class="badge badge rounded-pill badge-subtle-warning">In Progress<span class="ms-1 fas fa-stream" data-fa-transform="shrink-2"></span></span>'
+                    'In Progress': '<span class="badge badge rounded-pill badge-subtle-warning">In Progress<span class="ms-1 fas fa-stream" data-fa-transform="shrink-2"></span></span>',
+                    'In Revision': '<span class="badge badge rounded-pill badge-subtle-warning">In Revision<span class="ms-1 fas fa-flag" data-fa-transform="shrink-2"></span></span>'
+
                 };
 
                 var dueDate = new Date(info.event.start);
@@ -145,7 +181,8 @@ include "footer.php";
                     'Unconfirmed': 'badge-subtle-primary',
                     'Draft': 'badge-subtle-danger',
                     'Cancelled': 'badge-subtle-danger',
-                    'In Progress': 'badge-subtle-warning'
+                    'In Progress': 'badge-subtle-warning',
+                    'In Revision': 'badge-subtle-warning'
                 };
 
                 var badgeClass = badges[status] || 'badge-subtle-secondary';

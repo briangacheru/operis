@@ -5,44 +5,82 @@
 $status = "OK";
 $msg = "";
 
-if(isset($_POST['save']))
-{
+if (isset($_POST['save'])) {
     $amount = mysqli_real_escape_string($con, $_POST['amount']);
     $od_date = mysqli_real_escape_string($con, $_POST['od_date']);
+    $description = mysqli_real_escape_string($con, $_POST['description']);
     $writerInfo = mysqli_real_escape_string($con, $_POST['writer']); // This contains "name | email"
     // Split the writer info into name and email
-    list($writerName, $writerEmail) = explode(' | ', $writerInfo, 2); // Limit to 2 parts to ensure only the first " | " is used
+    list($writerName, $writerEmail) = explode(' | ', $writerInfo, 2);
 
-    // Check if a writer is selected (assuming the "Select Writer" option submits an empty value)
+    // Check if a writer is selected
     if (empty($writerName) || empty($writerEmail)) {
-        $_SESSION['alert'] = '<div class="alert alert-warning alert-dismissible fade show" role="alert"> <i class="bi bi-exclamation-circle me-1"></i> 
-                                You must select a writer.
+        $_SESSION['alert'] = '<div class="alert alert-warning alert-dismissible fade show" role="alert"> 
+                                <i class="bi bi-exclamation-circle me-1"></i> You must select a writer.
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>';
-        header('Location: overdraft'); // Adjust the redirection to your form page
+                              </div>';
+        header('Location: overdraft');
         exit;
     }
 
-    if ($status == "OK") {
-        // It's safer to use prepared statements to prevent SQL Injection
-        $stmt = mysqli_prepare($con, "INSERT INTO tbloverdrafts (amount, od_date, writer, email) VALUES (?, ?, ?, ?)");
-        mysqli_stmt_bind_param($stmt, 'ssss', $amount, $od_date, $writerName, $writerEmail);
+    // Check for duplicate record
+    $checkQuery = "SELECT COUNT(*) AS record_count FROM tbloverdrafts WHERE amount = ? AND od_date = ?";
+    $checkStmt = mysqli_prepare($con, $checkQuery);
+    mysqli_stmt_bind_param($checkStmt, 'ss', $amount, $od_date);
+    mysqli_stmt_execute($checkStmt);
+    mysqli_stmt_bind_result($checkStmt, $recordCount);
+    mysqli_stmt_fetch($checkStmt);
+    mysqli_stmt_close($checkStmt);
 
-        if (mysqli_stmt_execute($stmt)) {
-            $_SESSION['alert'] = '<div class="alert alert-success alert-dismissible fade show" role="alert"> <i class="bi bi-check-circle me-1"></i> 
-                                    Overdraft record added successfully.
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                    </div>';
-            header('Location: overdraft');
-            exit;
-        } else {
-            $_SESSION['alert'] = '<div class="alert alert-danger alert-dismissible fade show" role="alert"><i class="bi bi-exclamation-triangle me-1"></i>Something went wrong. Please try again!
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                    </div>';
-        }
-        mysqli_stmt_close($stmt); // Don't forget to close the statement
+    if ($recordCount > 0) {
+        $_SESSION['alert'] = '<div class="alert alert-warning alert-dismissible fade show" role="alert"> 
+                                <i class="bi bi-exclamation-circle me-1"></i> A record with the same amount and date already exists.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                              </div>';
+        header('Location: overdraft');
+        exit;
     }
+    // Function to calculate transaction cost
+    function calculateTransactionCost($amount) {
+        if ($amount >= 1 && $amount <= 49) return 0;
+        if ($amount >= 50 && $amount <= 100) return 0;
+        if ($amount >= 101 && $amount <= 500) return 7;
+        if ($amount >= 501 && $amount <= 1000) return 13;
+        if ($amount >= 1001 && $amount <= 1500) return 23;
+        if ($amount >= 1501 && $amount <= 2500) return 33;
+        if ($amount >= 2501 && $amount <= 3500) return 53;
+        if ($amount >= 3501 && $amount <= 5000) return 57;
+        if ($amount >= 5001 && $amount <= 7500) return 78;
+        if ($amount >= 7501 && $amount <= 10000) return 90;
+        if ($amount >= 10001 && $amount <= 15000) return 100;
+        if ($amount >= 15001 && $amount <= 20000) return 105;
+        if ($amount >= 20001 && $amount <= 35000) return 108;
+        if ($amount >= 35001 && $amount <= 50000) return 108;
+        if ($amount >= 50001 && $amount <= 250000) return 108;
+        return 0;
+    }
+    $transactionCost = calculateTransactionCost($amount);
+    $stmt = mysqli_prepare($con, "INSERT INTO tbloverdrafts (amount, od_date, writer, email, transactionCost, description) VALUES (?, ?, ?, ?, ?, ?)");
+    mysqli_stmt_bind_param($stmt, 'ssssds', $amount, $od_date, $writerName, $writerEmail, $transactionCost, $description);
+
+    if (mysqli_stmt_execute($stmt)) {
+        $_SESSION['alert'] = '<div class="alert alert-success alert-dismissible fade show" role="alert"> 
+                                <i class="bi bi-check-circle me-1"></i> Overdraft record added successfully.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                              </div>';
+        header('Location: overdraft');
+        exit;
+    } else {
+        $_SESSION['alert'] = '<div class="alert alert-danger alert-dismissible fade show" role="alert"> 
+                                <i class="bi bi-exclamation-triangle me-1"></i> Something went wrong. Please try again!
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                              </div>';
+        header('Location: overdraft');
+        exit;
+    }
+    mysqli_stmt_close($stmt);
 }
+
 if (isset($_GET['delete'])) {
     $encodedId = $_GET['delete'];
     $cmpid = base64_decode($encodedId);
@@ -158,7 +196,7 @@ if (isset($_GET['delete'])) {
                             $result = mysqli_query($con, $query);
 
                             if(mysqli_num_rows($result) > 0) {
-                                echo "<select name='writer' id='writer' class='form-select' onchange='checkFormCompletion();'>";
+                                echo "<select name='writer' id='writer' class='form-select' onchange='handleWriterChange();'>";
                                 echo "<option value='' selected disabled>Select Writer</option>"; // Added disabled and selected attributes
                                 while ($row = mysqli_fetch_assoc($result)) {
                                     $displayText = htmlspecialchars($row['username'], ENT_QUOTES, 'UTF-8') . " | " . htmlspecialchars($row['email'], ENT_QUOTES, 'UTF-8');
@@ -179,6 +217,15 @@ if (isset($_GET['delete'])) {
                         <label class="col-sm-2 col-form-label" for="inputPassword">Date </label>
                         <div class="col-sm-10">
                             <input class="form-control" name="od_date" type="datetime-local" required="required" id="od_date" onchange="checkFormCompletion();" />
+                            <div class="mb-3 row"></div>
+                        </div>
+                        <label class="col-sm-2 col-form-label" for="inputPassword">Description </label>
+                        <div class="col-sm-10">
+                            <select class="form-select" name="description" id="description" aria-label="Default select" required>
+                                <option selected=""></option>
+                                <option value="iTasker">iTasker</option>
+                                <option value="Writers admin">Writers admin</option>
+                            </select>
                             <div class="mb-3 row"></div>
                         </div>
                     </div>
@@ -276,9 +323,11 @@ if (isset($_GET['delete'])) {
                                                         <input class="form-check-input" id="checkbox-select-all" type="checkbox" onclick="selectAllTasks(this)" data-bulk-select='{"body":"table-simple-pagination-body","actions":"table-simple-pagination-actions","replacedElement":"table-simple-pagination-replace-element"}' />
                                                     </div>
                                                 </th>
-                                                <th class="text-900 sort pe-1 align-middle white-space-nowrap">OD Id</th>
+                                                <th class="text-900 sort pe-1 align-middle white-space-nowrap">#</th>
                                                 <th class="text-900 sort pe-1 align-middle white-space-nowrap">Writer</th>
                                                 <th class="text-900 sort pe-1 align-middle white-space-nowrap">Amount</th>
+                                                <th class="text-900 sort pe-1 align-middle white-space-nowrap">Cost</th>
+                                                <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center">Description</th>
                                                 <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center">Date</th>
                                                 <th class="text-900 no-sort pe-1 align-middle data-table-row-action"></th>
                                             </tr>
@@ -296,9 +345,11 @@ if (isset($_GET['delete'])) {
                                                             <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]" />
                                                         </div>
                                                     </td>
-                                                    <td class="align-middle white-space-nowrap  text-900"><?php echo $row["id"]; ?></td>
+                                                    <td class="align-middle white-space-nowrap text-900"><?php echo $row["id"]; ?></td>
                                                     <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["writer"]; ?></td>
-                                                    <td class="align-middle white-space-nowrap fw-semi-bold text-900">Ksh. <?php echo $row["amount"]; ?></td>
+                                                    <td class="align-middle white-space-nowrap text-900">Ksh. <?php echo $row["amount"]; ?></td>
+                                                    <td class="align-middle white-space-nowrap text-900">Ksh. <?php echo $row["transactionCost"]; ?></td>
+                                                    <td class="align-middle text-center white-space-nowrap text-900"><?php echo $row["description"]; ?></td>
                                                     <td class="align-middle text-center white-space-nowrap text-900"><?php echo date("jS M, Y h:i A", strtotime($row['od_date'])); ?></td>
                                                     <td class="align-middle white-space-nowrap text-end position-relative">
                                                         <div class="hover-actions bg-100">
@@ -351,6 +402,13 @@ if (isset($_GET['delete'])) {
                             <input class="form-control" type="datetime-local" name="od_date" id="modal-auth-date" />
                         </div>
                         <div class="mb-3">
+                            <label class="form-label" for="modal-auth-description">Description</label>
+                            <select class="form-select" name="description" id="modal-auth-description" aria-label="Default select">
+                                <option value="iTasker">iTasker</option>
+                                <option value="Writers admin">Writers admin</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
                             <button class="btn btn-primary d-block w-100 mt-3" type="submit">Update Overdraft</button>
                         </div>
                     </form>
@@ -380,12 +438,14 @@ if (isset($_GET['delete'])) {
             document.getElementById('writer').addEventListener('change', checkFormCompletion);
             document.getElementById('amount').addEventListener('input', checkFormCompletion);
             document.getElementById('od_date').addEventListener('input', checkFormCompletion);
+            document.getElementById('description').addEventListener('change', checkFormCompletion);
         });
 
         function checkFormCompletion() {
             var writer = document.getElementById('writer').value;
             var amount = document.getElementById('amount').value;
             var od_date = document.getElementById('od_date').value;
+            var description = document.getElementById('description').value;
 
             var discardButton = document.getElementById('discardButton');
             var submitButton = document.querySelector("button[name='save']");
@@ -403,6 +463,95 @@ if (isset($_GET['delete'])) {
             document.getElementById('overdraftForm').reset();
             checkFormCompletion(); // Re-check the form state after clearing
         }
+
+        function handleWriterChange() {
+            updateDescription();  // Call description update function
+            checkFormCompletion(); // Call existing form check function
+        }
+        function updateDescription() {
+            var writerDropdown = document.getElementById("writer");
+            var descriptionDropdown = document.getElementById("description");
+
+            var selectedValue = writerDropdown.value;
+
+            var parts = selectedValue.split(" | ");
+            var email = parts.length > 1 ? parts[1].trim() : "";
+
+            if (email === "wa@mail.com") {
+                descriptionDropdown.value = "Writers admin";
+            } else {
+                descriptionDropdown.value = "iTasker";
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle edit modal data population
+            const overdraftModal = document.getElementById('overdraft-view-modal');
+            if (overdraftModal) {
+                overdraftModal.addEventListener('show.bs.modal', function(event) {
+                    // Button that triggered the modal
+                    const button = event.relatedTarget;
+
+                    // Extract info from data-* attributes
+                    const id = button.getAttribute('data-id');
+                    const writer = button.getAttribute('data-writer');
+                    const amount = button.getAttribute('data-amount');
+                    const date = button.getAttribute('data-date');
+
+                    // Update the modal's content
+                    const modalForm = document.getElementById('overdraft-form');
+                    const idInput = document.getElementById('overdraft-id');
+                    const writerInput = document.getElementById('modal-auth-name');
+                    const amountInput = document.getElementById('modal-auth-amount');
+                    const dateInput = document.getElementById('modal-auth-date');
+
+                    idInput.value = id;
+                    writerInput.value = writer;
+                    amountInput.value = amount;
+
+                    // Format the date for datetime-local input
+                    const formattedDate = new Date(date).toISOString().slice(0, 16);
+                    dateInput.value = formattedDate;
+                });
+            }
+
+            // Handle form submission
+            const overdraftForm = document.getElementById('overdraft-form');
+            if (overdraftForm) {
+                overdraftForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+
+                    const formData = new FormData(this);
+
+                    // Add your AJAX call here to update the overdraft
+                    fetch('update-od.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            const modalAlert = document.getElementById('modal-alert');
+                            if (data.success) {
+                                modalAlert.className = 'alert alert-success';
+                                modalAlert.textContent = 'Overdraft updated successfully!';
+                                // Reload the page or update the table
+                                setTimeout(() => window.location.reload(), 1500);
+                            } else {
+                                modalAlert.className = 'alert alert-danger';
+                                modalAlert.textContent = data.message || 'Error updating overdraft';
+                            }
+                            modalAlert.classList.remove('d-none');
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            const modalAlert = document.getElementById('modal-alert');
+                            modalAlert.className = 'alert alert-danger';
+                            modalAlert.textContent = 'An error occurred while updating the overdraft';
+                            modalAlert.classList.remove('d-none');
+                        });
+                });
+            }
+        });
 
     </script>
 <?php

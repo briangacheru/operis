@@ -282,7 +282,6 @@
                             </div>
                             <!-- parent pages--><a class="nav-link" href="calendar" role="button">
                                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-calendar"></span></span><span class="nav-link-text ps-1">Calendar</span>
-                                    <span class="badge rounded-pill ms-2 badge-subtle-success">New</span>
                                 </div>
                             </a>
                             <!-- parent pages-->

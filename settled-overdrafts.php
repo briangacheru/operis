@@ -70,7 +70,6 @@
                                                     <input class="form-check-input" id="checkbox-select-all" type="checkbox" onclick="selectAllTasks(this)" data-bulk-select='{"body":"table-simple-pagination-body","actions":"table-simple-pagination-actions","replacedElement":"table-simple-pagination-replace-element"}' />
                                                 </div>
                                             </th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">OD Id</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Amount</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Date</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Settled On</th>
@@ -91,7 +90,6 @@
                                                     <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
                                                 </div>
                                             </td>
-                                            <td class="align-middle white-space-nowrap"><?php echo $row["id"];?></td>
                                             <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["amount"];?></td>
                                             <td class="align-middle white-space-nowrap text-900"><?php echo date("jS M, Y h:i A", strtotime($row['od_date'])); ?></td>
                                             <td class="align-middle white-space-nowrap text-900"><?php echo date("jS M, Y h:i A", strtotime($row['date_settled'])); ?></td>

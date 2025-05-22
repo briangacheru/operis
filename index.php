@@ -52,7 +52,7 @@ if ($rowWriter->is_verified == 1) {
                                         </div>
                                     </div>
                                     <div class="col-auto d-flex align-items-center">
-                                        <h4 class="text-800 mb-1"><span class="badge rounded-pill badge-subtle-success" id="timeDisplay"></span></span></h4>
+                                        <h5 class="text-800 mb-1"><span class="badge rounded-pill badge-subtle-success" id="timeDisplay"></span></span></h5>
                                     </div>
                                 </div>
                                 <p>Here’s what happening with your tasks today </p>
@@ -77,10 +77,10 @@ if ($rowWriter->is_verified == 1) {
                                         $todayTasks = "No data"; // Set "No Data" if query fails
                                     }
                                     ?>
-                                    <h4 class="text-800 mb-0"><span class="badge rounded-pill badge-subtle-success"><?php echo $todayTasks; ?></span></h4>
+                                    <h5 class="text-800 mb-0"><span class="badge rounded-pill badge-subtle-success"><?php echo $todayTasks; ?></span></h5>
                                 </div>
                                 <div class="ps-3">
-                                    <p class="text-900 fs-10">Total amount due</p>
+                                    <p class="text-900 fs-10">Total Amount Due (completed tasks)</p>
                                     <?php
                                     // Query to sum CPP*pages for completed, unpaid tasks
                                     $query1 = mysqli_query($con, "SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed' AND email = '$aid'");
@@ -95,7 +95,58 @@ if ($rowWriter->is_verified == 1) {
                                     // Calculate amount due by subtracting total completed task costs from total overdrafts
                                     $amount_due = $totalCompletedTasks - $totalOverdrafts;
                                     ?>
-                                    <h4 class="text-800 mb-0"><span class="badge rounded-pill badge-subtle-info">Ksh. <?php echo number_format($amount_due, 2, '.', ','); ?></span></h4>
+                                    <h5 class="text-800 mb-0"><span class="badge rounded-pill badge-subtle-info">Ksh. <?php echo number_format($amount_due, 2, '.', ','); ?></span></h5>
+                                </div>
+
+                                <div class="ps-3">
+                                    <p class="text-900 fs-10">Invoice last updated</p>
+                                    <?php
+                                // Sanitize the email
+                                    $aid = mysqli_real_escape_string($con, $aid);
+
+                                    $query = mysqli_query($con, "SELECT created_at FROM tbloverdrafts 
+                                    WHERE is_settled = 0 AND is_deleted = 0 AND description = 'iTasker' AND email = '$aid' 
+                                    ORDER BY created_at DESC 
+                                    LIMIT 1");
+
+                                    if($query) {
+                                        $row = mysqli_fetch_assoc($query);
+                                        ?>
+                                        <h5 class="text-800 mb-0">
+                                        <span class="badge rounded-pill badge-subtle-warning">
+                                            <?php
+                                            if($row) {
+                                                $created_at = new DateTime($row["created_at"]);
+                                                $now = new DateTime();
+                                                $interval = $now->diff($created_at);
+
+                                                if ($interval->y > 0) {
+                                                    echo $interval->y . " year" . ($interval->y > 1 ? "s" : "") . " ago";
+                                                } elseif ($interval->m > 0) {
+                                                    echo $interval->m . " month" . ($interval->m > 1 ? "s" : "") . " ago";
+                                                } elseif ($interval->d > 6) {
+                                                    $weeks = floor($interval->d / 7);
+                                                    echo $weeks . " week" . ($weeks > 1 ? "s" : "") . " ago";
+                                                } elseif ($interval->d > 0) {
+                                                    echo $interval->d . " day" . ($interval->d > 1 ? "s" : "") . " ago";
+                                                } elseif ($interval->h > 0) {
+                                                    echo $interval->h . " hour" . ($interval->h > 1 ? "s" : "") . " ago";
+                                                } elseif ($interval->i > 0) {
+                                                    echo $interval->i . " minute" . ($interval->i > 1 ? "s" : "") . " ago";
+                                                } else {
+                                                    echo $interval->s . " second" . ($interval->s > 1 ? "s" : "") . " ago";
+                                                }
+                                            } else {
+                                                echo "No invoice found";
+                                            }
+                                            ?>
+                                        </span>
+                                        </h5>
+                                        <?php
+                                    } else {
+                                        echo "Error fetching invoice information";
+                                    }
+                                    ?>
                                 </div>
                             </div>
                         </div>

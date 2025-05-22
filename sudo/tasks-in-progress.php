@@ -196,7 +196,7 @@ if (isset($_GET['del'])) {
                                         </thead>
                                         <tbody class="list" id="table-simple-pagination-body">
                                         <?php
-                                            $query=mysqli_query($con,"select * from tbltasks WHERE is_deleted = 0 AND status = 'In Progress' ORDER BY id DESC");
+                                            $query=mysqli_query($con,"select * from tbltasks WHERE is_deleted = 0 AND status = 'In Progress' ORDER BY due_date ASC");
                                             $cnt=1;
                                             while($row=mysqli_fetch_array($query))
                                             {

@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 echo "<script>
                         setTimeout(function(){
                             window.location.href = 'index.php';
-                        }, 2000); // Redirect after 2 seconds
+                        }, 1000); // Redirect after 1 second
                       </script>";
             } else {
                 $loginError = "

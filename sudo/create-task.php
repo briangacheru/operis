@@ -1,8 +1,6 @@
 <?php include "head.php";?>
-<title>iTasker | Create New Task</title>
-<?php include "navi.php";?>
-
-    <div id="alert-container"></div>
+    <title>iTasker | Create New Task</title>
+<?php include "navi.php";?><div id="alert-container"></div>
 
     <div class="card shadow-none border mb-3">
         <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/illustrations/corner-6.png);">
@@ -62,7 +60,7 @@
                                     </div>
                                     <div class="col-sm-6 mb-3">
                                         <label class="form-label" for="product-summary">Pages: </label>
-                                        <input class="form-control"  type="number" name="pages" id="pages" min="0" step="0.01" required="required"/>
+                                        <input class="form-control"  type="number" name="pages" id="pages" min="0" step="0.5" required="required"/>
                                         <div class="invalid-feedback">This field is required</div>
                                     </div>
                                     <div class="col-sm-6 mb-3">
@@ -73,6 +71,7 @@
                                             <option value="350">350 </option>
                                             <option value="200">200 </option>
                                             <option value="400">400</option>
+                                            <option value="450">450</option>
                                             <option value="500">500</option>
                                             <option value="750">750</option>
                                         </select>
@@ -119,11 +118,35 @@
                                 <div class="row gx-2">
                                     <div class="col-12 mb-3">
                                         <label class="form-label" for="task-description">Task description:</label>
-                                        <div class="create-product-description-textarea">
-                                            <textarea class="tinymce" data-tinymce="data-tinymce" name="description" id="description" required="required"></textarea>
-<!--                                            <textarea name="description" id="summernote" class="summernote form-control" required="required"></textarea>-->
-                                            <div class="invalid-feedback">This field is required</div>
-                                        </div>
+                                        <div class="min-vh-25" id="description"></div>
+                                        <input type="hidden" name="description" id="description-input">
+                                        <script>
+                                            const quill = new Quill('#description', {
+                                                theme: 'snow',
+                                                modules: {
+                                                    toolbar: [
+                                                        ['bold', 'italic', 'underline', 'strike'],
+                                                        ['blockquote', 'code-block'],
+                                                        [{ 'header': 1 }, { 'header': 2 }],
+                                                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                                        [{ 'script': 'sub'}, { 'script': 'super' }],
+                                                        [{ 'indent': '-1'}, { 'indent': '+1' }],
+                                                        [{ 'direction': 'rtl' }],
+                                                        [{ 'size': ['small', false, 'large', 'huge'] }],
+                                                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                                                        [{ 'color': [] }, { 'background': [] }],
+                                                        [{ 'font': [] }],
+                                                        [{ 'align': [] }],
+                                                        ['clean'],
+                                                        ['link', 'image', 'video']
+                                                    ]
+                                                }
+                                            });
+                                            document.getElementById('taskForm').addEventListener('submit', function(e) {
+                                                document.getElementById('description-input').value = quill.root.innerHTML;
+                                            });
+                                        </script>
+                                        <div class="invalid-feedback">This field is required</div>
                                     </div>
                                 </div>
                             </div>
@@ -165,14 +188,6 @@
             </div>
         </div>
     </div>
-
-<script>
-    tinymce.init({
-        selector: '#description',  // change this value according to your HTML
-        resize: 'both'
-    });
-</script>
-
     <script>
         document.getElementById('writerSelect').addEventListener('change', function() {
             var selectedOption = this.value.split('|'); // Split the value by the delimiter to get [name, email]
@@ -219,239 +234,236 @@
             });
         });
     </script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const dropArea = document.getElementById('dropArea');
-        const form = document.getElementById('taskForm');
-        const createTaskButton = document.getElementById('createTaskButton');
-        const buttonText = document.getElementById('buttonText');
-        const loadingSpinner = document.getElementById('loadingSpinner');
-        let uploadedFilePaths = []; // To store paths of successfully uploaded files
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropArea = document.getElementById('dropArea');
+            const form = document.getElementById('taskForm');
+            const createTaskButton = document.getElementById('createTaskButton');
+            const buttonText = document.getElementById('buttonText');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            let uploadedFilePaths = []; // To store paths of successfully uploaded files
 
-        // Prevent default drag behaviors
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, preventDefaults, false);
-            document.body.addEventListener(eventName, preventDefaults, false);
-        });
+            // Prevent default drag behaviors
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
 
-        // Highlight drop area when item is dragged over it
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropArea.addEventListener(eventName, highlight, false);
-        });
+            // Highlight drop area when item is dragged over it
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, highlight, false);
+            });
 
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, unhighlight, false);
-        });
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, unhighlight, false);
+            });
 
-        // Handle dropped files
-        dropArea.addEventListener('drop', handleDrop, false);
+            // Handle dropped files
+            dropArea.addEventListener('drop', handleDrop, false);
 
-        // Add change event listener to file input for direct file selection
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            handleFiles(e.target.files);
-        });
+            // Add change event listener to file input for direct file selection
+            document.getElementById('fileInput').addEventListener('change', function(e) {
+                handleFiles(e.target.files);
+            });
 
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
 
-        function highlight(e) {
-            dropArea.classList.add('highlight');
-        }
+            function highlight(e) {
+                dropArea.classList.add('highlight');
+            }
 
-        function unhighlight(e) {
-            dropArea.classList.remove('highlight');
-        }
+            function unhighlight(e) {
+                dropArea.classList.remove('highlight');
+            }
 
-        function handleDrop(e) {
-            var dt = e.dataTransfer;
-            var files = dt.files;
+            function handleDrop(e) {
+                var dt = e.dataTransfer;
+                var files = dt.files;
 
-            handleFiles(files);
-        }
+                handleFiles(files);
+            }
 
-        function handleFiles(files) {
-            files = [...files]; // Convert files to an array
-            files.forEach(file => uploadFile(file));
-        }
+            function handleFiles(files) {
+                files = [...files]; // Convert files to an array
+                files.forEach(file => uploadFile(file));
+            }
 
-        async function uploadFile(file) {
-            const url = 'upload'; // Ensure this path is correct
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('action', 'upload');
+            async function uploadFile(file) {
+                const url = 'upload'; // Ensure this path is correct
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('action', 'upload');
 
-            const li = document.createElement('li');
-            li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Uploading: 0%`;
-            li.style.color = '#FFA500';
+                const li = document.createElement('li');
+                li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Uploading: 0%`;
+                li.style.color = '#FFA500';
 
-            const progressBar = document.createElement('progress');
-            progressBar.value = 0;
-            progressBar.max = 100;
-            li.appendChild(progressBar);
+                const progressBar = document.createElement('progress');
+                progressBar.value = 0;
+                progressBar.max = 100;
+                li.appendChild(progressBar);
 
-            const removeBtn = document.createElement('button');
-            removeBtn.textContent = 'Remove';
-            removeBtn.classList.add('btn', 'btn-outline-warning', 'btn-sm', 'ms-2');
-            removeBtn.onclick = function () {
-                li.parentNode.removeChild(li);
-                const index = uploadedFilePaths.findIndex(f => f.fileName === file.name);
-                if (index > -1) {
-                    const filePath = uploadedFilePaths[index].filePath;
-                    deleteFileFromServer(filePath);
-                    uploadedFilePaths.splice(index, 1);
-                    updateUploadedFilesInput();
-                }
-            };
-
-            li.appendChild(removeBtn);
-            document.getElementById('fileNamesList').appendChild(li);
-
-            try {
-                const xhr = new XMLHttpRequest();
-                xhr.open('POST', url, true);
-
-                xhr.upload.addEventListener('progress', function (e) {
-                    if (e.lengthComputable) {
-                        const percentComplete = (e.loaded / e.total) * 100;
-                        progressBar.value = percentComplete;
-                        li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Uploading: ${percentComplete.toFixed(2)}%`;
-                        li.appendChild(progressBar);
-                        li.appendChild(removeBtn);
-                    }
-                });
-
-                xhr.onload = function () {
-                    if (xhr.status === 200) {
-                        const response = JSON.parse(xhr.responseText);
-                        if (response.status === 'success') {
-                            const filePath = response.filePath;
-                            li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload complete!`;
-                            li.style.color = 'green';
-                            li.appendChild(removeBtn);
-                            uploadedFilePaths.push({ fileName: file.name, filePath: filePath });
-                            updateUploadedFilesInput();
-                        } else {
-                            li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload failed: ${response.message}`;
-                            li.style.color = 'red';
-                        }
-                    } else {
-                        li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload error.`;
-                        li.style.color = 'red';
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = 'Remove';
+                removeBtn.classList.add('btn', 'btn-outline-warning', 'btn-sm', 'ms-2');
+                removeBtn.onclick = function () {
+                    li.parentNode.removeChild(li);
+                    const index = uploadedFilePaths.findIndex(f => f.fileName === file.name);
+                    if (index > -1) {
+                        const filePath = uploadedFilePaths[index].filePath;
+                        deleteFileFromServer(filePath);
+                        uploadedFilePaths.splice(index, 1);
+                        updateUploadedFilesInput();
                     }
                 };
 
-                xhr.send(formData);
-            } catch (error) {
-                console.error('Error:', error);
-                li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload error.`;
-                li.style.color = 'red';
-            }
-        }
+                li.appendChild(removeBtn);
+                document.getElementById('fileNamesList').appendChild(li);
 
+                try {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', url, true);
 
-        async function deleteFileFromServer(filePath) {
-            const url = 'delete_file'; // URL to the PHP file handling deletions
-            const formData = new FormData();
-            formData.append('filePath', filePath);
-            formData.append('action', 'deleteFile');
+                    xhr.upload.addEventListener('progress', function (e) {
+                        if (e.lengthComputable) {
+                            const percentComplete = (e.loaded / e.total) * 100;
+                            progressBar.value = percentComplete;
+                            li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Uploading: ${percentComplete.toFixed(2)}%`;
+                            li.appendChild(progressBar);
+                            li.appendChild(removeBtn);
+                        }
+                    });
 
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    body: formData,
-                });
+                    xhr.onload = function () {
+                        if (xhr.status === 200) {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.status === 'success') {
+                                const filePath = response.filePath;
+                                li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload complete!`;
+                                li.style.color = 'green';
+                                li.appendChild(removeBtn);
+                                uploadedFilePaths.push({ fileName: file.name, filePath: filePath });
+                                updateUploadedFilesInput();
+                            } else {
+                                li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload failed: ${response.message}`;
+                                li.style.color = 'red';
+                            }
+                        } else {
+                            li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload error.`;
+                            li.style.color = 'red';
+                        }
+                    };
 
-                const data = await response.json();
-                if (data.status !== 'success') {
-                    console.error('Failed to delete file: ' + data.message);
-                } else {
-                    console.log('File deleted successfully');
+                    xhr.send(formData);
+                } catch (error) {
+                    console.error('Error:', error);
+                    li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload error.`;
+                    li.style.color = 'red';
                 }
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
-
-        function updateUploadedFilesInput() {
-            document.getElementById('uploadedFiles').value = JSON.stringify(uploadedFilePaths); // Update hidden input value
-        }
-
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault(); // Prevent the default form submission
-            // Example validation check
-            if (!form.checkValidity()) {
-                // Display an error message or highlight the invalid fields
-                displayBootstrapAlert('Please fill in all required fields.', 'danger');
-                return; // Stop the function if validation fails
             }
 
-            // Show loading spinner and disable button
-            createTaskButton.disabled = true;
-            buttonText.classList.add('d-none');
-            loadingSpinner.classList.remove('d-none');
 
-            handleSubmit();
-        });
+            async function deleteFileFromServer(filePath) {
+                const url = 'delete_file'; // URL to the PHP file handling deletions
+                const formData = new FormData();
+                formData.append('filePath', filePath);
+                formData.append('action', 'deleteFile');
 
-        async function handleSubmit() {
-            const formData = new FormData(form);
-            formData.append('action', 'submitForm'); // Append the action field here
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        body: formData,
+                    });
 
-            try {
-                const response = await fetch('submit-task', {
-                    method: 'POST',
-                    body: formData,
-                });
+                    const data = await response.json();
+                    if (data.status !== 'success') {
+                        console.error('Failed to delete file: ' + data.message);
+                    } else {
+                        console.log('File deleted successfully');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            }
 
-                if (response.ok) {
-                    const data = await response.json(); // Assuming the response from your PHP script is JSON
-                    if (data.status === 'success') {
-                        const message = encodeURIComponent(data.message);
-                        const emailSentMessage = data.emailSent ? 'Email sent successfully.' : 'Email sending failed.';
-                        const fullMessage = `${data.message} ${emailSentMessage}`;
-                        window.location.href = `view-task?task_id=${data.task_id}&message=${encodeURIComponent(fullMessage)}`;
-                    } else if (data.status === 'error') {
-                        displayBootstrapAlert(`Failed to submit the form: ${data.message}`, 'danger');
+            function updateUploadedFilesInput() {
+                document.getElementById('uploadedFiles').value = JSON.stringify(uploadedFilePaths); // Update hidden input value
+            }
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault(); // Prevent the default form submission
+                // Example validation check
+                if (!form.checkValidity()) {
+                    // Display an error message or highlight the invalid fields
+                    displayBootstrapAlert('Please fill in all required fields.', 'danger');
+                    return; // Stop the function if validation fails
+                }
+
+                // Show loading spinner and disable button
+                createTaskButton.disabled = true;
+                buttonText.classList.add('d-none');
+                loadingSpinner.classList.remove('d-none');
+
+                handleSubmit();
+            });
+
+            async function handleSubmit() {
+                const formData = new FormData(form);
+                formData.append('action', 'submitForm'); // Append the action field here
+
+                try {
+                    const response = await fetch('submit-task', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json(); // Assuming the response from your PHP script is JSON
+                        if (data.status === 'success') {
+                            const message = encodeURIComponent(data.message);
+                            const emailSentMessage = data.emailSent ? 'Email sent successfully.' : 'Email sending failed.';
+                            const fullMessage = `${data.message} ${emailSentMessage}`;
+                            window.location.href = `view-task?task_id=${data.task_id}&message=${encodeURIComponent(fullMessage)}`;
+                        } else if (data.status === 'error') {
+                            displayBootstrapAlert(`Failed to submit the form: ${data.message}`, 'danger');
+                            resetButton();
+                        }
+                    } else {
+                        console.error("Failed to submit form. HTTP status: " + response.status);
+                        displayBootstrapAlert('Failed to submit form. Please try again.', 'warning');
                         resetButton();
                     }
-                } else {
-                    console.error("Failed to submit form. HTTP status: " + response.status);
-                    displayBootstrapAlert('Failed to submit form. Please try again.', 'warning');
+
+                } catch (error) {
+                    console.error("Error during form submission:", error);
+                    displayBootstrapAlert(`An error occurred while submitting the form: ${error.message}`, 'danger');
                     resetButton();
                 }
-
-            } catch (error) {
-                console.error("Error during form submission:", error);
-                displayBootstrapAlert(`An error occurred while submitting the form: ${error.message}`, 'danger');
-                resetButton();
             }
-        }
 
-        function resetButton() {
-            createTaskButton.disabled = false;
-            buttonText.classList.remove('d-none');
-            loadingSpinner.classList.add('d-none');
-        }
+            function resetButton() {
+                createTaskButton.disabled = false;
+                buttonText.classList.remove('d-none');
+                loadingSpinner.classList.add('d-none');
+            }
 
-        function displayBootstrapAlert(message, type) {
-            const alertContainer = document.getElementById('alert-container');
-            const alertHTML = `
+            function displayBootstrapAlert(message, type) {
+                const alertContainer = document.getElementById('alert-container');
+                const alertHTML = `
             <div class="alert alert-${type} border-0 d-flex align-items-center" role="alert">
                 <p class="mb-0 flex-1">${message}</p>
                 <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>`;
-            alertContainer.innerHTML = alertHTML;
-            // Scroll the alert container into view
-            alertContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                alertContainer.innerHTML = alertHTML;
+                // Scroll the alert container into view
+                alertContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-        }
-    });
-</script>
-
-
+            }
+        });
+    </script>
 <?php
 include "footer.php";
 ?>
-
