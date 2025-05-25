@@ -378,7 +378,7 @@ if (isset($_SESSION['alert'])) {
             <div class="card-body">
                 <div class="row justify-content-between align-items-center">
                     <div class="col-md">
-                        <h5 class="mb-2 mb-md-0">You're almost done!</h5>
+                        <h5 class="mb-2 mb-md-0" id="statusText">You're almost done!</h5>
                     </div>
                     <div class="col-auto">
                         <button class="btn btn-link text-secondary p-0 me-3 fw-medium" type="button" id="discardButton" role="button">Discard</button>
@@ -390,6 +390,7 @@ if (isset($_SESSION['alert'])) {
                 </div>
             </div>
         </div>
+        <div id="fireworks-container" style="position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9999;display:none;"></div>
         <!-- Hidden fields for additional required data -->
         <input type="hidden" name="taskId" value="<?php  echo $taskId;?>">
         <input type="hidden" name="topic" value="<?php  echo $taskTopic;?>">
@@ -412,6 +413,7 @@ if (isset($_SESSION['alert'])) {
             const alertPlaceholder = document.getElementById('alertPlaceholder');
             const discardButton = document.getElementById('discardButton');
             const fileContainer = document.querySelector('.card-body');
+            const statusText = document.getElementById('statusText');
 
             let uploadedFilePaths = []; // Store paths of successfully uploaded files
 
@@ -469,6 +471,7 @@ if (isset($_SESSION['alert'])) {
                 buttonText.classList.add('d-none');
                 loadingSpinner.classList.remove('d-none');
                 submitTaskButton.disabled = true;
+                statusText.textContent = 'Submitting...';
 
                 document.getElementById('uploadedFiles').value = JSON.stringify(uploadedFilePaths);
                 handleSubmit();
@@ -621,6 +624,19 @@ if (isset($_SESSION['alert'])) {
                         });
                 }
             }
+            function showFireworks() {
+                const container = document.getElementById('fireworks-container');
+                container.style.display = 'block';
+                // Fireworks burst
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+                setTimeout(() => {
+                    container.style.display = 'none';
+                }, 500);
+            }
 
             async function handleSubmit() {
                 const formData = new FormData(form);
@@ -635,8 +651,11 @@ if (isset($_SESSION['alert'])) {
                     if (response.ok) {
                         const data = await response.json();
                         if (data.status === 'success') {
-                            const message = encodeURIComponent(data.message);
-                            window.location.href = `view-task?task_id=${data.task_id}&message=${message}`;
+                            showFireworks();
+                            setTimeout(() => {
+                                const message = encodeURIComponent(data.message);
+                                window.location.href = `view-task?task_id=${data.task_id}&message=${message}`;
+                            }, 1500);
                         } else {
                             displayBootstrapAlert(`Failed to update the form: ${data.message}`, 'danger');
                         }

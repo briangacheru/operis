@@ -7,7 +7,7 @@ header('Content-Disposition: attachment; filename=overdraft.csv');
 $output = fopen('php://output', 'w');
 
 // Output the column headings
-fputcsv($output, array('OD Id', 'Writer', 'Amount', 'Date'));
+fputcsv($output, array('OD #', 'Writer', 'Amount', 'Date'));
 
 $query=mysqli_query($con,"select * from tbloverdrafts WHERE is_deleted = 0 AND is_settled = 0 ORDER BY id ASC");
 while ($row = mysqli_fetch_assoc($query)) {

@@ -1,7 +1,6 @@
 <?php
-include "head.php"; // Include your database connection and session start
+include "head.php";
 
-// Check if the form was submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST" && !empty($_POST['taskIds'])) {
 
     // The array of task IDs to update

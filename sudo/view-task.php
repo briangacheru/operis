@@ -12,7 +12,7 @@ if (isset($_GET['task_id'])) {
 }
 
 // Define variables for task data
-$taskTopic = $taskSubject = $taskAccount = $taskCreatedOn = $taskStatus = $taskIsPaid = $taskDescription = $taskWriter = $taskWriterEmail = $taskDueDate = $taskCPP = $taskPages = $existingFiles = $taskSubmitTime = $submittedOn =  '';
+$taskTopic = $taskSubject = $taskAccount = $taskCreatedOn = $taskStatus = $taskIsPaid = $taskDescription = $taskWriter = $taskWriterEmail = $taskDueDate = $taskCPP = $taskPages = $existingFiles = $taskSubmitTime = $submittedOn = $completedOn = '';
 
 // Retrieve the task data from the database
 $sql2 = "SELECT * FROM tbltasks WHERE id='$taskId'";
@@ -36,6 +36,7 @@ if ($rowTask = mysqli_fetch_array($result)) {
     $submittedFiles = $rowTask['submitted_files'];
     $taskSubmitTime = $rowTask['submitted_on'];
     $submittedOn = $rowTask['submitted_on'];
+    $completedOn = $rowTask['completed_on'];
 }
 $due_date = new DateTime($rowTask['due_date']);
 $currentDateTime = new DateTime(); // Assuming you've already got this
@@ -178,6 +179,11 @@ if (isset($_SESSION['alert'])) {
                             <h5 class="mb-sm-0 text-primary fs-7">Task ID: <span class="text-info fw-medium">#<?php  echo $taskId;?></span></h5>
                             <p class="mb-0">Posted <span class="text-info ms-2"><?php  echo date("d M Y, g:i A", strtotime($taskCreatedOn));?></span></p>
                             <div class="fs-9 mb-3 mb-sm-0 text-primary"><strong class="me-2">Status: </strong><?php  echo $statusBadge;?>
+                                <?php if ($taskStatus == 'Submitted' && !empty($submittedOn)): ?>
+                                    <span class="fs-10 text-info ms-2"><?php echo date("d M Y, g:i A", strtotime($submittedOn)); ?></span>
+                                <?php elseif ($taskStatus == 'Completed' && !empty($completedOn)): ?>
+                                    <span class="fs-10 text-success ms-2"><?php echo date("d M Y, g:i A", strtotime($completedOn)); ?></span>
+                                <?php endif; ?>
                                 <?php if ($is_confirmed != 0): ?>
                                     <?php echo $confirmation;?>
                                 <?php endif; ?>
@@ -264,7 +270,7 @@ if (isset($_SESSION['alert'])) {
                                                 $paidOn = $rowTask['paid_on'];
                                                 $paidDate = date("d M Y, g:i A", strtotime($paidOn));
                                                 ?>
-                                                <span class="text-info ms-2 fs-10"><?php echo $paidDate; ?></span>
+                                                <span class="text-success ms-2 fs-10"><?php echo $paidDate; ?></span>
                                             <?php endif; ?>
                                         <?php endif; ?>
                                     <?php endif; ?>

@@ -70,7 +70,7 @@ if (isset($_SESSION['alert'])) {
                                                     <input class="form-check-input" id="checkbox-select-all" type="checkbox" onclick="selectAllTasks(this)" data-bulk-select='{"body":"table-simple-pagination-body","actions":"table-simple-pagination-actions","replacedElement":"table-simple-pagination-replace-element"}' />
                                                 </div>
                                             </th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task Id</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task #</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Topic</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center">Status</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Account</th>
@@ -131,7 +131,7 @@ if (isset($_SESSION['alert'])) {
                                                 <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["id"];?></td>
                                                 <td>
                                                 <div class="d-flex align-items-center position-relative">
-                                                    <div class="flex-1 ms-3">
+                                                    <div class="flex-1">
                                                         <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
                                                         <p class="fw-semi-bold mb-0 text-500"><?php echo $row["pages"];?> Page(s) | CPP: <?php echo $row["cpp"];?></p>
                                                     </div>

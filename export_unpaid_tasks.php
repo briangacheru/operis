@@ -15,7 +15,7 @@ header('Content-Disposition: attachment; filename=unpaid_tasks.csv');
 $output = fopen('php://output', 'w');
 
 // Output the column headings
-fputcsv($output, array('Task Id', 'Topic', 'Pages', 'CPP', 'Amount', 'Payment'));
+fputcsv($output, array('Task #', 'Topic', 'Pages', 'CPP', 'Amount', 'Status'));
 
 $query=mysqli_query($con,"select * from tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND is_paid = 0 AND email = '$aid' ORDER BY id DESC");
 while ($row = mysqli_fetch_assoc($query)) {

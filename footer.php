@@ -231,6 +231,7 @@
 <script src="vendors/dropzone/dropzone-min.js"></script>
 <script src="vendors/inputmask/inputmask.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 
 </body>

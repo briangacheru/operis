@@ -94,19 +94,21 @@ if ($query->rowCount() > 0) {
                                     ?>
                                     <h4 class="text-800 mb-0"><span class="badge rounded-pill badge-subtle-info">Ksh. <?php echo number_format($amount_due, 2, '.', ','); ?></span></h4>
                                     <div class="form-text">Invoice updated
-                                            <?php
-                                            $query = mysqli_query($con, "SELECT created_at FROM tbloverdrafts 
-                                                WHERE is_settled = 0 AND description = 'iTasker' AND is_deleted = 0
-                                                ORDER BY created_at DESC 
-                                                LIMIT 1");
+                                        <?php
+                                        $query = mysqli_query($con, "SELECT created_at FROM tbloverdrafts 
+                                            WHERE is_settled = 0 AND description = 'iTasker' AND is_deleted = 0
+                                            ORDER BY created_at DESC 
+                                            LIMIT 1");
 
-                                            if($query) {
-                                                $row = mysqli_fetch_assoc($query);
-                                                ?>
-                                            <?php
+                                        if($query) {
+                                            $row = mysqli_fetch_assoc($query);
+
                                             if($row) {
+                                                // Set timezone to Africa/Nairobi
+                                                date_default_timezone_set('Africa/Nairobi');
+
                                                 $created_at = new DateTime($row["created_at"]);
-                                                $now = new DateTime();
+                                                $now = new DateTime(); // This will now use Africa/Nairobi timezone
                                                 $interval = $now->diff($created_at);
 
                                                 if ($interval->y > 0) {
@@ -128,12 +130,10 @@ if ($query->rowCount() > 0) {
                                             } else {
                                                 echo "No invoice found";
                                             }
-                                            ?>
-                                                <?php
-                                            } else {
-                                                echo "Error fetching invoice information";
-                                            }
-                                            ?>
+                                        } else {
+                                            echo "Error fetching invoice information";
+                                        }
+                                        ?>
                                     </div>
                                 </div>
                                 <div class="ps-3">

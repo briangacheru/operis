@@ -10,7 +10,7 @@ require 'phpmailer/src/SMTP.php';
 
 if ($_POST['action'] == 'submitForm') {
     // Ensure taskfiles has at least one file
-    if (empty($_FILES['taskfiles']['name'][0])) {
+    if (empty($_POST['uploadedFiles']) || $_POST['uploadedFiles'] === '[]') {
         header('Content-Type: application/json');
         echo json_encode(['status' => 'error', 'message' => 'You must submit at least one file.']);
         exit;

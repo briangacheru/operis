@@ -7,7 +7,7 @@ header('Content-Disposition: attachment; filename=all_tasks.csv');
 $output = fopen('php://output', 'w');
 
 // Output the column headings
-fputcsv($output, array('Task Id', 'Topic', 'Status', 'Account', 'Subject', 'Amount', 'Payment'));
+fputcsv($output, array('Task #', 'Topic', 'Status', 'Account', 'Subject', 'Amount', 'Status'));
 
 $query = mysqli_query($con, "SELECT * FROM tbltasks WHERE is_deleted = 0 ORDER BY id DESC");
 while ($row = mysqli_fetch_assoc($query)) {

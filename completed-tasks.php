@@ -57,7 +57,7 @@ $msg = "";
                                                     <input class="form-check-input" id="checkbox-select-all" type="checkbox" onclick="selectAllTasks(this)" data-bulk-select='{"body":"table-simple-pagination-body","actions":"table-simple-pagination-actions","replacedElement":"table-simple-pagination-replace-element"}' />
                                                 </div>
                                             </th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task Id</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task #</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Topic</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center">Status</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">Amount</th>
@@ -65,7 +65,7 @@ $msg = "";
                                         </thead>
                                         <tbody class="list" id="table-simple-pagination-body">
                                         <?php
-                                            $query=mysqli_query($con,"select * from tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND email ='$aid' ORDER BY id DESC");
+                                            $query=mysqli_query($con,"select * from tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND email ='$aid' ORDER BY completed_on DESC");
                                             $cnt=1;
                                             while($row=mysqli_fetch_array($query))
                                             {
@@ -115,16 +115,61 @@ $msg = "";
                                             <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["id"];?></td>
                                             <td>
                                                 <div class="d-flex align-items-center position-relative">
-                                                    <div class="flex-1 ms-3">
+                                                    <div class="flex-1">
                                                         <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
                                                         <p class="fw-semi-bold mb-0 text-500"><?php echo $row["pages"];?> Page(s) | CPP: <?php echo $row["cpp"];?></p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td class="align-middle white-space-nowrap product"><?php echo $statusBadge;?>
-                                            <?php if ($is_confirmed == 1): ?>
-                                                <?php echo $confirmation;?>
-                                            <?php endif; ?>
+                                            <td>
+                                                <div class="d-flex align-items-center position-relative">
+                                                    <div class="flex-1">
+                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><?php echo $statusBadge;?></h6>
+                                                        <p class="fw-semi-bold mb-0 text-500">
+                                                            <?php
+                                                            // Check if the function is already defined to prevent redeclaration
+                                                            if (!function_exists('time_elapsed_string')) {
+                                                                function time_elapsed_string($datetime, $full = false) {
+                                                                    $now = new DateTime;
+                                                                    $ago = new DateTime($datetime);
+                                                                    $diff = $now->diff($ago);
+                                                                    $weeks = floor($diff->d / 7);
+                                                                    $days = $diff->d % 7;  // Remainder days after accounting for weeks
+                                                                    $string = [
+                                                                        'y' => $diff->y,
+                                                                        'm' => $diff->m,
+                                                                        'w' => $weeks,
+                                                                        'd' => $days,
+                                                                        'h' => $diff->h,
+                                                                        'i' => $diff->i,
+                                                                        's' => $diff->s,
+                                                                    ];
+                                                                    $time_units = [
+                                                                        'y' => 'year',
+                                                                        'm' => 'month',
+                                                                        'w' => 'week',
+                                                                        'd' => 'day',
+                                                                        'h' => 'hour',
+                                                                        'i' => 'minute',
+                                                                        's' => 'second',
+                                                                    ];
+                                                                    $result = [];
+                                                                    foreach ($time_units as $key => $unit) {
+                                                                        if ($string[$key]) {
+                                                                            $result[] = $string[$key] . ' ' . $unit . ($string[$key] > 1 ? 's' : '');
+                                                                        }
+                                                                    }
+                                                                    if (!$full) {
+                                                                        $result = array_slice($result, 0, 1);
+                                                                    }
+                                                                    return $result ? implode(', ', $result) . ' ago' : 'just now';
+                                                                }
+                                                            }
+                                                            echo time_elapsed_string($row["completed_on"]);
+                                                            ?>
+                                                        </p>
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td class="align-middle text-end amount">
                                                 <h6 class="mb-0"><?php echo number_format($totalprice,2); ?></h6>

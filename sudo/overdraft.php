@@ -419,72 +419,7 @@ if (isset($_GET['delete'])) {
 
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(function() {
-                let alertElement = document.querySelector('.alert');
-                if (alertElement) {
-                    alertElement.classList.remove('show');
-                    setTimeout(function() {
-                        alertElement.remove();
-                    }, 150); // Give time for the alert to fade out before removing
-                }
-            }, 10000); // 10 seconds
-        });
-
         document.addEventListener('DOMContentLoaded', function () {
-            checkFormCompletion(); // Initial check when the page loads
-
-            // Attach event listeners to form inputs
-            document.getElementById('writer').addEventListener('change', checkFormCompletion);
-            document.getElementById('amount').addEventListener('input', checkFormCompletion);
-            document.getElementById('od_date').addEventListener('input', checkFormCompletion);
-            document.getElementById('description').addEventListener('change', checkFormCompletion);
-        });
-
-        function checkFormCompletion() {
-            var writer = document.getElementById('writer').value;
-            var amount = document.getElementById('amount').value;
-            var od_date = document.getElementById('od_date').value;
-            var description = document.getElementById('description').value;
-
-            var discardButton = document.getElementById('discardButton');
-            var submitButton = document.querySelector("button[name='save']");
-
-            if (writer && amount && od_date) {
-                discardButton.style.display = 'inline-block';
-                submitButton.style.display = 'inline-block';
-            } else {
-                discardButton.style.display = 'none';
-                submitButton.style.display = 'none';
-            }
-        }
-
-        function clearForm() {
-            document.getElementById('overdraftForm').reset();
-            checkFormCompletion(); // Re-check the form state after clearing
-        }
-
-        function handleWriterChange() {
-            updateDescription();  // Call description update function
-            checkFormCompletion(); // Call existing form check function
-        }
-        function updateDescription() {
-            var writerDropdown = document.getElementById("writer");
-            var descriptionDropdown = document.getElementById("description");
-
-            var selectedValue = writerDropdown.value;
-
-            var parts = selectedValue.split(" | ");
-            var email = parts.length > 1 ? parts[1].trim() : "";
-
-            if (email === "wa@mail.com") {
-                descriptionDropdown.value = "Writers admin";
-            } else {
-                descriptionDropdown.value = "iTasker";
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
             // Handle edit modal data population
             const overdraftModal = document.getElementById('overdraft-view-modal');
             if (overdraftModal) {
@@ -499,11 +434,11 @@ if (isset($_GET['delete'])) {
                     const date = button.getAttribute('data-date');
 
                     // Update the modal's content
-                    const modalForm = document.getElementById('overdraft-form');
                     const idInput = document.getElementById('overdraft-id');
                     const writerInput = document.getElementById('modal-auth-name');
                     const amountInput = document.getElementById('modal-auth-amount');
                     const dateInput = document.getElementById('modal-auth-date');
+                    const modalAlert = document.getElementById('modal-alert');
 
                     idInput.value = id;
                     writerInput.value = writer;
@@ -512,6 +447,10 @@ if (isset($_GET['delete'])) {
                     // Format the date for datetime-local input
                     const formattedDate = new Date(date).toISOString().slice(0, 16);
                     dateInput.value = formattedDate;
+
+                    // Clear any previous alert message
+                    modalAlert.className = 'alert d-none';
+                    modalAlert.textContent = '';
                 });
             }
 
@@ -522,20 +461,22 @@ if (isset($_GET['delete'])) {
                     e.preventDefault();
 
                     const formData = new FormData(this);
+                    const modalAlert = document.getElementById('modal-alert');
 
-                    // Add your AJAX call here to update the overdraft
                     fetch('update-od.php', {
                         method: 'POST',
                         body: formData
                     })
                         .then(response => response.json())
                         .then(data => {
-                            const modalAlert = document.getElementById('modal-alert');
                             if (data.success) {
                                 modalAlert.className = 'alert alert-success';
-                                modalAlert.textContent = 'Overdraft updated successfully!';
-                                // Reload the page or update the table
-                                setTimeout(() => window.location.reload(), 1500);
+                                modalAlert.textContent = data.message || 'Overdraft updated successfully!';
+
+                                // Reload the page after a delay
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 3000);
                             } else {
                                 modalAlert.className = 'alert alert-danger';
                                 modalAlert.textContent = data.message || 'Error updating overdraft';
@@ -544,15 +485,92 @@ if (isset($_GET['delete'])) {
                         })
                         .catch(error => {
                             console.error('Error:', error);
-                            const modalAlert = document.getElementById('modal-alert');
                             modalAlert.className = 'alert alert-danger';
                             modalAlert.textContent = 'An error occurred while updating the overdraft';
                             modalAlert.classList.remove('d-none');
                         });
                 });
             }
+
+            // Handle auto-hiding alerts
+            setTimeout(function() {
+                let alertElement = document.querySelector('.alert:not(#modal-alert)');
+                if (alertElement) {
+                    alertElement.classList.remove('show');
+                    setTimeout(function() {
+                        alertElement.remove();
+                    }, 150);
+                }
+            }, 10000);
+
+            // Form completion check for the main form (not the modal)
+            const mainForm = document.getElementById('overdraftForm');
+            if (mainForm) {
+                checkFormCompletion();
+
+                const writerSelect = document.getElementById('writer');
+                const amountInput = document.getElementById('amount');
+                const dateInput = document.getElementById('od_date');
+                const descriptionSelect = document.getElementById('description');
+
+                if (writerSelect) writerSelect.addEventListener('change', handleWriterChange);
+                if (amountInput) amountInput.addEventListener('input', checkFormCompletion);
+                if (dateInput) dateInput.addEventListener('input', checkFormCompletion);
+                if (descriptionSelect) descriptionSelect.addEventListener('change', checkFormCompletion);
+            }
         });
 
+        function checkFormCompletion() {
+            const writer = document.getElementById('writer');
+            const amount = document.getElementById('amount');
+            const od_date = document.getElementById('od_date');
+            const discardButton = document.getElementById('discardButton');
+            const submitButton = document.querySelector("button[name='save']");
+
+            if (!writer || !amount || !od_date || !discardButton || !submitButton) {
+                return; // Exit if any elements don't exist
+            }
+
+            if (writer.value && amount.value && od_date.value) {
+                discardButton.style.display = 'inline-block';
+                submitButton.style.display = 'inline-block';
+            } else {
+                discardButton.style.display = 'none';
+                submitButton.style.display = 'none';
+            }
+        }
+
+        function clearForm() {
+            const form = document.getElementById('overdraftForm');
+            if (form) {
+                form.reset();
+                checkFormCompletion();
+            }
+        }
+
+        function handleWriterChange() {
+            updateDescription();
+            checkFormCompletion();
+        }
+
+        function updateDescription() {
+            const writerDropdown = document.getElementById("writer");
+            const descriptionDropdown = document.getElementById("description");
+
+            if (!writerDropdown || !descriptionDropdown) {
+                return; // Exit if elements don't exist
+            }
+
+            const selectedValue = writerDropdown.value;
+            const parts = selectedValue.split(" | ");
+            const email = parts.length > 1 ? parts[1].trim() : "";
+
+            if (email === "wa@mail.com") {
+                descriptionDropdown.value = "Writers admin";
+            } else {
+                descriptionDropdown.value = "iTasker";
+            }
+        }
     </script>
 <?php
 include "footer.php";

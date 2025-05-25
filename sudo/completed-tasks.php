@@ -51,15 +51,11 @@ $msg = "";
                                     <div class="row flex-between-center">
                                         <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
                                         </div>
-                                        <div class="col-6 col-sm-auto ms-auto text-end ps-0">
-                                            <div class="d-none" id="table-simple-pagination-actions">
-                                                <div class="d-flex">
-                                                    <button type="button" class="btn btn-falcon-default btn-sm ms-2" onclick="submitForm('archive-tasks')"><span class="fa fa-archive"></span> Archive Tasks</button>
-                                                </div>
-                                            </div>
-                                            <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
-                                                <a class="btn btn-falcon-info btn-sm mx-2" href="create-task" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Task</span></a>
-                                            </div>
+                                        <div class="col-md-auto mt-4 mt-md-0">
+                                            <button id="archiveTasksBtn" class="btn btn-sm btn-falcon-default me-2" type="button" onclick="submitForm('archive-tasks')" style="display: none;">
+                                                <span class="fa fa-archive" data-fa-transform="shrink-3 down-2"></span>
+                                                <span class="d-none d-sm-inline-block ms-1">Archive Tasks</span>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -72,7 +68,7 @@ $msg = "";
                                                     <input class="form-check-input" id="checkbox-select-all" type="checkbox" onclick="selectAllTasks(this)" data-bulk-select='{"body":"table-simple-pagination-body","actions":"table-simple-pagination-actions","replacedElement":"table-simple-pagination-replace-element"}' />
                                                 </div>
                                             </th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task Id</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task #</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Topic</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center">Status</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Account</th>
@@ -127,22 +123,67 @@ $msg = "";
                                         <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100">
                                             <td class="align-middle" style="width: 28px;">
                                                 <div class="form-check mb-0">
-                                                    <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
+                                                    <input class="form-check-input bulk-select-checkbox" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
                                                 </div>
                                             </td>
                                             <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["id"];?></td>
                                             <td>
                                                 <div class="d-flex align-items-center position-relative">
-                                                    <div class="flex-1 ms-3">
+                                                    <div class="flex-1">
                                                         <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
                                                         <p class="fw-semi-bold mb-0 text-500"><?php echo $row["pages"];?> Page(s) | CPP: <?php echo $row["cpp"];?></p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td class="align-middle white-space-nowrap product"><?php echo $statusBadge;?>
-                                            <?php if ($is_confirmed == 1): ?>
-                                                <?php echo $confirmation;?>
-                                            <?php endif; ?>
+                                            <td>
+                                                <div class="d-flex align-items-center position-relative">
+                                                    <div class="flex-1">
+                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><?php echo $statusBadge;?></h6>
+                                                        <p class="fw-semi-bold mb-0 text-500">
+                                                            <?php
+                                                            // Check if the function is already defined to prevent redeclaration
+                                                            if (!function_exists('time_elapsed_string')) {
+                                                                function time_elapsed_string($datetime, $full = false) {
+                                                                    $now = new DateTime;
+                                                                    $ago = new DateTime($datetime);
+                                                                    $diff = $now->diff($ago);
+                                                                    $weeks = floor($diff->d / 7);
+                                                                    $days = $diff->d % 7;  // Remainder days after accounting for weeks
+                                                                    $string = [
+                                                                        'y' => $diff->y,
+                                                                        'm' => $diff->m,
+                                                                        'w' => $weeks,
+                                                                        'd' => $days,
+                                                                        'h' => $diff->h,
+                                                                        'i' => $diff->i,
+                                                                        's' => $diff->s,
+                                                                    ];
+                                                                    $time_units = [
+                                                                        'y' => 'year',
+                                                                        'm' => 'month',
+                                                                        'w' => 'week',
+                                                                        'd' => 'day',
+                                                                        'h' => 'hour',
+                                                                        'i' => 'minute',
+                                                                        's' => 'second',
+                                                                    ];
+                                                                    $result = [];
+                                                                    foreach ($time_units as $key => $unit) {
+                                                                        if ($string[$key]) {
+                                                                            $result[] = $string[$key] . ' ' . $unit . ($string[$key] > 1 ? 's' : '');
+                                                                        }
+                                                                    }
+                                                                    if (!$full) {
+                                                                        $result = array_slice($result, 0, 1);
+                                                                    }
+                                                                    return $result ? implode(', ', $result) . ' ago' : 'just now';
+                                                                }
+                                                            }
+                                                            echo time_elapsed_string($row["completed_on"]);
+                                                            ?>
+                                                        </p>
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td class="align-middle white-space-nowrap text-900">
                                                 <h6 class="mb-1 fw-semi-bold text-nowrap"><?php echo $row["account"];?></h6>
@@ -163,39 +204,6 @@ $msg = "";
                                                 </div>
                                             </td>
                                         </tr>
-                                        <!--<tr class="btn-reveal-trigger">
-                                            <td class="align-middle" style="width: 28px;">
-                                                <div class="form-check mb-0">
-                                                    <input class="form-check-input" type="checkbox" id="simple-pagination-item-1" data-bulk-select-row="data-bulk-select-row" />
-                                                </div>
-                                            </td>
-                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><a href="../../app/e-commerce/customer-details.html">Homer</a></td>
-                                            <td class="align-middle white-space-nowrap email">sylvia@mail.ru</td>
-                                            <td class="align-middle white-space-nowrap product">Bose SoundSport Wireless Headphones</td>
-                                            <td class="align-middle text-center fs-9 white-space-nowrap payment"><span class="badge badge rounded-pill badge-subtle-success">Success<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span>
-                                            </td>
-                                            <td class="align-middle text-end amount">$634</td>
-                                            <td class="align-middle white-space-nowrap text-end">
-                                                <div class="dropstart font-sans-serif position-static d-inline-block">
-                                                    <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal float-end" type="button" id="dropdown-simple-pagination-table-item-1" data-bs-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false" data-bs-reference="parent"><span class="fas fa-ellipsis-h fs-10"></span></button>
-                                                    <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="dropdown-simple-pagination-table-item-1"><a class="dropdown-item" href="#!">View</a><a class="dropdown-item" href="#!">Edit</a><a class="dropdown-item" href="#!">Refund</a>
-                                                        <div class="dropdown-divider"></div><a class="dropdown-item text-warning" href="#!">Archive</a><a class="dropdown-item text-danger" href="#!">Delete</a>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td class="align-middle white-space-nowrap text-end">
-                                                <div class="dropstart font-sans-serif position-static d-inline-block">
-                                                    <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal float-end" type="button" id="dropdown-simple-pagination-table-item-0" data-bs-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false" data-bs-reference="parent"><span class="fas fa-ellipsis-h fs-10"></span></button>
-                                                    <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="dropdown-simple-pagination-table-item-0">
-                                                        <a class="dropdown-item text-info" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><span class="fas fa-eye" data-fa-transform="shrink-2"></span> View</a>
-                                                        <a class="dropdown-item text-success" target="_blank" href="edit-task?task_id=<?php echo $encodedId; ?>"><span class="bi bi-pen" data-fa-transform="shrink-2"></span> Edit</a>
-                                                        <a class="dropdown-item text-warning" target="_blank" href="duplicate-task?task_id=<?php echo $encodedId; ?>" ><span class="fas fa-copy" data-fa-transform="shrink-2"></span> Duplicate</a>
-                                                        <div class="dropdown-divider"></div>
-                                                        <a class="dropdown-item text-danger" href="all-tasks?del=<?php echo $encodedId; ?>" onclick="return confirm('Do you really want to cancel task?');"><span class="fas fa-trash" data-fa-transform="shrink-2"></span> Cancel</>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>-->
                                         <?php
                                                 $cnt=$cnt+1;
                                             }
@@ -210,6 +218,44 @@ $msg = "";
                 </div>
             </div>
         </div>
+
+
+    <script>
+        function submitForm(action) {
+            document.getElementById("tasksForm").action = action + ".php";
+            document.getElementById("tasksForm").submit();
+        }
+
+        function selectAllTasks(source) {
+            const checkboxes = document.querySelectorAll('.bulk-select-checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = source.checked);
+            updateArchiveButtonVisibility();
+        }
+
+        // Function to check if any checkbox is selected and update button visibility
+        function updateArchiveButtonVisibility() {
+            const checkboxes = document.querySelectorAll('.bulk-select-checkbox:checked');
+            const archiveButton = document.querySelector('.btn-falcon-default');
+
+            if (checkboxes.length > 0) {
+                archiveButton.style.display = 'block';
+            } else {
+                archiveButton.style.display = 'none';
+            }
+        }
+
+        // Attach event listeners to all checkboxes
+        document.addEventListener("DOMContentLoaded", function() {
+            const checkboxes = document.querySelectorAll('.bulk-select-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateArchiveButtonVisibility);
+            });
+
+            // Initial check to set correct button state
+            updateArchiveButtonVisibility();
+        });
+    </script>
+
 
 <?php
 include "footer.php";

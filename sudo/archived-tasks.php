@@ -50,15 +50,11 @@ if (isset($_SESSION['alert'])) {
                                     <div class="row flex-between-center">
                                         <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
                                         </div>
-                                        <div class="col-6 col-sm-auto ms-auto text-end ps-0">
-                                            <div class="d-none" id="table-simple-pagination-actions">
-                                                <div class="d-flex">
-                                                    <button type="button" class="btn btn-falcon-default btn-sm ms-2" onclick="submitForm('unarchive-tasks')">Unarchive Tasks</button>
-                                                </div>
-                                            </div>
-                                            <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
-                                                <a class="btn btn-falcon-info btn-sm mx-2" href="create-task" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Task</span></a>
-                                            </div>
+                                        <div class="col-md-auto mt-4 mt-md-0">
+                                            <button id="unarchiveTasksBtn" class="btn btn-sm btn-falcon-default me-2" type="button" onclick="submitForm('unarchive-tasks')" style="display: none;">
+                                                <span class="fas fa-archway" data-fa-transform="shrink-3 down-2"></span>
+                                                <span class="d-none d-sm-inline-block ms-1">Unarchive Tasks</span>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -71,7 +67,7 @@ if (isset($_SESSION['alert'])) {
                                                     <input class="form-check-input" id="checkbox-select-all" type="checkbox" onclick="selectAllTasks(this)" data-bulk-select='{"body":"table-simple-pagination-body","actions":"table-simple-pagination-actions","replacedElement":"table-simple-pagination-replace-element"}' />
                                                 </div>
                                             </th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task Id</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task #</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Topic</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center">Status</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Account</th>
@@ -126,13 +122,13 @@ if (isset($_SESSION['alert'])) {
                                             <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100">
                                                 <td class="align-middle" style="width: 28px;">
                                                     <div class="form-check mb-0">
-                                                        <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
+                                                        <input class="form-check-input bulk-select-checkbox" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
                                                     </div>
                                                 </td>
                                                 <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["id"];?></td>
                                                 <td>
                                                 <div class="d-flex align-items-center position-relative">
-                                                    <div class="flex-1 ms-3">
+                                                    <div class="flex-1">
                                                         <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
                                                         <p class="fw-semi-bold mb-0 text-500"><?php echo $row["pages"];?> Page(s) | CPP: <?php echo $row["cpp"];?></p>
                                                     </div>
@@ -177,6 +173,55 @@ if (isset($_SESSION['alert'])) {
         </div>
     </div>
 
+    <script>
+        function submitForm(action) {
+            document.getElementById("tasksForm").action = action + ".php";
+            document.getElementById("tasksForm").submit();
+        }
+
+        function selectAllTasks(source) {
+            const checkboxes = document.querySelectorAll('.bulk-select-checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = source.checked);
+
+            const unarchiveButton = document.getElementById('unarchiveTasksBtn');
+
+            if (unarchiveButton) {
+                unarchiveButton.style.display = source.checked ? '' : 'none';
+            }
+        }
+
+        function updateArchiveButtonVisibility() {
+            const checkboxes = document.querySelectorAll('.bulk-select-checkbox:checked');
+
+            const unarchiveButton = document.getElementById('unarchiveTasksBtn');
+
+            if (unarchiveButton) {
+                unarchiveButton.style.display = checkboxes.length > 0 ? '' : 'none';
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const unarchiveButton = document.getElementById('unarchiveTasksBtn');
+            if (unarchiveButton) {
+                unarchiveButton.style.display = 'none';
+            }
+
+            const checkboxes = document.querySelectorAll('.bulk-select-checkbox');
+
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    updateArchiveButtonVisibility();
+                });
+            });
+
+            const selectAllCheckbox = document.getElementById('checkbox-select-all');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', function() {
+                    selectAllTasks(this);
+                });
+            }
+        });
+    </script>
 <?php
 include "footer.php";
 ?>

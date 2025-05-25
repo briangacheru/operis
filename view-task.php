@@ -13,7 +13,7 @@ if (isset($_GET['task_id'])) {
 }
 
 // Define variables for task data
-$taskTopic = $taskSubject = $taskAccount = $taskCreatedOn = $taskStatus = $taskIsPaid = $taskIsConfirmed = $taskDescription = $taskWriter = $taskWriterEmail = $taskDueDate = $taskCPP = $taskPages = $existingFiles = $taskSubmitTime = $submittedOn =  '';
+$taskTopic = $taskSubject = $taskAccount = $taskCreatedOn = $taskStatus = $taskIsPaid = $taskIsConfirmed = $taskDescription = $taskWriter = $taskWriterEmail = $taskDueDate = $taskCPP = $taskPages = $existingFiles = $taskSubmitTime = $submittedOn = $completedOn = '';
 
 // Retrieve the task data from the database
 $sql2 = "SELECT * FROM tbltasks WHERE id='$taskId'";
@@ -38,6 +38,7 @@ if ($rowTask = mysqli_fetch_array($result)) {
     $submittedFiles = $rowTask['submitted_files'];
     $taskSubmitTime = $rowTask['submitted_on'];
     $submittedOn = $rowTask['submitted_on'];
+    $completedOn = $rowTask['completed_on'];
 }
 $due_date = new DateTime($rowTask['due_date']);
 $currentDateTime = new DateTime(); // Assuming you've already got this
@@ -157,20 +158,34 @@ if (isset($_SESSION['alert'])) {
                             <h5 class="mb-sm-0 text-primary fs-7">Task ID: <span class="text-info fw-medium">#<?php  echo $taskId;?></span></h5>
                             <p class="fw-semi-bold fs-10"><span class="me-1">Posted: </span><span class="text-info ms-2"><?php  echo date("d M Y, g:i A", strtotime($taskCreatedOn));?></span>
                             </p>
-                            <div class="fs-9 mb-3 mb-sm-0 text-primary"><strong class="me-2">Status: </strong><?php  echo $statusBadge;?>
+                            <div class="fs-9 mb-3 mb-sm-0 text-primary">
+                                <strong class="me-2">Status: </strong><?php echo $statusBadge; ?>
+                                <?php if ($taskStatus == 'Submitted' && !empty($submittedOn)): ?>
+                                    <span class="fs-10 text-info ms-2"><?php echo date("d M Y, g:i A", strtotime($submittedOn)); ?></span>
+                                <?php elseif ($taskStatus == 'Completed' && !empty($completedOn)): ?>
+                                    <span class="fs-10 text-success ms-2"><?php echo date("d M Y, g:i A", strtotime($completedOn)); ?></span>
+                                <?php endif; ?>
                                 <?php if ($is_confirmed == 1): ?>
-                                    <?php echo $confirmation;?>
+                                    <?php echo $confirmation; ?>
                                 <?php endif; ?>
                             </div>
                         </div>
                         <div class="col-12 col-sm-auto ms-auto">
                             <?php if ($taskStatus == 'In Progress'): ?>
-                                <a class="btn btn-outline-primary btn-lg fs-9" href="submission?task_id=<?php $encodedId = $_GET['task_id']; echo $encodedId; ?>#filesSubmission">Submit Task</a>
+                                <a class="btn btn-outline-primary btn-lg fs-9" href="submission?task_id=<?php $encodedId = $_GET['task_id']; echo $encodedId; ?>#filesSubmission">
+                                    <i class="fas fa-upload me-1"></i> Submit Task
+                                </a>
                             <?php elseif ($is_confirmed == 1 && $taskStatus != 'Cancelled'): ?>
-                                <a class="btn btn-outline-success btn-sm fs-10" href="#" onclick="confirmAction('<?php $encodedId = $_GET['task_id']; echo $encodedId; ?>', 'accept')">Accept Task</a>
-                                <a class="btn btn-outline-danger btn-sm fs-10" href="#" onclick="confirmAction('<?php $encodedId = $_GET['task_id']; echo $encodedId; ?>', 'decline')">Decline Task</a>
+                                <a class="btn btn-outline-success btn-sm fs-10" href="#" onclick="confirmAction('<?php $encodedId = $_GET['task_id']; echo $encodedId; ?>', 'accept')">
+                                    <i class="fas fa-check me-1"></i> Accept Task
+                                </a>
+                                <a class="btn btn-outline-danger btn-sm fs-10" href="#" onclick="confirmAction('<?php $encodedId = $_GET['task_id']; echo $encodedId; ?>', 'decline')">
+                                    <i class="fas fa-times me-1"></i> Decline Task
+                                </a>
                             <?php elseif ($taskStatus == 'Submitted' || $taskStatus == 'In Revision'): ?>
-                                <a class="btn btn-outline-primary btn-lg fs-9" href="#" onclick="confirmAction('<?php $encodedId = $_GET['task_id']; echo $encodedId; ?>', 'resubmit')">Resubmit Task</a>
+                                <a class="btn btn-outline-primary btn-lg fs-9" href="#" onclick="confirmAction('<?php $encodedId = $_GET['task_id']; echo $encodedId; ?>', 'resubmit')">
+                                    <i class="fas fa-sync-alt me-1"></i> Resubmit Task
+                                </a>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -215,7 +230,7 @@ if (isset($_SESSION['alert'])) {
                                         <?php if ($is_paid == 1):
                                             $paidOn = $rowTask['paid_on'];
                                             $paidDate = date("d M Y, g:i A", strtotime($paidOn));
-                                            ?> <span class="text-info ms-2 fs-10"><?php echo $paidDate; ?></span>
+                                            ?> <span class="text-success ms-2 fs-10"><?php echo $paidDate; ?></span>
                                         <?php endif; ?>
                                     <?php endif; ?>
                                     <?php $totalCost = $taskPages * $taskCPP;  ?>

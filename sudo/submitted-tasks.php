@@ -70,15 +70,12 @@ $msg = "";
                                                 </span>
                                             </h4>
                                         </div>
-                                        <div class="col-6 col-sm-auto ms-auto text-end ps-0">
-                                            <div class="d-none" id="table-simple-pagination-actions">
-                                                <div class="d-flex">
-                                                    <button type="button" class="btn btn-falcon-info btn-sm ms-2" onclick="submitForm('mark-tasks-completed')">Mark as Completed</button>
-                                                </div>
-                                            </div>
-                                            <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
-                                                <a class="btn btn-falcon-info btn-sm mx-2" href="create-task" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Task</span></a>
-                                            </div>
+
+                                        <div class="col-md-auto mt-4 mt-md-0">
+                                            <button id="completeTasksBtn" class="btn btn-sm btn-falcon-default me-2" type="button" onclick="submitForm('mark-tasks-completed')" style="display: none;">
+                                                <span class="fas fa-check-double" data-fa-transform="shrink-3 down-2"></span>
+                                                <span class="d-none d-sm-inline-block ms-1">Mark as Completed</span>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -91,7 +88,7 @@ $msg = "";
                                                     <input class="form-check-input" id="checkbox-select-all" type="checkbox" onclick="selectAllTasks(this)" data-bulk-select='{"body":"table-simple-pagination-body","actions":"table-simple-pagination-actions","replacedElement":"table-simple-pagination-replace-element"}' />
                                                 </div>
                                             </th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task Id</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task #</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Topic</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Status</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Account</th>
@@ -146,13 +143,13 @@ $msg = "";
                                         <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100">
                                             <td class="align-middle" style="width: 28px;">
                                                 <div class="form-check mb-0">
-                                                    <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
+                                                    <input class="form-check-input bulk-select-checkbox" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
                                                 </div>
                                             </td>
                                             <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["id"];?></td>
                                             <td>
                                                 <div class="d-flex align-items-center position-relative">
-                                                    <div class="flex-1 ms-3">
+                                                    <div class="flex-1">
                                                         <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
                                                         <p class="fw-semi-bold mb-0 text-500"><?php echo $row["pages"];?> Page(s) | CPP: <?php echo $row["cpp"];?></p>
                                                     </div>
@@ -160,7 +157,7 @@ $msg = "";
                                             </td>
                                             <td class="align-middle white-space-nowrap product">
                                                 <div class="d-flex align-items-center position-relative">
-                                                    <div class="flex-1 ms-3">
+                                                    <div class="flex-1">
                                                         <h6 class="mb-1 fw-semi-bold text-nowrap">
                                                             <?php echo $statusBadge;?>
                                                             <?php if ($is_confirmed == 1): ?><?php echo $confirmation;?><?php endif; ?>
@@ -293,6 +290,43 @@ $msg = "";
                 </div>
             </div>
         </div>
+
+
+    <script>
+        function submitForm(action) {
+            document.getElementById("tasksForm").action = action + ".php";
+            document.getElementById("tasksForm").submit();
+        }
+
+        function selectAllTasks(source) {
+            const checkboxes = document.querySelectorAll('.bulk-select-checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = source.checked);
+            updateArchiveButtonVisibility();
+        }
+
+        // Function to check if any checkbox is selected and update button visibility
+        function updateArchiveButtonVisibility() {
+            const checkboxes = document.querySelectorAll('.bulk-select-checkbox:checked');
+            const archiveButton = document.querySelector('.btn-falcon-default');
+
+            if (checkboxes.length > 0) {
+                archiveButton.style.display = 'block';
+            } else {
+                archiveButton.style.display = 'none';
+            }
+        }
+
+        // Attach event listeners to all checkboxes
+        document.addEventListener("DOMContentLoaded", function() {
+            const checkboxes = document.querySelectorAll('.bulk-select-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateArchiveButtonVisibility);
+            });
+
+            // Initial check to set correct button state
+            updateArchiveButtonVisibility();
+        });
+    </script>
 
 <?php
 include "footer.php";

@@ -137,45 +137,59 @@ include "footer.php";
                 var dueDate = new Date(info.event.start);
                 var options = { hour: '2-digit', minute: '2-digit', hour12: true };
                 var formattedDueDate = dueDate.toLocaleTimeString('en-US', options);
+                var formattedDate = dueDate.toLocaleDateString();
 
                 var taskDetails = `
-            <div class="col-lg">
-              <div class="row">
-                <div class="col-5 col-sm-4">
-                  <p class="fw-semi-bold mb-1">ID</p>
-                </div>
-                <div class="col">${info.event.id}</div>
-              </div>
-              <div class="row">
-                <div class="col-5 col-sm-4">
-                  <p class="fw-semi-bold mb-1">Account</p>
-                </div>
-                <div class="col">${info.event.extendedProps.account}</div>
-              </div>
-              <div class="row">
-                <div class="col-5 col-sm-4">
-                  <p class="fw-semi-bold mb-1">Topic</p>
-                </div>
-                <div class="col">${info.event.extendedProps.topic}</div>
-              </div>
-              <div class="row">
-                <div class="col-5 col-sm-4">
-                  <p class="fw-semi-bold mb-1">Status</p>
-                </div>
-                <div class="col">
-                  <p class="fst-italic mb-1">${badges[info.event.extendedProps.status]}</p>
-                </div>
-              </div>
-              <div class="row">
-                <div class="col-5 col-sm-4">
-                  <p class="fw-semi-bold mb-0">Due Date</p>
-                </div>
-                <div class="col">
-                  <p class="fst-italic mb-0">${info.event.start.toLocaleDateString()} ${formattedDueDate}</p>
-                </div>
-              </div>
-            </div>
-                `;
+                <div class="modal-body px-card pb-card pt-1 fs-9">
+                    <div class="d-flex mt-3">
+                        <span class="fa-stack ms-n1 me-3">
+                            <i class="fas fa-circle fa-stack-2x text-200"></i>
+                            <i class="fas fa-hashtag fa-stack-1x text-primary" data-fa-transform="undefined"></i>
+                        </span>
+                        <div class="flex-1">
+                            <p class="mb-0">${info.event.id}<br></p>
+                        </div>
+                    </div>
+                    <div class="d-flex mt-3">
+                        <span class="fa-stack ms-n1 me-3">
+                            <i class="fas fa-circle fa-stack-2x text-200"></i>
+                            <i class="far fa-user-circle fa-stack-1x text-primary" data-fa-transform="undefined"></i>
+                        </span>
+                        <div class="flex-1">
+                            <p class="mb-0">${info.event.extendedProps.account}<br></p>
+                        </div>
+                    </div>
+                    <div class="d-flex mt-3">
+                        <span class="fa-stack ms-n1 me-3">
+                            <i class="fas fa-circle fa-stack-2x text-200"></i>
+                            <i class="fab fa-elementor fa-stack-1x text-primary" data-fa-transform="undefined"></i>
+                        </span>
+                        <div class="flex-1">
+                            <p class="mb-0">${info.event.extendedProps.topic}<br></p>
+                        </div>
+                    </div>
+                    <div class="d-flex mt-3">
+                        <span class="fa-stack ms-n1 me-3">
+                            <i class="fas fa-circle fa-stack-2x text-200"></i>
+                            <i class="fas fa-dna fa-stack-1x text-primary" data-fa-transform="undefined"></i>
+                        </span>
+                        <div class="flex-1">
+                            <p class="mb-0">${badges[info.event.extendedProps.status]}</p>
+                        </div>
+                    </div>
+                    <div class="d-flex mt-3">
+                        <span class="fa-stack ms-n1 me-3">
+                            <i class="fas fa-circle fa-stack-2x text-200"></i>
+                            <i class="fas fa-calendar-check fa-stack-1x text-primary" data-fa-transform="undefined"></i>
+                        </span>
+                        <div class="flex-1">
+                            <p class="mb-1">Due
+                                ${formattedDate}, ${formattedDueDate}
+                            </p>
+                        </div>
+                    </div>
+                </div>`;
+
                 document.getElementById('taskDetails').innerHTML = taskDetails;
 
                 var viewTaskLink = document.getElementById('viewTaskLink');

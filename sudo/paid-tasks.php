@@ -28,12 +28,6 @@ $msg = "";
             </div>
         </div>
     </div>
-    <!--<div class="alert alert-success border-0 d-flex align-items-center" role="alert">
-        <div class="bg-success me-3 icon-item"><span class="fas fa-check-circle text-white fs-6"></span></div>
-        <p class="mb-0 flex-1">A simple success alert—check it out!</p>
-        <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>-->
-
     <?php
     if (isset($_SESSION['alert'])) {
         echo $_SESSION['alert'];
@@ -55,14 +49,7 @@ $msg = "";
                                         <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                                             <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
                                                 <a class="btn btn-falcon-info btn-sm mx-2" href="create-task" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Task</span></a>
-<!--                                                <button class="btn btn-falcon-default btn-sm mx-2" type="button"><span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Filter</span></button>-->
                                                 <button class="btn btn-falcon-primary btn-sm" onclick="exportPaid()" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
-                                                <!--<div class="dropdown font-sans-serif ms-2">
-                                                    <button class="btn btn-falcon-default text-600 btn-sm dropdown-toggle dropdown-caret-none" type="button" id="preview-dropdown" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-ellipsis-h fs-11"></span></button>
-                                                    <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="preview-dropdown"><a class="dropdown-item" href="#!">View</a><a class="dropdown-item" href="#!">Export</a>
-                                                        <div class="dropdown-divider"></div><a class="dropdown-item text-danger" href="#!">Remove</a>
-                                                    </div>
-                                                </div>-->
                                             </div>
                                         </div>
                                     </div>
@@ -76,9 +63,9 @@ $msg = "";
                                                     <input class="form-check-input" id="checkbox-select-all" type="checkbox" onclick="selectAllTasks(this)" data-bulk-select='{"body":"table-simple-pagination-body","actions":"table-simple-pagination-actions","replacedElement":"table-simple-pagination-replace-element"}' />
                                                 </div>
                                             </th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task Id</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task #</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Topic</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center">Status</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Status</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Account</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Subject</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">Amount</th>
@@ -137,16 +124,61 @@ $msg = "";
                                             <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["id"];?></td>
                                             <td>
                                                 <div class="d-flex align-items-center position-relative">
-                                                    <div class="flex-1 ms-3">
+                                                    <div class="flex-1">
                                                         <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
                                                         <p class="fw-semi-bold mb-0 text-500"><?php echo $row["pages"];?> Page(s) | CPP: <?php echo $row["cpp"];?></p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td class="align-middle white-space-nowrap product"><?php echo $statusBadge;?>
-                                            <?php if ($is_confirmed == 1): ?>
-                                                <?php echo $confirmation;?>
-                                            <?php endif; ?>
+                                            <td>
+                                                <div class="d-flex align-items-center position-relative">
+                                                    <div class="flex-1">
+                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><?php echo $statusBadge;?></h6>
+                                                        <p class="fw-semi-bold mb-0 text-500">
+                                                            <?php
+                                                            // Check if the function is already defined to prevent redeclaration
+                                                            if (!function_exists('time_elapsed_string')) {
+                                                                function time_elapsed_string($datetime, $full = false) {
+                                                                    $now = new DateTime;
+                                                                    $ago = new DateTime($datetime);
+                                                                    $diff = $now->diff($ago);
+                                                                    $weeks = floor($diff->d / 7);
+                                                                    $days = $diff->d % 7;  // Remainder days after accounting for weeks
+                                                                    $string = [
+                                                                        'y' => $diff->y,
+                                                                        'm' => $diff->m,
+                                                                        'w' => $weeks,
+                                                                        'd' => $days,
+                                                                        'h' => $diff->h,
+                                                                        'i' => $diff->i,
+                                                                        's' => $diff->s,
+                                                                    ];
+                                                                    $time_units = [
+                                                                        'y' => 'year',
+                                                                        'm' => 'month',
+                                                                        'w' => 'week',
+                                                                        'd' => 'day',
+                                                                        'h' => 'hour',
+                                                                        'i' => 'minute',
+                                                                        's' => 'second',
+                                                                    ];
+                                                                    $result = [];
+                                                                    foreach ($time_units as $key => $unit) {
+                                                                        if ($string[$key]) {
+                                                                            $result[] = $string[$key] . ' ' . $unit . ($string[$key] > 1 ? 's' : '');
+                                                                        }
+                                                                    }
+                                                                    if (!$full) {
+                                                                        $result = array_slice($result, 0, 1);
+                                                                    }
+                                                                    return $result ? implode(', ', $result) . ' ago' : 'just now';
+                                                                }
+                                                            }
+                                                            echo time_elapsed_string($row["completed_on"]);
+                                                            ?>
+                                                        </p>
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td class="align-middle white-space-nowrap text-900">
                                                 <h6 class="mb-1 fw-semi-bold text-nowrap"><?php echo $row["account"];?></h6>
@@ -155,7 +187,12 @@ $msg = "";
                                             <td class="align-middle white-space-nowrap text-900"><?php echo $row["subject"];?></td>
                                             <td class="align-middle text-end amount">
                                                 <h6 class="mb-0"><?php echo number_format($totalprice,2); ?></h6>
-                                                <p class="fs-11 mb-0"><?php echo $statusBadgePay;?></p>
+                                                <p class="fs-11 mb-0"><?php echo $statusBadgePay;?> |
+                                                <?php if ($is_paid == 1):
+                                                    $paidOn = $row['paid_on'];
+                                                    $paidDate = date("d M Y, g:i A", strtotime($paidOn));
+                                                    ?> <span class="text-success ms-2 fs-10"><?php echo $paidDate; ?></span>
+                                                <?php endif; ?></p>
                                             </td>
                                             <td class="align-middle white-space-nowrap text-end position-relative">
                                                 <div class="hover-actions bg-100">
@@ -167,39 +204,6 @@ $msg = "";
                                                 </div>
                                             </td>
                                         </tr>
-                                        <!--<tr class="btn-reveal-trigger">
-                                            <td class="align-middle" style="width: 28px;">
-                                                <div class="form-check mb-0">
-                                                    <input class="form-check-input" type="checkbox" id="simple-pagination-item-1" data-bulk-select-row="data-bulk-select-row" />
-                                                </div>
-                                            </td>
-                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><a href="../../app/e-commerce/customer-details.html">Homer</a></td>
-                                            <td class="align-middle white-space-nowrap email">sylvia@mail.ru</td>
-                                            <td class="align-middle white-space-nowrap product">Bose SoundSport Wireless Headphones</td>
-                                            <td class="align-middle text-center fs-9 white-space-nowrap payment"><span class="badge badge rounded-pill badge-subtle-success">Success<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span>
-                                            </td>
-                                            <td class="align-middle text-end amount">$634</td>
-                                            <td class="align-middle white-space-nowrap text-end">
-                                                <div class="dropstart font-sans-serif position-static d-inline-block">
-                                                    <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal float-end" type="button" id="dropdown-simple-pagination-table-item-1" data-bs-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false" data-bs-reference="parent"><span class="fas fa-ellipsis-h fs-10"></span></button>
-                                                    <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="dropdown-simple-pagination-table-item-1"><a class="dropdown-item" href="#!">View</a><a class="dropdown-item" href="#!">Edit</a><a class="dropdown-item" href="#!">Refund</a>
-                                                        <div class="dropdown-divider"></div><a class="dropdown-item text-warning" href="#!">Archive</a><a class="dropdown-item text-danger" href="#!">Delete</a>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td class="align-middle white-space-nowrap text-end">
-                                                <div class="dropstart font-sans-serif position-static d-inline-block">
-                                                    <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal float-end" type="button" id="dropdown-simple-pagination-table-item-0" data-bs-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false" data-bs-reference="parent"><span class="fas fa-ellipsis-h fs-10"></span></button>
-                                                    <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="dropdown-simple-pagination-table-item-0">
-                                                        <a class="dropdown-item text-info" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><span class="fas fa-eye" data-fa-transform="shrink-2"></span> View</a>
-                                                        <a class="dropdown-item text-success" target="_blank" href="edit-task?task_id=<?php echo $encodedId; ?>"><span class="bi bi-pen" data-fa-transform="shrink-2"></span> Edit</a>
-                                                        <a class="dropdown-item text-warning" target="_blank" href="duplicate-task?task_id=<?php echo $encodedId; ?>" ><span class="fas fa-copy" data-fa-transform="shrink-2"></span> Duplicate</a>
-                                                        <div class="dropdown-divider"></div>
-                                                        <a class="dropdown-item text-danger" href="all-tasks?del=<?php echo $encodedId; ?>" onclick="return confirm('Do you really want to cancel task?');"><span class="fas fa-trash" data-fa-transform="shrink-2"></span> Cancel</>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>-->
                                         <?php
                                                 $cnt=$cnt+1;
                                             }
