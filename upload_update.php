@@ -1,22 +1,39 @@
 <?php
 include "check-login.php";
+require_once 'spaces-helper.php';
 
-$targetDir = "taskfiles/"; // Ensure this directory exists and is writable
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'upload') {
+    if (isset($_FILES['file'])) {
+        $file = $_FILES['file'];
 
-$response = ['status' => 'error', 'message' => 'File upload failed.'];
+        // Check for upload errors
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(['status' => 'error', 'message' => 'Upload failed with error code: ' . $file['error']]);
+            exit;
+        }
 
-if (isset($_FILES['file']['name'])) {
-    $originalFileName = basename($_FILES['file']['name']);
-    $newFileName = preg_replace('/[^a-zA-Z0-9 ._-]/', '-', $originalFileName);
-    $targetFilePath = $targetDir . $newFileName;
+        // Create a temporary file path
+        $tempFilePath = $file['tmp_name'];
+        $originalFileName = $file['name'];
 
-    // Move the file to the server directory
-    if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFilePath)) {
-        $response = ['status' => 'success', 'filePath' => $newFileName];
+        // Upload to Digital Ocean Spaces in the taskfiles/submissions folder
+        $spacesHelper = new SpacesHelper();
+        $result = $spacesHelper->uploadFile($tempFilePath, $originalFileName, 'taskfiles/submissions');
+
+        if ($result['success']) {
+            echo json_encode([
+                'status' => 'success',
+                'filePath' => $result['key'],
+                'fileUrl' => $result['url'],
+                'fileName' => $originalFileName
+            ]);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => $result['message']]);
+        }
     } else {
-        $response['message'] = 'Sorry, there was an error uploading your file.';
+        echo json_encode(['status' => 'error', 'message' => 'No file uploaded']);
     }
+} else {
+    echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
 }
-
-echo json_encode($response);
 ?>

@@ -292,7 +292,7 @@
             }
 
             async function uploadFile(file) {
-                const url = 'upload'; // Ensure this path is correct
+                const url = 'upload'; // This now points to our new upload.php
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('action', 'upload');
@@ -342,10 +342,11 @@
                             const response = JSON.parse(xhr.responseText);
                             if (response.status === 'success') {
                                 const filePath = response.filePath;
+                                const fileUrl = response.fileUrl;
                                 li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload complete!`;
                                 li.style.color = 'green';
                                 li.appendChild(removeBtn);
-                                uploadedFilePaths.push({ fileName: file.name, filePath: filePath });
+                                uploadedFilePaths.push({ fileName: file.name, filePath: filePath, fileUrl: fileUrl });
                                 updateUploadedFilesInput();
                             } else {
                                 li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload failed: ${response.message}`;
@@ -364,7 +365,6 @@
                     li.style.color = 'red';
                 }
             }
-
 
             async function deleteFileFromServer(filePath) {
                 const url = 'delete_file'; // URL to the PHP file handling deletions

@@ -87,7 +87,7 @@ $confirmation = "<span class='badge $confirmationClass'>$confirmationText</span>
 
 ?>
 
-    <title>Task #<?php  echo $taskId;?> Resubmission | iTasker</title>
+    <title>Task #<?php  echo $taskId;?> Submission | iTasker</title>
 <?php include "navi.php";?>
 
     <div class="card shadow-none border mb-3">
@@ -269,29 +269,24 @@ if (isset($_SESSION['alert'])) {
                     <div class="card-body position-relative">
                         <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(assets/img/icons/spot-illustrations/corner-2.png);">
                         </div>
-                        <!--/.bg-holder-->
                         <?php
-                        // Display Task Files section
                         if (!empty($existingFiles)) {
-                            // Assuming $submittedFiles contains comma-separated file paths
                             $filePaths = explode(',', $existingFiles);
-                            foreach ($filePaths as $filePath) {
+                            $fileUrls = !empty($rowTask['file_urls']) ? explode(',', $rowTask['file_urls']) : array_fill(0, count($filePaths), '');
+
+                            foreach ($filePaths as $index => $filePath) {
                                 $fileName = basename($filePath); // Extracts the filename from the path
-                                $fileUrl = "taskfiles/" . $filePath; // Constructs the full URL to the file
-                                $formattedDate = date("d M Y, g:i A", strtotime($taskCreatedOn)); // Format 'submitted_on' date
-                                $taskfileSize = formatSizeUnits(filesize("taskfiles/" . $filePath)); // Get file size
-                                // Adjust the image path as necessary
-                                $thumbnailPath = "assets/img/icons/docs.png"; // Placeholder path for the thumbnail
+                                $fileUrl = isset($fileUrls[$index]) ? $fileUrls[$index] : ''; // Get the corresponding URL
+                                $formattedDate = date("d M Y, g:i A", strtotime($taskCreatedOn));
+                                $thumbnailPath = "assets/img/icons/docs.png";
                                 ?>
                                 <div class="d-flex mb-3 hover-actions-trigger align-items-center">
                                     <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
-                                    <div class="ms-3 flex-shrink-1 flex-grow-1">
+                                    <div class="ms-3 flex-shrink-1 flex-g$rowTask-1">
                                         <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                        <div class="fs-10"><span class="fw-semi-bold"><?php echo $taskfileSize; ?></span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
-                                        <!-- Add or adjust action buttons as necessary -->
+                                        <div class="fs-10"><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                         <div class="hover-actions end-0 top-50 translate-middle-y">
                                             <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
-                                            <!-- Edit button or other actions -->
                                         </div>
                                     </div>
                                 </div>
@@ -318,29 +313,71 @@ if (isset($_SESSION['alert'])) {
                     <div class="card-body position-relative">
                         <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(assets/img/icons/spot-illustrations/corner-7.png);">
                         </div>
-                        <!--/.bg-holder-->
                         <?php
-                        // Display Task Files section
                         if (!empty($submittedFiles)) {
-                            // Assuming $submittedFiles contains comma-separated file paths
                             $filePaths = explode(',', $submittedFiles);
-                            foreach ($filePaths as $filePath) {
+                            $fileUrls = !empty($rowTask['submitted_file_urls']) ? explode(',', $rowTask['submitted_file_urls']) : array_fill(0, count($filePaths), '');
+
+                            foreach ($filePaths as $index => $filePath) {
                                 $fileName = basename($filePath); // Extracts the filename from the path
-                                $fileUrl = "taskfiles/" . $filePath; // Constructs the full URL to the file
+                                $fileUrl = isset($fileUrls[$index]) ? $fileUrls[$index] : ''; // Get the corresponding URL
                                 $formattedDate = date("d M Y, g:i A", strtotime($submittedOn)); // Format 'submitted_on' date
-                                $fileSize = formatSizeUnits(filesize("taskfiles/" . $filePath)); // Get file size
-                                // Adjust the image path as necessary
                                 $thumbnailPath = "assets/img/icons/docs.png"; // Placeholder path for the thumbnail
+
+                                $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
+                                switch (strtolower($fileExtension)) {
+                                    case 'pdf':
+                                        $thumbnailPath = "assets/img/icons/pdf.png";
+                                        break;
+                                    case 'doc';
+                                    case 'docx':
+                                    case 'rtf':
+                                        $thumbnailPath = "assets/img/icons/word.png";
+                                        break;
+                                    case 'xls':
+                                    case 'xlsx':
+                                    case 'csv':
+                                        $thumbnailPath = "assets/img/icons/excel.png";
+                                        break;
+                                    case 'ppt':
+                                    case 'pptx':
+                                        $thumbnailPath = "assets/img/icons/powerpoint.png";
+                                        break;
+                                    case 'jpg':
+                                    case 'jpeg':
+                                    case 'png':
+                                    case 'gif':
+                                        $thumbnailPath = "assets/img/icons/image.png";
+                                        break;
+                                    case 'mp4':
+                                    case 'avi':
+                                    case 'mov':
+                                    case 'mkv':
+                                    case 'wmv':
+                                    case 'flv':
+                                    case 'mpeg':
+                                    case 'mpg':
+                                    case '3gp':
+                                    case 'webm':
+                                    case 'm4v':
+                                        $thumbnailPath = "assets/img/icons/video.png";
+                                        break;
+                                    case 'zip':
+                                    case 'rar':
+                                        $thumbnailPath = "assets/img/icons/zip.png";
+                                        break;
+                                    default:
+                                        $thumbnailPath = "assets/img/icons/docs.png";
+                                        break;
+                                }
                                 ?>
                                 <div class="d-flex mb-3 hover-actions-trigger align-items-center">
                                     <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
                                     <div class="ms-3 flex-shrink-1 flex-grow-1">
                                         <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                        <div class="fs-10"><span class="fw-semi-bold"><?php echo $fileSize; ?></span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
-                                        <!-- Add or adjust action buttons as necessary -->
+                                        <div class="fs-10"><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                         <div class="hover-actions end-0 top-50 translate-middle-y">
                                             <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
-                                            <!-- Edit button or other actions -->
                                         </div>
                                     </div>
                                 </div>
@@ -348,7 +385,7 @@ if (isset($_SESSION['alert'])) {
                                 <?php
                             }
                         } else {
-                            echo '<div>No files attached.</div>';
+                            echo '<div>No submitted files.</div>';
                         }
                         ?>
                     </div>
@@ -358,7 +395,7 @@ if (isset($_SESSION['alert'])) {
     </div>
     <div id="alertPlaceholder"></div>
     <form class="needs-validation" novalidate="novalidate" id="taskForm" method="post" action="submission_upload" enctype="multipart/form-data">
-        <div class="card mb-3" id="filesResubmission">
+        <div class="card mb-3" id="filesSubmission">
             <div class="card-header bg-body-tertiary">
                 <h6 class="mb-0">Submit file(s)</h6>
             </div>
@@ -382,7 +419,7 @@ if (isset($_SESSION['alert'])) {
                     </div>
                     <div class="col-auto">
                         <button class="btn btn-link text-secondary p-0 me-3 fw-medium" type="button" id="discardButton" role="button">Discard</button>
-                        <button class="btn btn-primary" name="save" type="submit" role="button" id="submitTaskButton">
+                        <button class="btn btn-primary d-none" name="save" type="submit" role="button" id="submitTaskButton">
                             <span id="buttonText">Submit Task</span>
                             <span id="loadingSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                         </button>
@@ -394,6 +431,7 @@ if (isset($_SESSION['alert'])) {
         <!-- Hidden fields for additional required data -->
         <input type="hidden" name="taskId" value="<?php  echo $taskId;?>">
         <input type="hidden" name="topic" value="<?php  echo $taskTopic;?>">
+        <input type="hidden" name="due" value="<?php  echo $taskDueDate;?>">
         <input type="hidden" name="account" value="<?php  echo $taskAccount;?>">
         <input type="hidden" name="email" value="<?php  echo $taskWriterEmail;?>">
         <input type="hidden" name="sendEmail" value="1">
@@ -413,8 +451,10 @@ if (isset($_SESSION['alert'])) {
             const discardButton = document.getElementById('discardButton');
             const fileContainer = document.querySelector('.card-body');
             const statusText = document.getElementById('statusText');
+            const fileNamesList = document.getElementById('fileNamesList');
+            const uploadedFilesInput = document.getElementById('uploadedFiles');
 
-            let uploadedFilePaths = []; // Store paths of successfully uploaded files
+            let uploadedFilePaths = []; // Store paths and URLs of successfully uploaded files
 
             // Initially hide submit button
             submitTaskButton.classList.add('d-none');
@@ -441,12 +481,18 @@ if (isset($_SESSION['alert'])) {
             });
 
             discardButton.addEventListener('click', function() {
-                form.reset();
-                uploadedFilePaths = [];
-                document.getElementById('fileNamesList').innerHTML = '';
-                updateUploadedFilesInput();
-                toggleSubmitButton();
-                window.scrollTo(0, 0);
+                if (confirm('Are you sure you want to discard your changes?')) {
+                    form.reset();
+                    // Delete all uploaded files from the server
+                    uploadedFilePaths.forEach(file => {
+                        deleteFileFromServer(file.filePath);
+                    });
+                    uploadedFilePaths = [];
+                    document.getElementById('fileNamesList').innerHTML = '';
+                    updateUploadedFilesInput();
+                    toggleSubmitButton();
+                    window.scrollTo(0, 0);
+                }
             });
 
             // File container click handler for delete buttons
@@ -507,6 +553,7 @@ if (isset($_SESSION['alert'])) {
             }
 
             async function uploadFile(file) {
+                // Changed to upload_submission for Digital Ocean Spaces uploads
                 const url = 'upload_update';
                 const formData = new FormData();
                 formData.append('file', file);
@@ -559,7 +606,14 @@ if (isset($_SESSION['alert'])) {
                                 li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload complete!`;
                                 li.style.color = 'green';
                                 li.appendChild(removeBtn);
-                                uploadedFilePaths.push({ fileName: file.name, filePath: response.filePath });
+
+                                // Store both filePath and fileUrl
+                                uploadedFilePaths.push({
+                                    fileName: file.name,
+                                    filePath: response.filePath,
+                                    fileUrl: response.fileUrl
+                                });
+
                                 updateUploadedFilesInput();
                                 toggleSubmitButton();
                             } else {
@@ -602,16 +656,16 @@ if (isset($_SESSION['alert'])) {
 
             function deleteFile(filePath, elementToRemove) {
                 if (confirm('Are you sure you want to delete this file?')) {
-                    fetch('delete-file', {
+                    fetch('delete_file', {  // Updated to use the new delete_file endpoint
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
                         },
-                        body: 'filePath=' + encodeURIComponent(filePath)
+                        body: 'filePath=' + encodeURIComponent(filePath) + '&action=deleteFile'
                     })
                         .then(response => response.json())
                         .then(data => {
-                            if (data.success) {
+                            if (data.status === 'success') {
                                 elementToRemove.remove();
                             } else {
                                 alert('Failed to delete the file. Please try again.');
@@ -658,14 +712,29 @@ if (isset($_SESSION['alert'])) {
                             }, 1500);
                         } else {
                             displayBootstrapAlert(`Failed to update the form: ${data.message}`, 'danger');
+                            // Reset button state
+                            buttonText.classList.remove('d-none');
+                            loadingSpinner.classList.add('d-none');
+                            submitTaskButton.disabled = false;
+                            statusText.textContent = "You're almost done!";
                         }
                     } else {
                         console.error("Failed to submit form. HTTP status: " + response.status);
                         displayBootstrapAlert('Failed to update form. Please try again.', 'warning');
+                        // Reset button state
+                        buttonText.classList.remove('d-none');
+                        loadingSpinner.classList.add('d-none');
+                        submitTaskButton.disabled = false;
+                        statusText.textContent = "You're almost done!";
                     }
                 } catch (error) {
                     console.error("Error during form submission:", error);
                     displayBootstrapAlert(`An error occurred while submitting the form: ${error.message}`, 'danger');
+                    // Reset button state
+                    buttonText.classList.remove('d-none');
+                    loadingSpinner.classList.add('d-none');
+                    submitTaskButton.disabled = false;
+                    statusText.textContent = "You're almost done!";
                 }
             }
 
@@ -683,6 +752,31 @@ if (isset($_SESSION['alert'])) {
                 alertContainer.innerHTML = alertHTML;
                 alertContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
+        });
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const timeElement = document.getElementById('time-remaining');
+            let remainingSeconds = <?= $remainingSeconds ?>;
+
+            function updateTime() {
+                if (remainingSeconds <= 0) {
+                    timeElement.style.color = 'red';
+                    timeElement.innerHTML = "Past Due";
+                    return;
+                }
+
+                const hours = Math.floor(remainingSeconds / 3600);
+                const minutes = Math.floor((remainingSeconds % 3600) / 60);
+                const seconds = remainingSeconds % 60;
+
+                timeElement.innerHTML = `Time Remaining: ${hours} hrs ${minutes} min ${seconds} sec`;
+                timeElement.style.color = 'green';
+
+                remainingSeconds--;
+            }
+            setInterval(updateTime, 1000);
+            updateTime();
         });
     </script>
 

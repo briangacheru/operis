@@ -1,29 +1,38 @@
 <?php
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['filePath'])) {
-    $filePath = $_POST['filePath'];
+include "check-login.php";
+require_once 'spaces-helper.php';
 
-    $baseDir = realpath('taskfiles');
-    $realFilePath = realpath($baseDir . DIRECTORY_SEPARATOR . $filePath);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'deleteFile') {
+    if (isset($_POST['filePath'])) {
+        $filePath = $_POST['filePath'];
 
-    // Security check: Prevent directory traversal
-    if (strpos($realFilePath, $baseDir) !== 0 || !$realFilePath) {
-        echo json_encode(['success' => false, 'message' => 'Invalid file path.']);
-        exit;
-    }
+        // Create SpacesHelper instance
+        $spacesHelper = new SpacesHelper();
 
-    // Check if the file exists
-    if (!file_exists($realFilePath)) {
-        echo json_encode(['success' => false, 'message' => 'File does not exist.']);
-        exit;
-    }
+        // Delete the file from Digital Ocean Spaces
+        $result = $spacesHelper->deleteFile($filePath);
 
-    // Attempt to delete the file
-    if (unlink($realFilePath)) {
-        echo json_encode(['success' => true, 'message' => 'File successfully deleted.']);
+        if ($result['success']) {
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'File successfully deleted from Digital Ocean Spaces.'
+            ]);
+        } else {
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Failed to delete file: ' . $result['message']
+            ]);
+        }
     } else {
-        echo json_encode(['success' => false, 'message' => 'File could not be deleted. Check file permissions.']);
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'No file path provided.'
+        ]);
     }
 } else {
-    echo json_encode(['success' => false, 'message' => 'Invalid request.']);
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Invalid request.'
+    ]);
 }
 ?>

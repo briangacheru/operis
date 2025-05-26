@@ -764,9 +764,12 @@
 
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="profile">Profile &amp; account</a>
+                                <a class="dropdown-item" href="settings">Settings</a>
 
                                 <div class="dropdown-divider"></div>
-                                <a class="dropdown-item" href="settings">Settings</a>
+                                <a class="dropdown-item" href="changelog">Version</a>
+
+                                <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="logout?logout=1">Logout</a>
                             </div>
                         </div>

@@ -3,8 +3,13 @@
         <div class="col-12 col-sm-auto text-center">
             <p class="mb-0 text-600">Developed with <i class="fa fa-heart" style="color: red;"></i> by Brian  <span class="d-none d-sm-inline-block">| </span><br class="d-sm-none" />2024 - <?php echo date("Y");?> &copy; </p>
         </div>
+        <?php
+        if (!function_exists('getVersionNumber')) {
+            require_once __DIR__ . '/../version-functions.php';
+        }
+        ?>
         <div class="col-12 col-sm-auto text-center">
-            <p class="mb-0 text-600">v2.0.0</p>
+            <p class="mb-0 text-600"><?php echo getVersionNumber(); ?> | <?php echo getVersionLastUpdated(); ?></p>
         </div>
     </div>
 </footer>

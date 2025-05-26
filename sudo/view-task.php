@@ -357,29 +357,71 @@ if (isset($_SESSION['alert'])) {
                             <div class="card-body position-relative">
                                 <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/icons/spot-illustrations/corner-2.png);">
                                 </div>
-                                <!--/.bg-holder-->
                                 <?php
-                                // Display Task Files section
                                 if (!empty($existingFiles)) {
-                                    // Assuming $submittedFiles contains comma-separated file paths
                                     $filePaths = explode(',', $existingFiles);
-                                    foreach ($filePaths as $filePath) {
+                                    $fileUrls = !empty($rowTask['file_urls']) ? explode(',', $rowTask['file_urls']) : array_fill(0, count($filePaths), '');
+
+                                    foreach ($filePaths as $index => $filePath) {
                                         $fileName = basename($filePath); // Extracts the filename from the path
-                                        $fileUrl = "../taskfiles/" . $filePath; // Constructs the full URL to the file
-                                        $formattedDate = date("d M Y, g:i A", strtotime($taskCreatedOn)); // Format 'submitted_on' date
-                                        $fileSize = formatSizeUnits(filesize("../taskfiles/" . $filePath)); // Get file size
-                                        // Adjust the image path as necessary
-                                        $thumbnailPath = "../assets/img/icons/docs.png"; // Placeholder path for the thumbnail
+                                        $fileUrl = isset($fileUrls[$index]) ? $fileUrls[$index] : ''; // Get the corresponding URL
+                                        $formattedDate = date("d M Y, g:i A", strtotime($taskCreatedOn));
+                                        $thumbnailPath = "../assets/img/icons/docs.png";
+
+                                        $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
+                                        switch (strtolower($fileExtension)) {
+                                            case 'pdf':
+                                                $thumbnailPath = "../assets/img/icons/pdf.png";
+                                                break;
+                                            case 'doc':
+                                            case 'docx':
+                                            case 'rtf':
+                                                $thumbnailPath = "../assets/img/icons/word.png";
+                                                break;
+                                            case 'xls':
+                                            case 'xlsx':
+                                            case 'csv':
+                                                $thumbnailPath = "../assets/img/icons/excel.png";
+                                                break;
+                                            case 'ppt':
+                                            case 'pptx':
+                                                $thumbnailPath = "../assets/img/icons/powerpoint.png";
+                                                break;
+                                            case 'mp4':
+                                            case 'avi':
+                                            case 'mov':
+                                            case 'mkv':
+                                            case 'wmv':
+                                            case 'flv':
+                                            case 'mpeg':
+                                            case 'mpg':
+                                            case '3gp':
+                                            case 'webm':
+                                            case 'm4v':
+                                                $thumbnailPath = "../assets/img/icons/mp4.png";
+                                                break;
+                                            case 'jpg':
+                                            case 'jpeg':
+                                            case 'png':
+                                            case 'gif':
+                                                $thumbnailPath = "../assets/img/icons/image.png";
+                                                break;
+                                            case 'zip':
+                                            case 'rar':
+                                                $thumbnailPath = "../assets/img/icons/zip.png";
+                                                break;
+                                            default:
+                                                $thumbnailPath = "../assets/img/icons/docs.png";
+                                                break;
+                                        }
                                         ?>
                                         <div class="d-flex mb-3 hover-actions-trigger align-items-center">
                                             <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
-                                            <div class="ms-3 flex-shrink-1 flex-g$rowTask-1">
+                                            <div class="ms-3 flex-shrink-1 flex-grow-1">
                                                 <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                                <div class="fs-10"><span class="fw-semi-bold"><?php echo $fileSize; ?></span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
-                                                <!-- Add or adjust action buttons as necessary -->
+                                                <div class="fs-10"><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                                 <div class="hover-actions end-0 top-50 translate-middle-y">
-                                                    <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="../assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
-                                                    <!-- Edit button or other actions -->
+                                                    <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
                                                 </div>
                                             </div>
                                         </div>
@@ -407,30 +449,71 @@ if (isset($_SESSION['alert'])) {
                             <div class="card-body position-relative">
                                 <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/icons/spot-illustrations/corner-7.png);">
                                 </div>
-                                <!--/.bg-holder-->
                                 <?php
-
-                                // Display Task Files section
                                 if (!empty($submittedFiles)) {
-                                    // Assuming $submittedFiles contains comma-separated file paths
                                     $filePaths = explode(',', $submittedFiles);
-                                    foreach ($filePaths as $filePath) {
+                                    $fileUrls = !empty($rowTask['submitted_file_urls']) ? explode(',', $rowTask['submitted_file_urls']) : array_fill(0, count($filePaths), '');
+
+                                    foreach ($filePaths as $index => $filePath) {
                                         $fileName = basename($filePath); // Extracts the filename from the path
-                                        $fileUrl = "../taskfiles/" . $filePath; // Constructs the full URL to the file
+                                        $fileUrl = isset($fileUrls[$index]) ? $fileUrls[$index] : ''; // Get the corresponding URL
                                         $formattedDate = date("d M Y, g:i A", strtotime($submittedOn)); // Format 'submitted_on' date
-                                        $submittedfileSize = formatSizeUnits(filesize("../taskfiles/" . $filePath)); // Get file size
-                                        // Adjust the image path as necessary
                                         $thumbnailPath = "../assets/img/icons/docs.png"; // Placeholder path for the thumbnail
+
+                                        $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
+                                        switch (strtolower($fileExtension)) {
+                                            case 'pdf':
+                                                $thumbnailPath = "../assets/img/icons/pdf.png";
+                                                break;
+                                            case 'doc':
+                                            case 'docx':
+                                            case 'rtf':
+                                                $thumbnailPath = "../assets/img/icons/word.png";
+                                                break;
+                                            case 'xls':
+                                            case 'xlsx':
+                                            case 'csv':
+                                                $thumbnailPath = "../assets/img/icons/excel.png";
+                                                break;
+                                            case 'ppt':
+                                            case 'pptx':
+                                                $thumbnailPath = "../assets/img/icons/powerpoint.png";
+                                                break;
+                                            case 'mp4':
+                                            case 'avi':
+                                            case 'mov':
+                                            case 'mkv':
+                                            case 'wmv':
+                                            case 'flv':
+                                            case 'mpeg':
+                                            case 'mpg':
+                                            case '3gp':
+                                            case 'webm':
+                                            case 'm4v':
+                                                $thumbnailPath = "../assets/img/icons/mp4.png";
+                                                break;
+                                            case 'jpg':
+                                            case 'jpeg':
+                                            case 'png':
+                                            case 'gif':
+                                                $thumbnailPath = "../assets/img/icons/image.png";
+                                                break;
+                                            case 'zip':
+                                            case 'rar':
+                                                $thumbnailPath = "../assets/img/icons/zip.png";
+                                                break;
+                                            default:
+                                                $thumbnailPath = "../assets/img/icons/docs.png";
+                                                break;
+                                        }
                                         ?>
                                         <div class="d-flex mb-3 hover-actions-trigger align-items-center">
                                             <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
-                                            <div class="ms-3 flex-shrink-1 flex-g$rowTask-1">
+                                            <div class="ms-3 flex-shrink-1 flex-grow-1">
                                                 <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                                <div class="fs-10"><span class="fw-semi-bold"><?php echo $submittedfileSize; ?></span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
-                                                <!-- Add or adjust action buttons as necessary -->
+                                                <div class="fs-10"><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                                 <div class="hover-actions end-0 top-50 translate-middle-y">
-                                                    <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="../assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
-                                                    <!-- Edit button or other actions -->
+                                                    <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
                                                 </div>
                                             </div>
                                         </div>
@@ -438,7 +521,7 @@ if (isset($_SESSION['alert'])) {
                                         <?php
                                     }
                                 } else {
-                                    echo '<div>No files attached.</div>';
+                                    echo '<div>No submitted files.</div>';
                                 }
                                 ?>
                             </div>
