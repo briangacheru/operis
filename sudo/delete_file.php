@@ -1,19 +1,23 @@
 <?php
 include "check-login.php";
+require_once 'spaces-helper.php';
 
-if ($_POST['action'] == 'deleteFile' && !empty($_POST['filePath'])) {
-    $filePath = $_POST['filePath'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'deleteFile') {
+    if (isset($_POST['filePath'])) {
+        $filePath = $_POST['filePath'];
 
-    if (file_exists($filePath)) {
-        if (unlink($filePath)) {
-            echo json_encode(['status' => 'success', 'message' => 'File deleted successfully.']);
+        // Delete from Digital Ocean Spaces
+        $spacesHelper = new SpacesHelper();
+        $result = $spacesHelper->deleteFile($filePath);
+
+        if ($result['success']) {
+            echo json_encode(['status' => 'success']);
         } else {
-            echo json_encode(['status' => 'error', 'message' => 'Failed to delete the file.']);
+            echo json_encode(['status' => 'error', 'message' => $result['message']]);
         }
     } else {
-        echo json_encode(['status' => 'error', 'message' => 'File not found.']);
+        echo json_encode(['status' => 'error', 'message' => 'No file path provided']);
     }
 } else {
-    echo json_encode(['status' => 'error', 'message' => 'Invalid request.']);
+    echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
 }
-?>

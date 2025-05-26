@@ -1,5 +1,6 @@
 <?php
 include "check-login.php";
+require_once 'spaces-helper.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -64,6 +65,7 @@ if ($_POST['action'] == 'submitForm') {
     }
 
     $existingFiles = !empty($existingFilesString) ? explode(',', $existingFilesString) : [];
+    $existingFileUrls = !empty($existingFileUrlsString) ? explode(',', $existingFileUrlsString) : [];
 
     $uploadedFiles = json_decode($_POST['uploadedFiles'], true);
     if (!is_array($uploadedFiles)) {
@@ -72,18 +74,24 @@ if ($_POST['action'] == 'submitForm') {
         exit;
     }
 
-    $uploadedFileNames = array_map(function($file) {
-        return basename($file['filePath']);
+    $uploadedFilePaths = array_map(function($file) {
+        return $file['filePath'];
+    }, $uploadedFiles);
+    $uploadedFileUrls = array_map(function($file) {
+        return $file['fileUrl'];
     }, $uploadedFiles);
 
-    $allFiles = array_merge($existingFiles, $uploadedFileNames);
-    $filesString = implode(',', $allFiles);
+    $allFilePaths = array_merge($existingFiles, $uploadedFilePaths);
+    $allFileUrls = array_merge($existingFileUrls, $uploadedFileUrls);
+
+    $filesPathString = implode(',', $allFilePaths);
+    $filesUrlString = implode(',', $allFileUrls);
     $submittedOn = date('Y-m-d H:i:s');
 
-    $sql = "UPDATE tbltasks SET submitted_files=?, submitted_on=?, status='Submitted' WHERE id=?";
+    $sql = "UPDATE tbltasks SET submitted_files=?, submitted_file_urls=?, submitted_on=?, status='Submitted' WHERE id=?";
 
     if ($stmt = mysqli_prepare($con, $sql)) {
-        mysqli_stmt_bind_param($stmt, 'ssi', $filesString, $submittedOn, $taskId);
+        mysqli_stmt_bind_param($stmt, 'sssi', $filesPathString, $filesUrlString, $submittedOn, $taskId);
 
         if (mysqli_stmt_execute($stmt)) {
             if (mysqli_stmt_affected_rows($stmt) > 0) {
@@ -107,8 +115,15 @@ if ($_POST['action'] == 'submitForm') {
                         $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin');
 
                         foreach ($uploadedFiles as $file) {
-                            $filePath = "taskfiles/" . basename($file['filePath']);
-                            $mail->addAttachment($filePath);
+                            // Download the file from Digital Ocean to a temporary location
+                            $tempFile = tempnam(sys_get_temp_dir(), 'email_attachment_');
+                            $fileContent = file_get_contents($file['fileUrl']);
+
+                            if ($fileContent !== false) {
+                                file_put_contents($tempFile, $fileContent);
+                                $fileName = basename($file['filePath']);
+                                $mail->addAttachment($tempFile, $fileName);
+                            }
                         }
 
                         // Content
@@ -227,6 +242,11 @@ if ($_POST['action'] == 'submitForm') {
                     For any questions, contact bryo4419@gmail.com";
 
                         $mail->send();
+                        // Clean up temporary files
+                        foreach ($uploadedFiles as $file) {
+                            @unlink($tempFile);
+                        }
+
                         $emailStatus = 'Email sent successfully.';
                     } catch (Exception $e) {
                         $emailStatus = "Email could not be sent. Mailer Error: {$mail->ErrorInfo}";

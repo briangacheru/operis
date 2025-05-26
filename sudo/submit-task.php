@@ -1,5 +1,6 @@
 <?php
 include "check-login.php";
+require_once 'spaces-helper.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -9,22 +10,17 @@ require 'phpmailer/src/Exception.php';
 require 'phpmailer/src/PHPMailer.php';
 require 'phpmailer/src/SMTP.php';
 
-// Assuming $con is a valid mysqli connection object established in "check-login.php" or elsewhere
 if ($_POST['action'] == 'submitForm') {
-    // List of required fields
     $requiredFields = ['topic', 'subject', 'account', 'description', 'writer', 'email', 'due_date', 'cpp', 'pages'];
 
-    // Check each required field
     foreach ($requiredFields as $field) {
         if (empty($_POST[$field])) {
             header('Content-Type: application/json');
-            // Respond with an error message indicating which field is missing
             echo json_encode(['status' => 'error', 'message' => "The field {$field} is required."]);
-            exit; // Stop the script execution
+            exit;
         }
     }
 
-    // Since FILTER_SANITIZE_STRING is deprecated, consider alternative sanitization
     $topic = mysqli_real_escape_string($con, $_POST['topic']);
     $subject = mysqli_real_escape_string($con, $_POST['subject']);
     $account = mysqli_real_escape_string($con, $_POST['account']);
@@ -35,40 +31,30 @@ if ($_POST['action'] == 'submitForm') {
     $cpp = mysqli_real_escape_string($con, $_POST['cpp']);
     $pages = mysqli_real_escape_string($con, $_POST['pages']);
     $is_confirmed = mysqli_real_escape_string($con, $_POST['is_confirmed']);
-    $writerInfo = explode('|', mysqli_real_escape_string($con, $_POST['writer'])); // Split the writer string into an array
-    $writerName = $writerInfo[0]; // Get the writer name
-
+    $writerInfo = explode('|', mysqli_real_escape_string($con, $_POST['writer']));
+    $writerName = $writerInfo[0];
     // Check if uploadedFiles is set and is a valid JSON array
     $filesString = '';
+    $fileUrls = '';
     if (isset($_POST['uploadedFiles'])) {
         $uploadedFiles = json_decode($_POST['uploadedFiles'], true);
         if (is_array($uploadedFiles)) {
-            // Rename the actual files on the server
-            foreach ($uploadedFiles as $index => $fileData) {
-                $filePath = $fileData['filePath'];
-                $newFilePath = dirname($filePath) . '/' . basename($filePath); // Keep the original file name
-                if (!rename($filePath, $newFilePath)) {
-                    header('Content-Type: application/json');
-                    echo json_encode(['status' => 'error', 'message' => 'Failed to rename file: ' . $filePath]);
-                    exit; // Stop the script execution if a file rename fails
-                }
-                $uploadedFiles[$index]['filePath'] = $newFilePath;
-            }
+            // Store both the file keys and URLs
+            $fileKeys = array_column($uploadedFiles, 'filePath');
+            $fileUrls = array_column($uploadedFiles, 'fileUrl');
 
-            // Convert the array of sanitized file names to a string to store in your database
-            $filesString = implode(',', array_column($uploadedFiles, 'filePath'));
+            $filesString = implode(',', $fileKeys);
+            $fileUrlsString = implode(',', $fileUrls);
         }
     }
 
     // Determine the status based on is_confirmed value
     $status = ($is_confirmed == 0) ? 'In Progress' : 'Draft';
     // Prepare SQL statement with placeholders
-    $sql = "INSERT INTO tbltasks (topic, subject, account, description, writer, email, due_date, cpp, pages, is_confirmed, status, task_files) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
+    $sql = "INSERT INTO tbltasks (topic, subject, account, description, writer, email, due_date, cpp, pages, is_confirmed, status, task_files, file_urls) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     if ($stmt = mysqli_prepare($con, $sql)) {
         // Bind parameters and execute statement
-        mysqli_stmt_bind_param($stmt, 'ssssssssssss', $topic, $subject, $account, $description, $writerName, $writerEmail, $due_date, $cpp, $pages, $is_confirmed, $status, $filesString);
-
+        mysqli_stmt_bind_param($stmt, 'sssssssiiisss', $topic, $subject, $account, $description, $writerName, $writerEmail, $due_date, $cpp, $pages, $is_confirmed, $status, $filesString, $fileUrlsString);
         if (mysqli_stmt_execute($stmt)) {
             // Check if insert was successful
             if (mysqli_stmt_affected_rows($stmt) > 0) {
@@ -96,10 +82,14 @@ if ($_POST['action'] == 'submitForm') {
                     $mail->addAddress($writerEmail); // Writer's email
                     $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin'); // Example admin email, replace with actual admin email
 
-                    // Attachments
+                    // Attachments - now using the URLs from Digital Ocean
                     if (isset($uploadedFiles) && is_array($uploadedFiles)) {
+                        $spacesHelper = new SpacesHelper();
                         foreach ($uploadedFiles as $fileData) {
-                            $mail->addAttachment($fileData['filePath']); // Add attachments
+                            // Add attachments using the file URL
+                            $tempFile = tempnam(sys_get_temp_dir(), 'email_attachment_');
+                            file_put_contents($tempFile, file_get_contents($fileData['fileUrl']));
+                            $mail->addAttachment($tempFile, $fileData['fileName']);
                         }
                     }
 
@@ -222,6 +212,13 @@ if ($_POST['action'] == 'submitForm') {
 
                     $mail->send();
                     $emailSent = true;
+
+                    // Clean up temp files
+                    if (isset($uploadedFiles) && is_array($uploadedFiles)) {
+                        foreach ($uploadedFiles as $fileData) {
+                            @unlink($tempFile);
+                        }
+                    }
                 } catch (Exception $e) {
                     // Handle email sending error
                     error_log("Message could not be sent. Mailer Error: {$mail->ErrorInfo}");

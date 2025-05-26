@@ -7,6 +7,7 @@ error_reporting(E_ALL);
 date_default_timezone_set('Africa/Nairobi');
 
 include('dbcon.php');
+include('functions.php');
 
 function check_login() {
     if (!isset($_SESSION['sessionWriter']) || strlen($_SESSION['sessionWriter']) == 0) {
