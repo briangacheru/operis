@@ -59,7 +59,7 @@ if (isset($_GET['del'])) {
                     $mail->SMTPSecure = 'ssl';
                     $mail->Port       = 465;
 
-                    $mail->setFrom('support@monkbrian.com', 'Bryo Gacheru');
+                    $mail->setFrom('support@monkbrian.com', 'itasker');
                     $mail->addReplyTo('bryo4419@gmail.com', 'Bryo Gacheru');
                     $mail->addAddress($writerEmail);
                     $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin');

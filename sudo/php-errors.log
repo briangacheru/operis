@@ -1,0 +1,7 @@
+[01-Jun-2025 01:12:57 Africa/Nairobi] HTTP Error: 0
+[01-Jun-2025 01:13:02 Africa/Nairobi] HTTP Error: 0
+[01-Jun-2025 01:19:08 Africa/Nairobi] PHP Fatal error:  Uncaught Error: Call to undefined function getFileSize() in C:\xampp\htdocs\falcon.sub\sudo\view-task.php:369
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\falcon.sub\sudo\view-task.php on line 369
+[01-Jun-2025 01:51:11 Africa/Nairobi] PHP Warning:  Undefined array key "fileSize" in C:\xampp\htdocs\falcon.sub\sudo\update-task.php on line 105

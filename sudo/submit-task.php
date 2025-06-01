@@ -33,28 +33,36 @@ if ($_POST['action'] == 'submitForm') {
     $is_confirmed = mysqli_real_escape_string($con, $_POST['is_confirmed']);
     $writerInfo = explode('|', mysqli_real_escape_string($con, $_POST['writer']));
     $writerName = $writerInfo[0];
+
     // Check if uploadedFiles is set and is a valid JSON array
     $filesString = '';
     $fileUrls = '';
+    $fileSizes = ''; // Add this line
+
     if (isset($_POST['uploadedFiles'])) {
         $uploadedFiles = json_decode($_POST['uploadedFiles'], true);
         if (is_array($uploadedFiles)) {
-            // Store both the file keys and URLs
+            // Store the file keys, URLs, and sizes
             $fileKeys = array_column($uploadedFiles, 'filePath');
             $fileUrls = array_column($uploadedFiles, 'fileUrl');
+            $fileSizesArray = array_column($uploadedFiles, 'fileSize'); // Add this line
 
             $filesString = implode(',', $fileKeys);
             $fileUrlsString = implode(',', $fileUrls);
+            $fileSizes = implode(',', $fileSizesArray); // Add this line
         }
     }
 
     // Determine the status based on is_confirmed value
     $status = ($is_confirmed == 0) ? 'In Progress' : 'Draft';
-    // Prepare SQL statement with placeholders
-    $sql = "INSERT INTO tbltasks (topic, subject, account, description, writer, email, due_date, cpp, pages, is_confirmed, status, task_files, file_urls) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+    // Prepare SQL statement with placeholders - ADD file_sizes column
+    $sql = "INSERT INTO tbltasks (topic, subject, account, description, writer, email, due_date, cpp, pages, is_confirmed, status, task_files, file_urls, file_sizes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
     if ($stmt = mysqli_prepare($con, $sql)) {
-        // Bind parameters and execute statement
-        mysqli_stmt_bind_param($stmt, 'sssssssiiisss', $topic, $subject, $account, $description, $writerName, $writerEmail, $due_date, $cpp, $pages, $is_confirmed, $status, $filesString, $fileUrlsString);
+        // Bind parameters and execute statement - ADD 's' for file_sizes
+        mysqli_stmt_bind_param($stmt, 'sssssssiiissss', $topic, $subject, $account, $description, $writerName, $writerEmail, $due_date, $cpp, $pages, $is_confirmed, $status, $filesString, $fileUrlsString, $fileSizes);
+
         if (mysqli_stmt_execute($stmt)) {
             // Check if insert was successful
             if (mysqli_stmt_affected_rows($stmt) > 0) {
@@ -77,7 +85,7 @@ if ($_POST['action'] == 'submitForm') {
                     $mail->Port       = 465;
 
                     // Recipients
-                    $mail->setFrom('support@monkbrian.com', 'Bryo Gacheru');
+                    $mail->setFrom('support@monkbrian.com', 'itasker');
                     $mail->addReplyTo('bryo4419@gmail.com', 'Bryo Gacheru');
                     $mail->addAddress($writerEmail); // Writer's email
                     $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin'); // Example admin email, replace with actual admin email
@@ -88,7 +96,15 @@ if ($_POST['action'] == 'submitForm') {
                         foreach ($uploadedFiles as $fileData) {
                             // Add attachments using the file URL
                             $tempFile = tempnam(sys_get_temp_dir(), 'email_attachment_');
-                            file_put_contents($tempFile, file_get_contents($fileData['fileUrl']));
+                            $ch = curl_init($fileData['fileUrl']);
+                            $fp = fopen($tempFile, 'wb');
+                            curl_setopt($ch, CURLOPT_FILE, $fp);
+                            curl_setopt($ch, CURLOPT_HEADER, 0);
+                            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Only if needed for self-signed certs
+                            curl_exec($ch);
+                            curl_close($ch);
+                            fclose($fp);
                             $mail->addAttachment($tempFile, $fileData['fileName']);
                         }
                     }

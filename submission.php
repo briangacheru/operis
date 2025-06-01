@@ -501,7 +501,7 @@ if (isset($_SESSION['alert'])) {
             const fileNamesList = document.getElementById('fileNamesList');
             const uploadedFilesInput = document.getElementById('uploadedFiles');
 
-            let uploadedFilePaths = []; // Store paths and URLs of successfully uploaded files
+            let uploadedFilePaths = []; // Store paths, URLs, and sizes of successfully uploaded files
 
             // Initially hide submit button
             submitTaskButton.classList.add('d-none');
@@ -560,7 +560,9 @@ if (isset($_SESSION['alert'])) {
                     return;
                 }
 
-                buttonText.classList.add('d-none');
+                // Update button text and show spinner
+                buttonText.textContent = 'Submitting task...';
+                buttonText.classList.remove('d-none');
                 loadingSpinner.classList.remove('d-none');
                 submitTaskButton.disabled = true;
                 statusText.textContent = 'Submitting...';
@@ -654,11 +656,12 @@ if (isset($_SESSION['alert'])) {
                                 li.style.color = 'green';
                                 li.appendChild(removeBtn);
 
-                                // Store both filePath and fileUrl
+                                // Store filePath, fileUrl, and fileSize
                                 uploadedFilePaths.push({
                                     fileName: file.name,
                                     filePath: response.filePath,
-                                    fileUrl: response.fileUrl
+                                    fileUrl: response.fileUrl,
+                                    fileSize: response.fileSize || file.size // Use server response or fallback to client size
                                 });
 
                                 updateUploadedFilesInput();
@@ -728,15 +731,57 @@ if (isset($_SESSION['alert'])) {
             function showFireworks() {
                 const container = document.getElementById('fireworks-container');
                 container.style.display = 'block';
-                // Fireworks burst
-                confetti({
-                    particleCount: 150,
-                    spread: 70,
-                    origin: { y: 0.6 }
-                });
-                setTimeout(() => {
-                    container.style.display = 'none';
-                }, 500);
+
+                // Multiple fireworks bursts across the entire page
+                const duration = 3000;
+                const animationEnd = Date.now() + duration;
+                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+                function randomInRange(min, max) {
+                    return Math.random() * (max - min) + min;
+                }
+
+                const interval = setInterval(function() {
+                    const timeLeft = animationEnd - Date.now();
+
+                    if (timeLeft <= 0) {
+                        clearInterval(interval);
+                        container.style.display = 'none';
+                        return;
+                    }
+
+                    const particleCount = 50 * (timeLeft / duration);
+
+                    // Left side fireworks
+                    confetti(Object.assign({}, defaults, {
+                        particleCount,
+                        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+                    }));
+
+                    // Right side fireworks
+                    confetti(Object.assign({}, defaults, {
+                        particleCount,
+                        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+                    }));
+
+                    // Center fireworks
+                    confetti(Object.assign({}, defaults, {
+                        particleCount: particleCount * 1.5,
+                        origin: { x: randomInRange(0.4, 0.6), y: Math.random() - 0.2 }
+                    }));
+
+                    // Top corners
+                    confetti(Object.assign({}, defaults, {
+                        particleCount: particleCount * 0.7,
+                        origin: { x: randomInRange(0.1, 0.2), y: randomInRange(0, 0.3) }
+                    }));
+
+                    confetti(Object.assign({}, defaults, {
+                        particleCount: particleCount * 0.7,
+                        origin: { x: randomInRange(0.8, 0.9), y: randomInRange(0, 0.3) }
+                    }));
+
+                }, 250);
             }
 
             async function handleSubmit() {
@@ -749,27 +794,45 @@ if (isset($_SESSION['alert'])) {
                         body: formData,
                     });
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.status === 'success') {
-                            showFireworks();
-                            setTimeout(() => {
-                                const message = encodeURIComponent(data.message);
-                                window.location.href = `view-task?task_id=${data.task_id}&message=${message}`;
-                            }, 1500);
-                        } else {
-                            displayBootstrapAlert(`Failed to update the form: ${data.message}`, 'danger');
+                    // Get the raw text response
+                    const responseText = await response.text();
+                    console.log("Raw server response:", responseText);
+
+                    const jsonMatch = responseText.match(/(\{.*\})$/s);
+
+                    if (jsonMatch && jsonMatch[1]) {
+                        try {
+                            const data = JSON.parse(jsonMatch[1]);
+
+                            if (data.status === 'success') {
+                                showFireworks();
+                                setTimeout(() => {
+                                    const message = encodeURIComponent(data.message);
+                                    window.location.href = `view-task?task_id=${data.task_id}&message=${message}`;
+                                }, 3500); // Increased timeout to match fireworks duration
+                            } else {
+                                displayBootstrapAlert(`Failed to update the form: ${data.message}`, 'danger');
+                                // Reset button state
+                                buttonText.textContent = 'Submit Task';
+                                loadingSpinner.classList.add('d-none');
+                                submitTaskButton.disabled = false;
+                                statusText.textContent = "You're almost done!";
+                            }
+                        } catch (parseError) {
+                            console.error("JSON parse error:", parseError);
+                            console.error("Attempted to parse:", jsonMatch[1]);
+                            displayBootstrapAlert(`Error parsing server response. See console for details.`, 'danger');
                             // Reset button state
-                            buttonText.classList.remove('d-none');
+                            buttonText.textContent = 'Submit Task';
                             loadingSpinner.classList.add('d-none');
                             submitTaskButton.disabled = false;
                             statusText.textContent = "You're almost done!";
                         }
                     } else {
-                        console.error("Failed to submit form. HTTP status: " + response.status);
-                        displayBootstrapAlert('Failed to update form. Please try again.', 'warning');
+                        console.error("Could not find valid JSON in response");
+                        displayBootstrapAlert(`Server returned an invalid response. See console for details.`, 'danger');
                         // Reset button state
-                        buttonText.classList.remove('d-none');
+                        buttonText.textContent = 'Submit Task';
                         loadingSpinner.classList.add('d-none');
                         submitTaskButton.disabled = false;
                         statusText.textContent = "You're almost done!";
@@ -778,7 +841,7 @@ if (isset($_SESSION['alert'])) {
                     console.error("Error during form submission:", error);
                     displayBootstrapAlert(`An error occurred while submitting the form: ${error.message}`, 'danger');
                     // Reset button state
-                    buttonText.classList.remove('d-none');
+                    buttonText.textContent = 'Submit Task';
                     loadingSpinner.classList.add('d-none');
                     submitTaskButton.disabled = false;
                     statusText.textContent = "You're almost done!";
@@ -787,6 +850,29 @@ if (isset($_SESSION['alert'])) {
 
             function updateUploadedFilesInput() {
                 document.getElementById('uploadedFiles').value = JSON.stringify(uploadedFilePaths);
+            }
+
+            async function handleServerResponse(response) {
+                // Get the raw text response
+                const responseText = await response.text();
+                console.log("Raw server response:", responseText);
+
+                // Extract the JSON part from the response
+                // This regex looks for a JSON object at the end of the string
+                const jsonMatch = responseText.match(/(\{.*\})$/s);
+
+                if (jsonMatch && jsonMatch[1]) {
+                    try {
+                        return JSON.parse(jsonMatch[1]);
+                    } catch (parseError) {
+                        console.error("JSON parse error:", parseError);
+                        console.error("Attempted to parse:", jsonMatch[1]);
+                        throw new Error("Failed to parse server response");
+                    }
+                } else {
+                    console.error("Could not find valid JSON in response");
+                    throw new Error("Invalid server response format");
+                }
             }
 
             function displayBootstrapAlert(message, type) {

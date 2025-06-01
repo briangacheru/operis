@@ -2,7 +2,7 @@
     <title>Version Update |iTasker</title>
 <?php include "navi.php";?><div id="alert-container"></div>
 <?php
-include 'functions.php';
+
 
 $message = '';
 

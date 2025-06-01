@@ -75,6 +75,34 @@ class SpacesHelper {
         }
     }
 
+    // In your SpacesHelper class
+    public function downloadFile($spacesPath, $localPath) {
+        $url = $this->getFileUrl($spacesPath);
+
+        $ch = curl_init($url);
+        $fp = fopen($localPath, 'wb');
+
+        if ($fp === false) {
+            throw new Exception("Failed to open local file for writing: $localPath");
+        }
+
+        curl_setopt($ch, CURLOPT_FILE, $fp);
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Only if needed
+
+        $success = curl_exec($ch);
+
+        if ($success === false) {
+            throw new Exception("cURL error: " . curl_error($ch));
+        }
+
+        curl_close($ch);
+        fclose($fp);
+
+        return true;
+    }
+
     public function getFileUrl($objectKey) {
         // If CDN is enabled, use the CDN URL
         if (isset($this->config['cdn_endpoint'])) {

@@ -150,7 +150,7 @@
                                             </td>
                                             <td class="align-middle white-space-nowrap email">
                                                 <h6 class="mb-1 fw-semi-bold text-nowrap"><?php echo $timeDiff;?></h6>
-                                                <p class="fw-semi-bold mb-0 text-500"><?php echo date('M j, gA', strtotime($row["due_date"]));?></p>
+                                                <p class="fw-semi-bold mb-0 text-500"><?php echo date('M j, g:ia', strtotime($row["due_date"]));?></p>
                                             </td>
                                             <td class="align-middle white-space-nowrap product"><?php echo $statusBadge;?>
                                             <?php if ($is_confirmed == 1): ?>
