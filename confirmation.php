@@ -22,7 +22,7 @@ function sendEmail($writer, $pages, $cpp, $due_date, $writerEmail, $taskId, $act
         $mail->Port       = 465;
 
         // Recipients
-        $mail->setFrom('support@monkbrian.com', 'Bryo Gacheru');
+        $mail->setFrom('support@monkbrian.com', 'itasker');
         $mail->addReplyTo('bryo4419@gmail.com', 'Bryo Gacheru');
         $mail->addAddress($writerEmail);
         $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin');

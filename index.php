@@ -578,17 +578,13 @@ if ($rowWriter->is_verified == 1) {
     </div>
 </div>
     <?php
-
 } else {
-    echo '
-<div class="row-cols-lg-12">
-    <div class="alert alert-info alert-dismissible fade show" role="alert">
-        <h4 class="alert-heading">Notification</h4>
-        <p>Your account needs to be verified first</p>
-            <hr>
-            <p class="mb-0">Update your <a href="profile">Profile</a> in the mean time.</p>
-    </div>
-</div>';}}}?>
+    header("Location: verification");
+    exit();
+}
+}
+}
+?>
 
 <?php
 include "footer.php";

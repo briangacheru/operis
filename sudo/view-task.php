@@ -361,13 +361,16 @@ if (isset($_SESSION['alert'])) {
                                 if (!empty($existingFiles)) {
                                     $filePaths = explode(',', $existingFiles);
                                     $fileUrls = !empty($rowTask['file_urls']) ? explode(',', $rowTask['file_urls']) : array_fill(0, count($filePaths), '');
+                                    $fileSizes = !empty($rowTask['file_sizes']) ? explode(',', $rowTask['file_sizes']) : [];
 
                                     foreach ($filePaths as $index => $filePath) {
                                         $fileName = basename($filePath); // Extracts the filename from the path
                                         $fileUrl = isset($fileUrls[$index]) ? $fileUrls[$index] : ''; // Get the corresponding URL
+                                        $fileSize = isset($fileSizes[$index]) ? $fileSizes[$index] : null;
+                                        $formattedSize = formatFileSize($fileSize);
+
                                         $formattedDate = date("d M Y, g:i A", strtotime($taskCreatedOn));
                                         $thumbnailPath = "../assets/img/icons/docs.png";
-
                                         $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
                                         switch (strtolower($fileExtension)) {
                                             case 'pdf':
@@ -419,9 +422,9 @@ if (isset($_SESSION['alert'])) {
                                             <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
                                             <div class="ms-3 flex-shrink-1 flex-grow-1">
                                                 <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                                <div class="fs-10"><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
+                                                <div class="fs-10"><span class="fw-medium text-600 file-size"><?php echo $formattedSize; ?></span> <span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                                 <div class="hover-actions end-0 top-50 translate-middle-y">
-                                                    <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
+                                                    <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="../assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
                                                 </div>
                                             </div>
                                         </div>
@@ -429,7 +432,7 @@ if (isset($_SESSION['alert'])) {
                                         <?php
                                     }
                                 } else {
-                                    echo '<div>No files attached.</div>';
+                                    echo '<div>No task files attached.</div>';
                                 }
                                 ?>
                             </div>
@@ -453,12 +456,25 @@ if (isset($_SESSION['alert'])) {
                                 if (!empty($submittedFiles)) {
                                     $filePaths = explode(',', $submittedFiles);
                                     $fileUrls = !empty($rowTask['submitted_file_urls']) ? explode(',', $rowTask['submitted_file_urls']) : array_fill(0, count($filePaths), '');
+                                    $fileSizes = !empty($rowTask['submitted_file_sizes']) ? explode(',', $rowTask['submitted_file_sizes']) : array_fill(0, count($filePaths), '');
 
                                     foreach ($filePaths as $index => $filePath) {
                                         $fileName = basename($filePath); // Extracts the filename from the path
                                         $fileUrl = isset($fileUrls[$index]) ? $fileUrls[$index] : ''; // Get the corresponding URL
+                                        $fileSize = isset($fileSizes[$index]) ? $fileSizes[$index] : '0';
                                         $formattedDate = date("d M Y, g:i A", strtotime($submittedOn)); // Format 'submitted_on' date
                                         $thumbnailPath = "../assets/img/icons/docs.png"; // Placeholder path for the thumbnail
+
+                                        if (!function_exists('formatFileSize')) {
+                                            function formatFileSize($bytes) {
+                                                if ($bytes == 0 || $bytes == '0') return 'Unknown size';
+                                                $bytes = (int)$bytes;
+                                                $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+                                                $power = $bytes > 0 ? floor(log($bytes, 1024)) : 0;
+                                                return round($bytes / pow(1024, $power), 2) . ' ' . $units[$power];
+                                            }
+                                        }
+                                        $formattedFileSize = formatFileSize($fileSize);
 
                                         $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
                                         switch (strtolower($fileExtension)) {
@@ -507,13 +523,16 @@ if (isset($_SESSION['alert'])) {
                                                 break;
                                         }
                                         ?>
-                                        <div class="d-flex mb-3 hover-actions-trigger align-items-center">
+                                        <div class="d-flex mb-3 hover-actions-trigger align-items-center" data-file-url="<?php echo $fileUrl; ?>">
                                             <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
                                             <div class="ms-3 flex-shrink-1 flex-grow-1">
                                                 <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                                <div class="fs-10"><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
+                                                <div class="fs-10">
+                                                    <span class="fw-medium text-600"><?php echo $formattedFileSize; ?></span>
+                                                    <span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span>
+                                                </div>
                                                 <div class="hover-actions end-0 top-50 translate-middle-y">
-                                                    <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
+                                                    <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="../assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
                                                 </div>
                                             </div>
                                         </div>
@@ -627,6 +646,7 @@ if (isset($_SESSION['alert'])) {
             updateTime();
         });
     </script>
+
 <?php
 include "footer.php";
 ?>

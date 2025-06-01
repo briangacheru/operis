@@ -124,26 +124,56 @@
                                             const quill = new Quill('#description', {
                                                 theme: 'snow',
                                                 modules: {
-                                                    toolbar: [
-                                                        ['bold', 'italic', 'underline', 'strike'],
-                                                        ['blockquote', 'code-block'],
-                                                        [{ 'header': 1 }, { 'header': 2 }],
-                                                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                                                        [{ 'script': 'sub'}, { 'script': 'super' }],
-                                                        [{ 'indent': '-1'}, { 'indent': '+1' }],
-                                                        [{ 'direction': 'rtl' }],
-                                                        [{ 'size': ['small', false, 'large', 'huge'] }],
-                                                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-                                                        [{ 'color': [] }, { 'background': [] }],
-                                                        [{ 'font': [] }],
-                                                        [{ 'align': [] }],
-                                                        ['clean'],
-                                                        ['link', 'image', 'video']
-                                                    ]
+                                                    toolbar: {
+                                                        container: [
+                                                            ['bold', 'italic', 'underline', 'strike'],
+                                                            ['blockquote', 'code-block'],
+                                                            [{ 'header': 1 }, { 'header': 2 }],
+                                                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                                            [{ 'script': 'sub'}, { 'script': 'super' }],
+                                                            [{ 'indent': '-1'}, { 'indent': '+1' }],
+                                                            [{ 'direction': 'rtl' }],
+                                                            [{ 'size': ['small', false, 'large', 'huge'] }],
+                                                            [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                                                            [{ 'color': [] }, { 'background': [] }],
+                                                            [{ 'font': [] }],
+                                                            [{ 'align': [] }],
+                                                            ['clean'],
+                                                            ['link', 'image', 'video']
+                                                        ],
+                                                        handlers: {
+                                                            link: function(value) {
+                                                                if (value) {
+                                                                    let href = prompt('Enter URL');
+                                                                    if (href) {
+                                                                        // Remove all quotes, whitespace, and accidental slashes
+                                                                        let cleanUrl = href.trim()
+                                                                            .replace(/^["']+|["']+$/g, '') // Remove leading/trailing quotes
+                                                                            .replace(/^\/+|\/+$/g, '');    // Remove leading/trailing slashes
+                                                                        this.quill.format('link', cleanUrl);
+                                                                    }
+                                                                } else {
+                                                                    this.quill.format('link', false);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                             });
+
                                             document.getElementById('taskForm').addEventListener('submit', function(e) {
-                                                document.getElementById('description-input').value = quill.root.innerHTML;
+                                                // Clean the content before saving
+                                                let content = quill.root.innerHTML;
+                                                content = content.replace(/href="([^"]+)"/g, (match, url) => {
+                                                    let cleanUrl = url.trim();
+                                                    try { cleanUrl = decodeURIComponent(cleanUrl); } catch(e) {}
+                                                    cleanUrl = cleanUrl
+                                                        .replace(/^["']+|["']+$/g, '') // Remove quotes
+                                                        .replace(/^\/+|\/+$/g, '')    // Remove slashes
+                                                        .replace(/\\+|"+/g, '');      // Remove backslashes and extra quotes
+                                                    return `href="${cleanUrl}"`;
+                                                });
+                                                document.getElementById('description-input').value = content;
                                             });
                                         </script>
                                         <div class="invalid-feedback">This field is required</div>
@@ -175,9 +205,12 @@
                                     </div>
                                     <div class="col-auto">
                                         <button class="btn btn-link text-secondary p-0 me-3 fw-medium" type="button" id="discardButton" role="button">Discard</button>
-                                        <button class="btn btn-primary" name="save" type="submit" role="button" id="createTaskButton">
+                                        <button type="submit" id="createTaskButton" class="btn btn-primary" name="createTask" role="button">
                                             <span id="buttonText">Create Task</span>
-                                            <span id="loadingSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                            <span id="loadingSpinner" class="d-none">
+                                                Creating Task...
+                                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                            </span>
                                         </button>
                                     </div>
                                 </div>
@@ -242,6 +275,47 @@
             const buttonText = document.getElementById('buttonText');
             const loadingSpinner = document.getElementById('loadingSpinner');
             let uploadedFilePaths = []; // To store paths of successfully uploaded files
+
+            // Fireworks function
+            function triggerFireworks() {
+                // Create multiple bursts of fireworks
+                const duration = 3000; // 3 seconds
+                const animationEnd = Date.now() + duration;
+                const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+                function randomInRange(min, max) {
+                    return Math.random() * (max - min) + min;
+                }
+
+                const interval = setInterval(function() {
+                    const timeLeft = animationEnd - Date.now();
+
+                    if (timeLeft <= 0) {
+                        return clearInterval(interval);
+                    }
+
+                    const particleCount = 50 * (timeLeft / duration);
+
+                    // Create fireworks from different positions
+                    confetti(Object.assign({}, defaults, {
+                        particleCount,
+                        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+                    }));
+                    confetti(Object.assign({}, defaults, {
+                        particleCount,
+                        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+                    }));
+                }, 250);
+
+                // Additional burst in the center
+                setTimeout(() => {
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+                }, 500);
+            }
 
             // Prevent default drag behaviors
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -343,10 +417,11 @@
                             if (response.status === 'success') {
                                 const filePath = response.filePath;
                                 const fileUrl = response.fileUrl;
+                                const fileSize = response.fileSize;
                                 li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload complete!`;
                                 li.style.color = 'green';
                                 li.appendChild(removeBtn);
-                                uploadedFilePaths.push({ fileName: file.name, filePath: filePath, fileUrl: fileUrl });
+                                uploadedFilePaths.push({ fileName: file.name, filePath: filePath, fileUrl: fileUrl, fileSize: fileSize });
                                 updateUploadedFilesInput();
                             } else {
                                 li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload failed: ${response.message}`;
@@ -412,7 +487,7 @@
 
             async function handleSubmit() {
                 const formData = new FormData(form);
-                formData.append('action', 'submitForm'); // Append the action field here
+                formData.append('action', 'submitForm');
 
                 try {
                     const response = await fetch('submit-task', {
@@ -420,23 +495,48 @@
                         body: formData,
                     });
 
-                    if (response.ok) {
-                        const data = await response.json(); // Assuming the response from your PHP script is JSON
-                        if (data.status === 'success') {
-                            const message = encodeURIComponent(data.message);
-                            const emailSentMessage = data.emailSent ? 'Email sent successfully.' : 'Email sending failed.';
-                            const fullMessage = `${data.message} ${emailSentMessage}`;
-                            window.location.href = `view-task?task_id=${data.task_id}&message=${encodeURIComponent(fullMessage)}`;
-                        } else if (data.status === 'error') {
-                            displayBootstrapAlert(`Failed to submit the form: ${data.message}`, 'danger');
+                    // Get the raw text response
+                    const responseText = await response.text();
+                    console.log("Raw server response:", responseText);
+
+                    // Extract the JSON part from the response
+                    // This regex looks for a JSON object at the end of the string
+                    const jsonMatch = responseText.match(/(\{.*\})$/s);
+
+                    if (jsonMatch && jsonMatch[1]) {
+                        try {
+                            const data = JSON.parse(jsonMatch[1]);
+
+                            if (data.status === 'success') {
+                                // TRIGGER FIREWORKS ON SUCCESS!
+                                triggerFireworks();
+
+                                const message = encodeURIComponent(data.message);
+                                const emailSentMessage = data.emailSent ? 'Email sent successfully.' : 'Email sending failed.';
+                                const fullMessage = `${data.message} ${emailSentMessage}`;
+
+                                // Show success message with fireworks
+                                displayBootstrapAlert('🎉 Task created successfully! 🎉', 'success');
+
+                                // Delay the redirect to let users enjoy the fireworks
+                                setTimeout(() => {
+                                    window.location.href = `view-task?task_id=${data.task_id}&message=${encodeURIComponent(fullMessage)}`;
+                                }, 4500);
+
+                            } else if (data.status === 'error') {
+                                displayBootstrapAlert(`Failed to submit the form: ${data.message}`, 'danger');
+                                resetButton();
+                            }
+                        } catch (parseError) {
+                            console.error("JSON parse error:", parseError);
+                            displayBootstrapAlert(`Error parsing server response. See console for details.`, 'danger');
                             resetButton();
                         }
                     } else {
-                        console.error("Failed to submit form. HTTP status: " + response.status);
-                        displayBootstrapAlert('Failed to submit form. Please try again.', 'warning');
+                        console.error("Could not find valid JSON in response");
+                        displayBootstrapAlert(`Server returned an invalid response. See console for details.`, 'danger');
                         resetButton();
                     }
-
                 } catch (error) {
                     console.error("Error during form submission:", error);
                     displayBootstrapAlert(`An error occurred while submitting the form: ${error.message}`, 'danger');

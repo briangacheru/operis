@@ -243,9 +243,6 @@ function getVersionData() {
     return $versionData;
 }
 
-// Include the shared version functions
-require_once __DIR__ . '/../version-functions.php';
-
 // If this file is called directly, update the version
 if (basename($_SERVER['SCRIPT_FILENAME']) == basename(__FILE__)) {
     $type = isset($_GET['type']) ? $_GET['type'] : 'patch';
@@ -254,4 +251,19 @@ if (basename($_SERVER['SCRIPT_FILENAME']) == basename(__FILE__)) {
     $versionString = "v{$versionData['major']}.{$versionData['minor']}.{$versionData['patch']}";
     echo "Version updated to $versionString";
 }
+
+function formatFileSize($bytes) {
+    if ($bytes === null || $bytes === '') return 'Unknown size';
+
+    $bytes = (int)$bytes;
+    $units = ['B', 'KB', 'MB', 'GB'];
+    $bytes = max($bytes, 0);
+    $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+    $pow = min($pow, count($units) - 1);
+
+    $bytes /= pow(1024, $pow);
+
+    return round($bytes, 2) . ' ' . $units[$pow];
+}
+
 ?>

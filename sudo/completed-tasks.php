@@ -254,6 +254,7 @@ $msg = "";
             // Initial check to set correct button state
             updateArchiveButtonVisibility();
         });
+
     </script>
 
 

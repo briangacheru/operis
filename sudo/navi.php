@@ -33,6 +33,7 @@
 <script src="../vendors/datatables.net-bs5/dataTables.bootstrap5.min.css"></script>
 <script src="../vendors/select2/select2.min.css"></script>
 <script src="../vendors/tinymce/tinymce.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <script src="../vendors/select2-bootstrap-5-theme/select2-bootstrap-5-theme.min.css"></script>
 <link href="../vendors/flatpickr/flatpickr.min.css" rel="stylesheet" />
 <link href="../vendors/dropzone/dropzone.css" rel="stylesheet" />

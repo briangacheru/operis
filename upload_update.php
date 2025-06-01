@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // Create a temporary file path
         $tempFilePath = $file['tmp_name'];
         $originalFileName = $file['name'];
+        $fileSize = $file['size'];
 
         // Upload to Digital Ocean Spaces in the taskfiles/submissions folder
         $spacesHelper = new SpacesHelper();
@@ -25,7 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 'status' => 'success',
                 'filePath' => $result['key'],
                 'fileUrl' => $result['url'],
-                'fileName' => $originalFileName
+                'fileName' => $originalFileName,
+                'fileSize' => $fileSize
             ]);
         } else {
             echo json_encode(['status' => 'error', 'message' => $result['message']]);

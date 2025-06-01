@@ -9,6 +9,33 @@ require 'phpmailer/src/Exception.php';
 require 'phpmailer/src/PHPMailer.php';
 require 'phpmailer/src/SMTP.php';
 
+// Function to download a file using cURL
+function downloadFile($url, $localPath) {
+    $ch = curl_init($url);
+    $fp = fopen($localPath, 'wb');
+
+    if ($fp === false) {
+        error_log("Failed to open local file for writing: $localPath");
+        return false;
+    }
+
+    curl_setopt($ch, CURLOPT_FILE, $fp);
+    curl_setopt($ch, CURLOPT_HEADER, 0);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Only if needed
+
+    $success = curl_exec($ch);
+
+    if ($success === false) {
+        error_log("cURL error: " . curl_error($ch));
+    }
+
+    curl_close($ch);
+    fclose($fp);
+
+    return $success;
+}
+
 if ($_POST['action'] == 'submitForm') {
     // Ensure taskfiles has at least one file
     if (empty($_POST['uploadedFiles']) || $_POST['uploadedFiles'] === '[]') {
@@ -50,12 +77,12 @@ if ($_POST['action'] == 'submitForm') {
         exit;
     }
 
-    // Fetch existing files from the database
-    $query = "SELECT submitted_files FROM tbltasks WHERE id = ?";
+    // Fetch existing files and sizes from the database
+    $query = "SELECT submitted_files, submitted_file_sizes FROM tbltasks WHERE id = ?";
     if ($stmt = mysqli_prepare($con, $query)) {
         mysqli_stmt_bind_param($stmt, 'i', $taskId);
         mysqli_stmt_execute($stmt);
-        mysqli_stmt_bind_result($stmt, $existingFilesString);
+        mysqli_stmt_bind_result($stmt, $existingFilesString, $existingFileSizesString);
         mysqli_stmt_fetch($stmt);
         mysqli_stmt_close($stmt);
     } else {
@@ -66,6 +93,7 @@ if ($_POST['action'] == 'submitForm') {
 
     $existingFiles = !empty($existingFilesString) ? explode(',', $existingFilesString) : [];
     $existingFileUrls = !empty($existingFileUrlsString) ? explode(',', $existingFileUrlsString) : [];
+    $existingFileSizes = !empty($existingFileSizesString) ? explode(',', $existingFileSizesString) : [];
 
     $uploadedFiles = json_decode($_POST['uploadedFiles'], true);
     if (!is_array($uploadedFiles)) {
@@ -80,18 +108,23 @@ if ($_POST['action'] == 'submitForm') {
     $uploadedFileUrls = array_map(function($file) {
         return $file['fileUrl'];
     }, $uploadedFiles);
+    $uploadedFileSizes = array_map(function($file) {
+        return isset($file['fileSize']) ? $file['fileSize'] : '0';
+    }, $uploadedFiles);
 
     $allFilePaths = array_merge($existingFiles, $uploadedFilePaths);
     $allFileUrls = array_merge($existingFileUrls, $uploadedFileUrls);
+    $allFileSizes = array_merge($existingFileSizes, $uploadedFileSizes);
 
     $filesPathString = implode(',', $allFilePaths);
     $filesUrlString = implode(',', $allFileUrls);
+    $filesSizeString = implode(',', $allFileSizes);
     $submittedOn = date('Y-m-d H:i:s');
 
-    $sql = "UPDATE tbltasks SET submitted_files=?, submitted_file_urls=?, submitted_on=?, status='Submitted' WHERE id=?";
+    $sql = "UPDATE tbltasks SET submitted_files=?, submitted_file_urls=?, submitted_file_sizes=?, submitted_on=?, status='Submitted' WHERE id=?";
 
     if ($stmt = mysqli_prepare($con, $sql)) {
-        mysqli_stmt_bind_param($stmt, 'sssi', $filesPathString, $filesUrlString, $submittedOn, $taskId);
+        mysqli_stmt_bind_param($stmt, 'ssssi', $filesPathString, $filesUrlString, $filesSizeString, $submittedOn, $taskId);
 
         if (mysqli_stmt_execute($stmt)) {
             if (mysqli_stmt_affected_rows($stmt) > 0) {
@@ -109,7 +142,7 @@ if ($_POST['action'] == 'submitForm') {
                         $mail->SMTPSecure = 'ssl';
                         $mail->Port       = 465;
 
-                        $mail->setFrom('support@monkbrian.com', 'Bryo Gacheru');
+                        $mail->setFrom('support@monkbrian.com', 'itasker');
                         $mail->addReplyTo('bryo4419@gmail.com', 'Bryo Gacheru');
                         $mail->addAddress($writerEmail);
                         $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin');
@@ -117,12 +150,12 @@ if ($_POST['action'] == 'submitForm') {
                         foreach ($uploadedFiles as $file) {
                             // Download the file from Digital Ocean to a temporary location
                             $tempFile = tempnam(sys_get_temp_dir(), 'email_attachment_');
-                            $fileContent = file_get_contents($file['fileUrl']);
 
-                            if ($fileContent !== false) {
-                                file_put_contents($tempFile, $fileContent);
+                            if (downloadFile($file['fileUrl'], $tempFile)) {
                                 $fileName = basename($file['filePath']);
                                 $mail->addAttachment($tempFile, $fileName);
+                            } else {
+                                error_log("Failed to download file for email attachment: " . $file['fileUrl']);
                             }
                         }
 

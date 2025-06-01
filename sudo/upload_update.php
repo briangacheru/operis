@@ -1,22 +1,93 @@
 <?php
 include "check-login.php";
+require 'vendor/autoload.php';
 
-$targetDir = "../taskfiles/"; // Ensure this directory exists and is writable
+use Aws\S3\S3Client;
+use Aws\Exception\AwsException;
 
-$response = ['status' => 'error', 'message' => 'File upload failed.'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'upload') {
+    if (isset($_FILES['file'])) {
+        $file = $_FILES['file'];
 
-if (isset($_FILES['file']['name'])) {
-    $originalFileName = basename($_FILES['file']['name']);
-    $newFileName = preg_replace('/[^a-zA-Z0-9 ._-]/', '-', $originalFileName);
-    $targetFilePath = $targetDir . $newFileName;
+        // Check for upload errors
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            $errorMessages = [
+                UPLOAD_ERR_INI_SIZE => 'The uploaded file exceeds the upload_max_filesize directive in php.ini',
+                UPLOAD_ERR_FORM_SIZE => 'The uploaded file exceeds the MAX_FILE_SIZE directive in the HTML form',
+                UPLOAD_ERR_PARTIAL => 'The uploaded file was only partially uploaded',
+                UPLOAD_ERR_NO_FILE => 'No file was uploaded',
+                UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder',
+                UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+                UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload'
+            ];
 
-    // Move the file to the server directory
-    if (move_uploaded_file($_FILES['file']['tmp_name'], $targetFilePath)) {
-        $response = ['status' => 'success', 'filePath' => $newFileName];
+            $errorMessage = isset($errorMessages[$file['error']])
+                ? $errorMessages[$file['error']]
+                : 'Unknown upload error';
+
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $errorMessage]);
+            exit;
+        }
+
+        // Generate a unique filename to prevent overwriting
+        $originalName = $file['name'];
+        $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+        $uniqueName = uniqid() . '_' . $originalName;
+
+        // Create a temporary file path
+        $tempFilePath = $file['tmp_name'];
+
+        try {
+            // Load configuration
+            $config = include 'spaces-config.php';
+
+            // Create S3 client
+            $s3 = new S3Client([
+                'version' => 'latest',
+                'region' => $config['region'],
+                'endpoint' => 'https://' . $config['region'] . '.digitaloceanspaces.com',
+                'credentials' => [
+                    'key' => $config['access_key'],
+                    'secret' => $config['secret_key'],
+                ],
+                'use_path_style_endpoint' => false,
+            ]);
+
+            // Set the key to be directly in the taskfiles folder
+            $key = 'taskfiles/' . $uniqueName;
+
+            // Upload file directly to the taskfiles folder
+            $result = $s3->putObject([
+                'Bucket' => $config['bucket'],
+                'Key' => $key,
+                'Body' => fopen($tempFilePath, 'r'),
+                'ACL' => 'public-read',
+                'ContentType' => mime_content_type($tempFilePath),
+            ]);
+
+            // Use CDN endpoint if available
+            $fileUrl = $config['cdn_endpoint'] . '/' . $key;
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'status' => 'success',
+                'filePath' => $uniqueName, // Just the filename
+                'fileUrl' => $fileUrl // The full URL
+            ]);
+        } catch (AwsException $e) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => 'AWS Error: ' . $e->getMessage()]);
+        } catch (Exception $e) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => 'Error: ' . $e->getMessage()]);
+        }
     } else {
-        $response['message'] = 'Sorry, there was an error uploading your file.';
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'No file uploaded']);
     }
+} else {
+    header('Content-Type: application/json');
+    echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
 }
-
-echo json_encode($response);
 ?>

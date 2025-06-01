@@ -1,4 +1,5 @@
 <?php include "head.php";
+require_once 'spaces-helper.php';
 
 if (isset($_GET['task_id'])) {
     $encodedId = $_GET['task_id'];
@@ -184,32 +185,55 @@ if ($row = mysqli_fetch_array($result)) {
                                         const quill = new Quill('#description', {
                                             theme: 'snow',
                                             modules: {
-                                                toolbar: [
-                                                    ['bold', 'italic', 'underline', 'strike'],
-                                                    ['blockquote', 'code-block'],
-                                                    [{ 'header': 1 }, { 'header': 2 }],
-                                                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                                                    [{ 'script': 'sub'}, { 'script': 'super' }],
-                                                    [{ 'indent': '-1'}, { 'indent': '+1' }],
-                                                    [{ 'direction': 'rtl' }],
-                                                    [{ 'size': ['small', false, 'large', 'huge'] }],
-                                                    [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
-                                                    [{ 'color': [] }, { 'background': [] }],
-                                                    [{ 'font': [] }],
-                                                    [{ 'align': [] }],
-                                                    ['clean'],
-                                                    ['link', 'image', 'video']
-                                                ]
+                                                toolbar: {
+                                                    container: [
+                                                        ['bold', 'italic', 'underline', 'strike'],
+                                                        ['blockquote', 'code-block'],
+                                                        [{ 'header': 1 }, { 'header': 2 }],
+                                                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                                        [{ 'script': 'sub'}, { 'script': 'super' }],
+                                                        [{ 'indent': '-1'}, { 'indent': '+1' }],
+                                                        [{ 'direction': 'rtl' }],
+                                                        [{ 'size': ['small', false, 'large', 'huge'] }],
+                                                        [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+                                                        [{ 'color': [] }, { 'background': [] }],
+                                                        [{ 'font': [] }],
+                                                        [{ 'align': [] }],
+                                                        ['clean'],
+                                                        ['link', 'image', 'video']
+                                                    ],
+                                                    handlers: {
+                                                        link: function(value) {
+                                                            if (value) {
+                                                                let href = prompt('Enter URL');
+                                                                if (href) {
+                                                                    // Remove all quotes, whitespace, and accidental slashes
+                                                                    let cleanUrl = href.trim()
+                                                                        .replace(/^["']+|["']+$/g, '') // Remove leading/trailing quotes
+                                                                        .replace(/^\/+|\/+$/g, '');    // Remove leading/trailing slashes
+                                                                    this.quill.format('link', cleanUrl);
+                                                                }
+                                                            } else {
+                                                                this.quill.format('link', false);
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             }
                                         });
-                                        // Correctly insert a link
-                                        function insertLink(url) {
-                                            let index = quill.getSelection().index;
-                                            quill.insertText(index, url, { 'link': url });
-                                            quill.setSelection(index + url.length);
-                                        }
+
                                         document.getElementById('taskForm').addEventListener('submit', function(e) {
-                                            document.getElementById('description-input').value = quill.root.innerHTML;
+                                            let content = quill.root.innerHTML;
+                                            content = content.replace(/href="([^"]+)"/g, (match, url) => {
+                                                let cleanUrl = url.trim();
+                                                try { cleanUrl = decodeURIComponent(cleanUrl); } catch(e) {}
+                                                cleanUrl = cleanUrl
+                                                    .replace(/^["']+|["']+$/g, '') // Remove quotes
+                                                    .replace(/^\/+|\/+$/g, '')    // Remove slashes
+                                                    .replace(/\\+|"+/g, '');      // Remove backslashes and extra quotes
+                                                return `href="${cleanUrl}"`;
+                                            });
+                                            document.getElementById('description-input').value = content;
                                         });
                                     </script>
                                     <div class="invalid-feedback">This field is required</div>
@@ -227,25 +251,70 @@ if ($row = mysqli_fetch_array($result)) {
                                     <div class="card-body position-relative">
                                         <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/icons/spot-illustrations/corner-2.png);">
                                         </div>
-                                        <!--/.bg-holder-->
                                         <?php
-                                        // Display Task Files section
                                         if (!empty($existingFiles)) {
-                                            // Assuming $submittedFiles contains comma-separated file paths
                                             $filePaths = explode(',', $existingFiles);
                                             foreach ($filePaths as $filePath) {
                                                 $fileName = basename($filePath); // Extracts the filename from the path
-                                                $fileUrl = "../taskfiles/" . $filePath; // Constructs the full URL to the file
+
+                                                $spacesHelper = new SpacesHelper();
+                                                $fileUrl = $spacesHelper->getFileUrl($filePath);
                                                 $formattedDate = date("d M Y, g:i A", strtotime($taskCreatedOn)); // Format 'submitted_on' date
-                                                $fileSize = formatSizeUnits(filesize("../taskfiles/" . $filePath)); // Get file size
-                                                // Adjust the image path as necessary
+                                                $fileSize = "Unknown size";
                                                 $thumbnailPath = "../assets/img/icons/docs.png"; // Placeholder path for the thumbnail
+
+                                                $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
+                                                switch (strtolower($fileExtension)) {
+                                                    case 'pdf':
+                                                        $thumbnailPath = "../assets/img/icons/pdf.png";
+                                                        break;
+                                                    case 'doc':
+                                                    case 'docx':
+                                                    case 'rtf':
+                                                        $thumbnailPath = "../assets/img/icons/word.png";
+                                                        break;
+                                                    case 'xls':
+                                                    case 'xlsx':
+                                                    case 'csv':
+                                                        $thumbnailPath = "../assets/img/icons/excel.png";
+                                                        break;
+                                                    case 'ppt':
+                                                    case 'pptx':
+                                                        $thumbnailPath = "../assets/img/icons/powerpoint.png";
+                                                        break;
+                                                    case 'mp4':
+                                                    case 'avi':
+                                                    case 'mov':
+                                                    case 'mkv':
+                                                    case 'wmv':
+                                                    case 'flv':
+                                                    case 'mpeg':
+                                                    case 'mpg':
+                                                    case '3gp':
+                                                    case 'webm':
+                                                    case 'm4v':
+                                                        $thumbnailPath = "../assets/img/icons/mp4.png";
+                                                        break;
+                                                    case 'jpg':
+                                                    case 'jpeg':
+                                                    case 'png':
+                                                    case 'gif':
+                                                        $thumbnailPath = "../assets/img/icons/image.png";
+                                                        break;
+                                                    case 'zip':
+                                                    case 'rar':
+                                                        $thumbnailPath = "../assets/img/icons/zip.png";
+                                                        break;
+                                                    default:
+                                                        $thumbnailPath = "../assets/img/icons/docs.png";
+                                                        break;
+                                                }
                                                 ?>
                                                 <div class="d-flex mb-3 hover-actions-trigger align-items-center">
                                                     <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
                                                     <div class="ms-3 flex-shrink-1 flex-grow-1">
                                                         <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                                        <div class="fs-10"><span class="fw-semi-bold"><?php echo $fileSize; ?></span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
+                                                        <div class="fs-10"><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                                         <input type="hidden" name="existingFiles[]" value="<?php echo htmlspecialchars($filePath); ?>">
                                                         <input type="hidden" id="removedFiles" name="removedFiles" value="">
                                                         <!-- Add or adjust action buttons as necessary -->
@@ -259,7 +328,7 @@ if ($row = mysqli_fetch_array($result)) {
                                                 <?php
                                             }
                                         } else {
-                                            echo '<div>No files attached.</div>';
+                                            echo '<div>No task files attached.</div>';
                                         }
                                         ?>
                                     </div>
@@ -293,7 +362,10 @@ if ($row = mysqli_fetch_array($result)) {
                                     <button class="btn btn-link text-secondary p-0 me-3 fw-medium" type="button" id="discardButton" role="button">Discard</button>
                                     <button class="btn btn-primary" name="save" type="submit" role="button" id="updateTaskButton">
                                         <span id="buttonText">Update Task</span>
-                                        <span id="loadingSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                        <span id="loadingText" class="d-none">
+                                            Updating Task...
+                                            <span id="loadingSpinner" class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        </span>
                                     </button>
                                 </div>
                             </div>
@@ -363,7 +435,52 @@ if ($row = mysqli_fetch_array($result)) {
     document.addEventListener('DOMContentLoaded', function() {
         const dropArea = document.getElementById('dropArea');
         const form = document.getElementById('taskForm');
+        const updateTaskButton = document.getElementById('updateTaskButton');
+        const buttonText = document.getElementById('buttonText');
+        const loadingText = document.getElementById('loadingText');
+        const fileContainer = document.querySelector('.card-body');
         let uploadedFilePaths = []; // To store paths of successfully uploaded files
+
+        // Fireworks function
+        function triggerFireworks() {
+            // Create multiple bursts of fireworks
+            const duration = 3000; // 3 seconds
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+            function randomInRange(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            const interval = setInterval(function() {
+                const timeLeft = animationEnd - Date.now();
+
+                if (timeLeft <= 0) {
+                    return clearInterval(interval);
+                }
+
+                const particleCount = 50 * (timeLeft / duration);
+
+                // Create fireworks from different positions
+                confetti(Object.assign({}, defaults, {
+                    particleCount,
+                    origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+                }));
+                confetti(Object.assign({}, defaults, {
+                    particleCount,
+                    origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+                }));
+            }, 250);
+
+            // Additional burst in the center
+            setTimeout(() => {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }, 500);
+        }
 
         // Prevent default drag behaviors
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -388,6 +505,15 @@ if ($row = mysqli_fetch_array($result)) {
             handleFiles(e.target.files);
         });
 
+        // Handle existing file removal
+        fileContainer.addEventListener('click', function(e) {
+            if (e.target.closest('.delete-btn')) {
+                e.preventDefault();
+                const filePath = e.target.closest('.delete-btn').getAttribute('data-file-path');
+                removeFileReference(filePath, e.target.closest('.d-flex'));
+            }
+        });
+
         function preventDefaults(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -404,7 +530,6 @@ if ($row = mysqli_fetch_array($result)) {
         function handleDrop(e) {
             var dt = e.dataTransfer;
             var files = dt.files;
-
             handleFiles(files);
         }
 
@@ -414,7 +539,7 @@ if ($row = mysqli_fetch_array($result)) {
         }
 
         async function uploadFile(file) {
-            const url = 'upload_update'; // Ensure this path is correct
+            const url = 'upload_update'; // Point to the new Digital Ocean upload handler
             const formData = new FormData();
             formData.append('file', file);
             formData.append('action', 'upload');
@@ -435,7 +560,6 @@ if ($row = mysqli_fetch_array($result)) {
                 li.parentNode.removeChild(li);
                 const index = uploadedFilePaths.findIndex(f => f.fileName === file.name);
                 if (index > -1) {
-                    const filePath = uploadedFilePaths[index].filePath;
                     uploadedFilePaths.splice(index, 1);
                     updateUploadedFilesInput();
                 }
@@ -463,10 +587,16 @@ if ($row = mysqli_fetch_array($result)) {
                         const response = JSON.parse(xhr.responseText);
                         if (response.status === 'success') {
                             const filePath = response.filePath;
+                            const fileUrl = response.fileUrl;
                             li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload complete!`;
                             li.style.color = 'green';
                             li.appendChild(removeBtn);
-                            uploadedFilePaths.push({ fileName: file.name, filePath: filePath });
+                            uploadedFilePaths.push({
+                                fileName: file.name,
+                                filePath: filePath,
+                                fileUrl: fileUrl,
+                                fileSize: response.fileSize || file.size
+                            });
                             updateUploadedFilesInput();
                         } else {
                             li.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB) - Upload failed: ${response.message}`;
@@ -486,25 +616,43 @@ if ($row = mysqli_fetch_array($result)) {
             }
         }
 
+        function removeFileReference(filePath, elementToRemove) {
+            if (confirm('Are you sure you want to remove this file from the task?')) {
+                elementToRemove.remove();
+                // Add the removed file path to a hidden input field
+                const removedFilesInput = document.getElementById('removedFiles');
+                let removedFiles = removedFilesInput.value ? JSON.parse(removedFilesInput.value) : [];
+                removedFiles.push(filePath);
+                removedFilesInput.value = JSON.stringify(removedFiles);
+            }
+        }
+
         function updateUploadedFilesInput() {
-            document.getElementById('uploadedFiles').value = JSON.stringify(uploadedFilePaths); // Update hidden input value
+            document.getElementById('uploadedFiles').value = JSON.stringify(uploadedFilePaths);
         }
 
         form.addEventListener('submit', async function(e) {
             e.preventDefault(); // Prevent the default form submission
+
+            // Show loading state
+            updateTaskButton.disabled = true;
+            buttonText.classList.add('d-none');
+            loadingText.classList.remove('d-none');
+
             // Example validation check
             if (!form.checkValidity()) {
-                // Display an error message or highlight the invalid fields
                 displayBootstrapAlert('Please fill in all required fields.', 'danger');
-                return; // Stop the function if validation fails
+                resetButton();
+                return;
             }
-            document.getElementById('uploadedFiles').value = JSON.stringify(uploadedFilePaths); // Set hidden input value
+
+            document.getElementById('uploadedFiles').value = JSON.stringify(uploadedFilePaths);
             handleSubmit();
         });
 
         async function handleSubmit() {
             const formData = new FormData(form);
-            formData.append('action', 'submitForm'); // Append the action field here
+            formData.append('action', 'submitForm');
 
             try {
                 const response = await fetch('update-task', {
@@ -512,84 +660,69 @@ if ($row = mysqli_fetch_array($result)) {
                     body: formData,
                 });
 
-                if (response.ok) {
-                    const data = await response.json(); // Assuming the response from your PHP script is JSON
-                    if (data.status === 'success') {
-                        // Display a success alert
-                        //displayBootstrapAlert('Task created successfully.', 'success');
-                        // Optionally, redirect or clear the form here
-                        //window.location.href = `view-task?task_id=${data.task_id}`;
-                        const message = encodeURIComponent(data.message);
-                        window.location.href = `view-task?task_id=${data.task_id}&message=${message}`;
-                    } else if (data.status === 'error') {
-                        // Display an error alert with the message from the PHP script
-                        displayBootstrapAlert(`Failed to update the form: ${data.message}`, 'danger');
+                // Get the raw text response
+                const responseText = await response.text();
+                console.log("Raw server response:", responseText);
+
+                // Extract the JSON part from the response
+                const jsonMatch = responseText.match(/(\{.*\})$/s);
+
+                if (jsonMatch && jsonMatch[1]) {
+                    try {
+                        const data = JSON.parse(jsonMatch[1]);
+
+                        if (data.status === 'success') {
+                            // TRIGGER FIREWORKS ON SUCCESS!
+                            triggerFireworks();
+
+                            // Show success message with fireworks
+                            displayBootstrapAlert('🎉 Task updated successfully! 🎉', 'success');
+
+                            // Delay the redirect to let users enjoy the fireworks
+                            setTimeout(() => {
+                                const message = encodeURIComponent(data.message);
+                                const fullMessage = data.message;
+                                window.location.href = `view-task?task_id=${data.task_id}&message=${encodeURIComponent(fullMessage)}`;
+                            }, 4500); // 2 second delay
+
+                        } else if (data.status === 'error') {
+                            displayBootstrapAlert(`Failed to update the task: ${data.message}`, 'danger');
+                            resetButton();
+                        }
+                    } catch (parseError) {
+                        console.error("JSON parse error:", parseError);
+                        displayBootstrapAlert(`Error parsing server response. See console for details.`, 'danger');
+                        resetButton();
                     }
                 } else {
-                    // The HTTP request failed for some reason
-                    console.error("Failed to submit form. HTTP status: " + response.status);
-                    displayBootstrapAlert('Failed to update form. Please try again.', 'warning');
+                    console.error("Could not find valid JSON in response");
+                    displayBootstrapAlert(`Server returned an invalid response. See console for details.`, 'danger');
+                    resetButton();
                 }
             } catch (error) {
                 console.error("Error during form submission:", error);
-                displayBootstrapAlert(`An error occurred while submitting the form: ${error.message}`, 'danger');
+                displayBootstrapAlert(`An error occurred while updating the task: ${error.message}`, 'danger');
+                resetButton();
             }
+        }
+
+        function resetButton() {
+            updateTaskButton.disabled = false;
+            buttonText.classList.remove('d-none');
+            loadingText.classList.add('d-none');
         }
 
         function displayBootstrapAlert(message, type) {
             const alertContainer = document.getElementById('alert-container');
             const alertHTML = `
-        <div class="alert alert-${type} border-0 d-flex align-items-center" role="alert">
-            <!--<div class="bg-success me-3 icon-item"><span class="fas fa-check-circle text-white fs-6"></span></div>-->
+            <div class="alert alert-${type} border-0 d-flex align-items-center" role="alert">
                 <p class="mb-0 flex-1">${message}</p>
-            <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>`;
+                <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>`;
             alertContainer.innerHTML = alertHTML;
             // Scroll the alert container into view
             alertContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-    });
-</script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const fileContainer = document.querySelector('.card-body');
-
-        fileContainer.addEventListener('click', function(e) {
-            if (e.target.closest('.delete-btn')) {
-                e.preventDefault();
-                const filePath = e.target.closest('.delete-btn').getAttribute('data-file-path');
-                // Call the function to remove the file reference
-                removeFileReference(filePath, e.target.closest('.d-flex'));
-            }
-        });
-    });
-
-    function removeFileReference(filePath, elementToRemove) {
-        if (confirm('Are you sure you want to remove this file from the task?')) {
-            elementToRemove.remove();
-            // Add the removed file path to a hidden input field
-            const removedFilesInput = document.getElementById('removedFiles');
-            let removedFiles = removedFilesInput.value ? JSON.parse(removedFilesInput.value) : [];
-            removedFiles.push(filePath);
-            removedFilesInput.value = JSON.stringify(removedFiles);
-        }
-    }
-</script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const updateTaskButton = document.getElementById('updateTaskButton');
-        const buttonText = document.getElementById('buttonText');
-        const loadingSpinner = document.getElementById('loadingSpinner');
-        const taskForm = document.getElementById('taskForm');
-
-        taskForm.addEventListener('submit', function() {
-            // Show the spinner and hide the button text
-            buttonText.classList.add('d-none');
-            loadingSpinner.classList.remove('d-none');
-
-            // Disable the button to prevent multiple submissions
-            updateTaskButton.disabled = true;
-        });
     });
 </script>
 
