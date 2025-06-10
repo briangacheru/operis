@@ -61,8 +61,8 @@
                                             </th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task #</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Topic</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center">Status</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">Amount</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Status</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Amount</th>
                                         </tr>
                                         </thead>
                                         <tbody class="list" id="table-simple-pagination-body">

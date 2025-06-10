@@ -1,6 +1,5 @@
 <?php
 include "check-login.php";
-require_once 'vendors/htmlpurifier/library/HTMLPurifier.auto.php';
 
 // Assuming $con is a valid mysqli connection object established in "check-login.php" or elsewhere
 if ($_POST['action'] == 'submitForm') {

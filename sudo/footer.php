@@ -101,21 +101,33 @@
     </div>
 </a>
 
-<!-- Modal for inactivity -->
-<div class="modal" id="inactivityModal">
-    <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 500px">
-        <div class="modal-content position-relative">
-            <div class="modal-header">
-                <h5 class="modal-title">Inactivity</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- Session Timeout Warning Modal -->
+<div class="modal fade" id="sessionWarningModal" tabindex="-1" aria-labelledby="sessionWarningModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="sessionWarningModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Session Timeout Warning
+                </h5>
             </div>
-            <div class="modal-body">
-                <p>You have been inactive. Do you want to stay logged in?</p>
-                <p id="countdown">30</p>
+            <div class="modal-body text-center">
+                <div class="mb-3">
+                    <i class="fas fa-clock fa-3x text-warning mb-3"></i>
+                </div>
+                <h6>Your session is about to expire!</h6>
+                <p class="mb-2">You will be automatically logged out in:</p>
+                <div class="countdown-display mb-3">
+                    <span id="countdownTimer" class="badge bg-danger fs-4">2:00</span>
+                </div>
+                <p class="text-muted small">Click "Continue Session" to stay logged in, or "Logout Now" to end your session.</p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" onclick="stayLoggedIn()">Stay Logged In</button>
-                <button type="button" class="btn btn-secondary" onclick="logOut()">Log Out</button>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-success me-2" id="extendSessionBtn">
+                    <i class="fas fa-sync me-1"></i>Extend Session
+                </button>
+                <button type="button" class="btn btn-secondary" id="logoutNowBtn">
+                    <i class="fas fa-sign-out-alt me-1"></i>Logout Now
+                </button>
             </div>
         </div>
     </div>
@@ -127,7 +139,6 @@
 <!-- ===============================================-->
 
 <script src="../vendors/select2/select2.min.js"></script>
-<script src="../vendors/myjs/myjs.js"></script>
 <script src="../vendors/select2/select2.full.min.js"></script>
 <script src="../vendors/datatables.net/jquery.dataTables.min.js"></script>
 <script src="../vendors/datatables.net-bs5/dataTables.bootstrap5.min.js"></script>
@@ -153,7 +164,25 @@
 <script src="../vendors/dropzone/dropzone-min.js"></script>
 <script src="../vendors/inputmask/inputmask.min.js"></script>
 <script src="../vendors/textarea/textarea.js"></script>
+<script src="../assets/js/adminsessiontimeout.js"></script>
+<script src="../assets/js/admin-task-notification.js"></script>
+<script>
+    function updatetheTime() {
+        var now = new Date();
+        var hours = now.getHours();
+        var minutes = now.getMinutes();
+        var seconds = now.getSeconds();
 
+        minutes = minutes < 10 ? "0" + minutes : minutes;
+        seconds = seconds < 10 ? "0" + seconds : seconds;
+
+        var timeString = hours + ":" + minutes + ":" + seconds;
+        document.getElementById("timeDisplay").textContent = timeString;
+    }
+
+    setInterval(updatetheTime, 1000);
+    updatetheTime();
+</script>
 
 
 </body>

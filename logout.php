@@ -5,9 +5,18 @@ date_default_timezone_set('Africa/Nairobi');
 include('dbcon.php');
 
 if (isset($_REQUEST['logout'])) {
+    // Store current page before logout
+    $lastPage = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'index.php';
+
+    // Debug logging
+    error_log("Logout - storing last page: " . $lastPage);
+
+    $cookieSet = setcookie('last_page_before_logout', $lastPage, time() + 600, '/', '', false, false);
+    error_log("Logout - cookie set: " . ($cookieSet ? 'true' : 'false'));
+
     // Update is_online and last_seen before logging out
     if (isset($_SESSION['sessionWriter'])) {
-        $userEmail = $_SESSION['sessionWriter']; // Assuming this stores the user's email or another unique identifier
+        $userEmail = $_SESSION['sessionWriter'];
         $lastSeen = date('Y-m-d H:i:s');
 
         $updateStatusSql = "UPDATE tblwriters SET is_online = 0, last_seen = ? WHERE email = ?";
@@ -57,7 +66,7 @@ if (isset($_REQUEST['logout'])) {
     setcookie('PHPSESSID', '', time() - 3600, '/', '', isset($_SERVER["HTTPS"]), true);
 
     // Redirect to the login page
-    header('Location: logout');
+    header('Location: login.php?logout=1');
     exit();
 }
 ?>

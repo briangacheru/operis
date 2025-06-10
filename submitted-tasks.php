@@ -57,7 +57,7 @@
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task #</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Topic</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Status</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">Amount</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Amount</th>
                                         </tr>
                                         </thead>
                                         <tbody class="list" id="table-simple-pagination-body">
@@ -182,7 +182,7 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td class="align-middle text-end amount">
+                                            <td class="align-middle amount">
                                                 <h6 class="mb-0"><?php echo number_format($totalprice,2); ?></h6>
                                                 <p class="fs-11 mb-0"><?php echo $statusBadgePay;?></p>
                                             </td>

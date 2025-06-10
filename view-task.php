@@ -134,26 +134,37 @@ $confirmation = "<span class='badge $confirmationClass'>$confirmationText</span>
     </div>
 
     <!-- Display Bootstrap Alerts -->
-        <?php
-        if (isset($_GET['message'])) {
-            // Sanitize the message to remove any HTML tags
-            $message = htmlspecialchars($_GET['message'], ENT_QUOTES, 'UTF-8');
-            echo "
-                <div class='alert alert-success border-0 d-flex align-items-center' role='alert'>
-                    <div class='bg-success me-3 icon-item'><span class='fas fa-check-circle text-white fs-6'></span></div>
-                        <p class='mb-0 flex-1'>$message</p>
-                    <button class='btn-close' type='button' data-bs-dismiss='alert' aria-label='Close'></button>
-                </div>
-                
-                ";
+    <?php
+    if (isset($_GET['message'])) {
+        $message = htmlspecialchars($_GET['message'], ENT_QUOTES, 'UTF-8');
+        echo "
+        <div class='alert alert-success border-0 d-flex align-items-center' role='alert'>
+        <div class='bg-success me-3 icon-item'><span class='fas fa-check-circle text-white fs-6'></span></div>
+        <p class='mb-0 flex-1'>$message</p>
+        <button class='btn-close' type='button' data-bs-dismiss='alert' aria-label='Close'></button>
+        </div>
+        <script>
+        // Remove the message parameter from URL after displaying
+        if (window.history.replaceState) {
+            const url = new URL(window.location);
+            url.searchParams.delete('message');
+            window.history.replaceState({}, document.title, url.toString());
         }
-        ?>
-<?php
-if (isset($_SESSION['alert'])) {
-    echo $_SESSION['alert'];
-    unset($_SESSION['alert']); // Clear the alert message
-}
-?>
+        
+        // Auto-hide alert after 5 seconds
+        setTimeout(function() {
+            var alertElement = document.querySelector('.alert-success');
+            if (alertElement) {
+                alertElement.classList.add('fade');
+                alertElement.addEventListener('transitionend', function() {
+                    alertElement.remove();
+                });
+            }
+        }, 5000);
+        </script>
+        ";
+    }
+    ?>
 
     <div class="card mb-3">
     <div class="bg-holder bg-card" style="background-image:url(assets/img/icons/spot-illustrations/corner-5.png);">

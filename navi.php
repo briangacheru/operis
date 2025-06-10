@@ -74,6 +74,69 @@
         text-align: center;
         color: white;
     }
+    .custom-toast {
+        position: fixed !important;
+        top: 20px !important;
+        right: 20px !important;
+        min-width: 300px !important;
+        background: white !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        z-index: 99999 !important;
+        animation: slideInRight 0.3s ease-out !important;
+        border-left: 4px solid #28a745 !important;
+        display: block !important;
+        visibility: visible !important;
+    }
+
+    .toast-success {
+        border-left-color: #28a745 !important;
+    }
+
+    .toast-error {
+        border-left-color: #dc3545 !important;
+    }
+
+    .toast-content {
+        display: flex !important;
+        align-items: center !important;
+        padding: 15px !important;
+    }
+
+    .toast-icon {
+        font-size: 20px !important;
+        margin-right: 10px !important;
+    }
+
+    .toast-message {
+        flex: 1 !important;
+        font-weight: 500 !important;
+        color: #333 !important;
+    }
+
+    .toast-close {
+        background: none !important;
+        border: none !important;
+        font-size: 18px !important;
+        cursor: pointer !important;
+        color: #999 !important;
+        margin-left: 10px !important;
+    }
+
+    .toast-close:hover {
+        color: #666 !important;
+    }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
 </style>
 
 <script>
@@ -410,6 +473,76 @@
                                     <button class="dropdown-item d-flex align-items-center gap-2" type="button" value="light" data-theme-control="theme"><span class="fas fa-sun"></span>Light<span class="fas fa-check dropdown-check-icon ms-auto text-600"></span></button>
                                     <button class="dropdown-item d-flex align-items-center gap-2" type="button" value="dark" data-theme-control="theme"><span class="fas fa-moon" data-fa-transform=""></span>Dark<span class="fas fa-check dropdown-check-icon ms-auto text-600"></span></button>
                                     <button class="dropdown-item d-flex align-items-center gap-2" type="button" value="auto" data-theme-control="theme"><span class="fas fa-adjust" data-fa-transform=""></span>Auto<span class="fas fa-check dropdown-check-icon ms-auto text-600"></span></button>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+
+                    <li class="nav-item dropdown">
+                        <?php
+                        $aid = $_SESSION['sessionWriter'];
+
+                        // Query to count new assigned tasks (not yet acknowledged)
+                        $newTasksCountQuery = mysqli_query($con, "SELECT COUNT(*) AS new_task_count FROM tbltasks WHERE is_deleted = 0 AND (status = 'In Progress' OR is_confirmed = 1) AND email = '$aid' AND acknowledged = 0");
+                        $newTasksCountResult = mysqli_fetch_assoc($newTasksCountQuery);
+                        $newTasksCount = $newTasksCountResult['new_task_count'];
+
+                        // Query to fetch new tasks details
+                        $newTasksQuery = mysqli_query($con, "SELECT * FROM tbltasks WHERE is_deleted = 0 AND (status = 'In Progress' OR is_confirmed = 1) AND email = '$aid' AND acknowledged = 0 ORDER BY create_date DESC");
+                        $newTasks = [];
+                        while ($task = mysqli_fetch_assoc($newTasksQuery)) {
+                            $newTasks[] = $task;
+                        }
+                        ?>
+
+                        <a class="nav-link notification-indicator notification-indicator-success px-0 fa-icon-wait" id="navbarDropdownNewTasks" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <span class="fas fa-tasks" data-fa-transform="shrink-6" style="font-size: 33px;"></span>
+                            <?php if($newTasksCount > 0): ?>
+                                <span class="notification-indicator-number"><?php echo $newTasksCount; ?></span>
+                            <?php endif; ?>
+                        </a>
+
+                        <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end dropdown-menu-card dropdown-menu-notification dropdown-caret-bg" aria-labelledby="navbarDropdownNewTasks">
+                            <div class="card card-notification shadow-none">
+                                <div class="card-header">
+                                    <div class="row justify-content-between align-items-center">
+                                        <div class="col-auto">
+                                            <h6 class="card-header-title mb-0 text-success">New Assigned Tasks</h6>
+                                        </div>
+                                        <div class="col-auto ps-0 ps-sm-3">
+                                            <a class="card-link fw-normal" href="#" onclick="markAllAsRead()">Mark all as read</a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="scrollbar-overlay" style="max-height:19rem">
+                                    <div class="list-group list-group-flush fw-normal fs-10">
+                                        <div class="list-group-title border-bottom text-success">You have <?php echo $newTasksCount; ?> new tasks.</div>
+
+                                        <?php foreach ($newTasks as $key => $task): ?>
+                                            <div class="list-group-item">
+                                                <?php $encodedId = base64_encode($task['id']); ?>
+                                                <a class="notification notification-flush notification-unread" href="view-task?task_id=<?php echo htmlspecialchars($encodedId); ?>" onclick="markTaskAsRead(<?php echo $task['id']; ?>)">
+                                                    <div class="notification-avatar">
+                                                        <div class="avatar avatar-2xl me-3">
+                                                            <span class="material-icons text-success fs-3">assignment</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="notification-body">
+                                                        <p class="mb-1 text-success"><strong>New Task:</strong> <?php echo $task['topic']; ?></p>
+                                                        <span class="notification-time text-muted">
+                                                            <span class="me-2" role="img" aria-label="Time">Due: </span>
+                                                            <?php echo date('M j, Y g:i A', strtotime($task['due_date'])); ?>
+                                                        </span>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                            <?php if ($key >= 2) break; ?>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                                <div class="card-footer text-center border-top">
+                                    <a class="card-link d-block" href="tasks-in-progress">View all</a>
                                 </div>
                             </div>
                         </div>

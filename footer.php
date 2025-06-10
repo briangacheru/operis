@@ -40,58 +40,6 @@
         </div>
     </div>
 </div>
-
-
-<div class="modal fade" id="authentication-modal" tabindex="-1" role="dialog" aria-labelledby="authentication-modal-label" aria-hidden="true">
-    <div class="modal-dialog mt-6" role="document">
-        <div class="modal-content border-0">
-            <div class="modal-header px-5 position-relative modal-shape-header bg-shape">
-                <div class="position-relative z-1">
-                    <h4 class="mb-0 text-white" id="authentication-modal-label">Register</h4>
-                    <p class="fs-10 mb-0 text-white">Please create your free Falcon account</p>
-                </div>
-                <button class="btn-close position-absolute top-0 end-0 mt-2 me-2" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body py-4 px-5">
-                <form>
-                    <div class="mb-3">
-                        <label class="form-label" for="modal-auth-name">Name</label>
-                        <input class="form-control" type="text" autocomplete="on" id="modal-auth-name" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="modal-auth-email">Email address</label>
-                        <input class="form-control" type="email" autocomplete="on" id="modal-auth-email" />
-                    </div>
-                    <div class="row gx-2">
-                        <div class="mb-3 col-sm-6">
-                            <label class="form-label" for="modal-auth-password">Password</label>
-                            <input class="form-control" type="password" autocomplete="on" id="modal-auth-password" />
-                        </div>
-                        <div class="mb-3 col-sm-6">
-                            <label class="form-label" for="modal-auth-confirm-password">Confirm Password</label>
-                            <input class="form-control" type="password" autocomplete="on" id="modal-auth-confirm-password" />
-                        </div>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="modal-auth-register-checkbox" />
-                        <label class="form-label" for="modal-auth-register-checkbox">I accept the <a href="#!">terms </a>and <a class="white-space-nowrap" href="#!">privacy policy</a></label>
-                    </div>
-                    <div class="mb-3">
-                        <button class="btn btn-primary d-block w-100 mt-3" type="submit" name="submit">Register</button>
-                    </div>
-                </form>
-                <div class="position-relative mt-5">
-                    <hr />
-                    <div class="divider-content-center">or register with</div>
-                </div>
-                <div class="row g-2 mt-2">
-                    <div class="col-sm-6"><a class="btn btn-outline-google-plus btn-sm d-block w-100" href="#"><span class="fab fa-google-plus-g me-2" data-fa-transform="grow-8"></span> google</a></div>
-                    <div class="col-sm-6"><a class="btn btn-outline-facebook btn-sm d-block w-100" href="#"><span class="fab fa-facebook-square me-2" data-fa-transform="grow-8"></span> facebook</a></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 </div>
 </main>
 <!-- ===============================================-->
@@ -179,33 +127,12 @@
     </div>
 </a>
 
-<!-- Modal for inactivity -->
-<div class="modal" id="inactivityModal">
-    <div class="modal-dialog modal-dialog-centered" role="document" style="max-width: 500px">
-        <div class="modal-content position-relative">
-            <div class="modal-header">
-                <h5 class="modal-title">Inactivity</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>You have been inactive. Do you want to stay logged in?</p>
-                <p id="countdown">30</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" onclick="stayLoggedIn()">Stay Logged In</button>
-                <button type="button" class="btn btn-secondary" onclick="logOut()">Log Out</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 
 <!-- ===============================================-->
 <!--    JavaScripts-->
 <!-- ===============================================-->
 
 <script src="vendors/select2/select2.min.js"></script>
-<script src="vendors/myjs/myjs.js"></script>
 <script src="vendors/select2/select2.full.min.js"></script>
 <script src="vendors/datatables.net/jquery.dataTables.min.js"></script>
 <script src="vendors/datatables.net-bs5/dataTables.bootstrap5.min.js"></script>
@@ -228,11 +155,30 @@
 <script src="vendors/list.js/list.min.js"></script>
 <script src="assets/js/theme.js"></script>
 <script src="assets/js/myjs.js"></script>
+<script src="assets/js/sessiontimeout.js"></script>
+<script src="assets/js/task-notification.js"></script>
 <script src="vendors/tinymce/tinymce.min.js"></script>
 <script src="vendors/dropzone/dropzone-min.js"></script>
 <script src="vendors/inputmask/inputmask.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script>
+    function updatetheTime() {
+        var now = new Date();
+        var hours = now.getHours();
+        var minutes = now.getMinutes();
+        var seconds = now.getSeconds();
+
+        minutes = minutes < 10 ? "0" + minutes : minutes;
+        seconds = seconds < 10 ? "0" + seconds : seconds;
+
+        var timeString = hours + ":" + minutes + ":" + seconds;
+        document.getElementById("timeDisplay").textContent = timeString;
+    }
+
+    setInterval(updatetheTime, 1000);
+    updatetheTime();
+</script>
 
 
 </body>

@@ -1,7 +1,70 @@
-[01-Jun-2025 01:12:57 Africa/Nairobi] HTTP Error: 0
-[01-Jun-2025 01:13:02 Africa/Nairobi] HTTP Error: 0
-[01-Jun-2025 01:19:08 Africa/Nairobi] PHP Fatal error:  Uncaught Error: Call to undefined function getFileSize() in C:\xampp\htdocs\falcon.sub\sudo\view-task.php:369
+[08-Jun-2025 07:46:01 Africa/Nairobi] User unknown manually logged out.
+[08-Jun-2025 11:55:27 Africa/Nairobi] Session timeout - Last activity: 14161 seconds ago. Redirecting to: index
+[08-Jun-2025 11:58:36 Africa/Nairobi] PHP Warning:  Undefined variable $taskId in C:\xampp\htdocs\falcon.sub\sudo\upload_update.php on line 77
+[08-Jun-2025 11:58:36 Africa/Nairobi] PHP Deprecated:  base64_encode(): Passing null to parameter #1 ($string) of type string is deprecated in C:\xampp\htdocs\falcon.sub\sudo\upload_update.php on line 77
+[08-Jun-2025 11:58:36 Africa/Nairobi] PHP Warning:  Undefined variable $emailStatus in C:\xampp\htdocs\falcon.sub\sudo\upload_update.php on line 77
+[08-Jun-2025 11:59:00 Africa/Nairobi] PHP Warning:  Undefined variable $taskId in C:\xampp\htdocs\falcon.sub\sudo\upload_update.php on line 77
+[08-Jun-2025 11:59:00 Africa/Nairobi] PHP Deprecated:  base64_encode(): Passing null to parameter #1 ($string) of type string is deprecated in C:\xampp\htdocs\falcon.sub\sudo\upload_update.php on line 77
+[08-Jun-2025 11:59:00 Africa/Nairobi] PHP Warning:  Undefined variable $emailStatus in C:\xampp\htdocs\falcon.sub\sudo\upload_update.php on line 77
+[08-Jun-2025 12:56:26 Africa/Nairobi] User bryo4419@gmail.com manually logged out.
+[08-Jun-2025 12:56:26 Africa/Nairobi] User unknown manually logged out.
+[08-Jun-2025 12:59:26 Africa/Nairobi] User unknown manually logged out.
+[08-Jun-2025 19:27:25 Africa/Nairobi] PHP Warning:  Undefined variable $taskId in C:\xampp\htdocs\falcon.sub\sudo\upload_update.php on line 77
+[08-Jun-2025 19:27:25 Africa/Nairobi] PHP Deprecated:  base64_encode(): Passing null to parameter #1 ($string) of type string is deprecated in C:\xampp\htdocs\falcon.sub\sudo\upload_update.php on line 77
+[08-Jun-2025 19:27:25 Africa/Nairobi] PHP Warning:  Undefined variable $emailStatus in C:\xampp\htdocs\falcon.sub\sudo\upload_update.php on line 77
+[08-Jun-2025 19:58:47 Africa/Nairobi] PHP Warning:  Undefined variable $spacesHelper in C:\xampp\htdocs\falcon.sub\sudo\update-task.php on line 88
+[08-Jun-2025 19:58:47 Africa/Nairobi] PHP Fatal error:  Uncaught Error: Call to a member function getFileUrl() on null in C:\xampp\htdocs\falcon.sub\sudo\update-task.php:88
 Stack trace:
 #0 {main}
-  thrown in C:\xampp\htdocs\falcon.sub\sudo\view-task.php on line 369
-[01-Jun-2025 01:51:11 Africa/Nairobi] PHP Warning:  Undefined array key "fileSize" in C:\xampp\htdocs\falcon.sub\sudo\update-task.php on line 105
+  thrown in C:\xampp\htdocs\falcon.sub\sudo\update-task.php on line 88
+[08-Jun-2025 21:21:17 Africa/Nairobi] User bryo4419@gmail.com manually logged out.
+[08-Jun-2025 21:21:17 Africa/Nairobi] User unknown manually logged out.
+[09-Jun-2025 04:14:06 Africa/Nairobi] Session timeout - Last activity: 24769 seconds ago. Redirecting to: index
+[09-Jun-2025 05:14:17 Africa/Nairobi] User bryo4419@gmail.com manually logged out.
+[09-Jun-2025 05:19:16 Africa/Nairobi] User unknown manually logged out.
+[09-Jun-2025 05:20:17 Africa/Nairobi] User bryo4419@gmail.com manually logged out.
+[09-Jun-2025 05:20:38 Africa/Nairobi] User unknown manually logged out.
+[09-Jun-2025 05:21:47 Africa/Nairobi] User bryo4419@gmail.com manually logged out.
+[09-Jun-2025 06:22:58 Africa/Nairobi] Session timeout - Last activity: 4121 seconds ago. Redirecting to: index
+[09-Jun-2025 07:17:25 Africa/Nairobi] User unknown manually logged out.
+[09-Jun-2025 07:21:53 Africa/Nairobi] PHP Warning:  Attempt to read property "last_seen" on array in C:\xampp\htdocs\falcon.sub\sudo\usermanagement.php on line 166
+[09-Jun-2025 07:21:53 Africa/Nairobi] PHP Deprecated:  DateTime::__construct(): Passing null to parameter #1 ($datetime) of type string is deprecated in C:\xampp\htdocs\falcon.sub\sudo\usermanagement.php on line 166
+[09-Jun-2025 07:21:53 Africa/Nairobi] PHP Warning:  Attempt to read property "last_seen" on array in C:\xampp\htdocs\falcon.sub\sudo\usermanagement.php on line 166
+[09-Jun-2025 07:21:53 Africa/Nairobi] PHP Deprecated:  DateTime::__construct(): Passing null to parameter #1 ($datetime) of type string is deprecated in C:\xampp\htdocs\falcon.sub\sudo\usermanagement.php on line 166
+[09-Jun-2025 07:21:57 Africa/Nairobi] PHP Warning:  Attempt to read property "last_seen" on array in C:\xampp\htdocs\falcon.sub\sudo\usermanagement.php on line 166
+[09-Jun-2025 07:21:57 Africa/Nairobi] PHP Deprecated:  DateTime::__construct(): Passing null to parameter #1 ($datetime) of type string is deprecated in C:\xampp\htdocs\falcon.sub\sudo\usermanagement.php on line 166
+[09-Jun-2025 07:21:57 Africa/Nairobi] PHP Warning:  Attempt to read property "last_seen" on array in C:\xampp\htdocs\falcon.sub\sudo\usermanagement.php on line 166
+[09-Jun-2025 07:21:57 Africa/Nairobi] PHP Deprecated:  DateTime::__construct(): Passing null to parameter #1 ($datetime) of type string is deprecated in C:\xampp\htdocs\falcon.sub\sudo\usermanagement.php on line 166
+[09-Jun-2025 08:22:17 Africa/Nairobi] User bryo4419@gmail.com manually logged out.
+[09-Jun-2025 08:40:51 Africa/Nairobi] PHP Warning:  Attempt to read property "last_seen" on array in C:\xampp\htdocs\falcon.sub\sudo\usermanagement.php on line 166
+[09-Jun-2025 08:40:51 Africa/Nairobi] PHP Deprecated:  DateTime::__construct(): Passing null to parameter #1 ($datetime) of type string is deprecated in C:\xampp\htdocs\falcon.sub\sudo\usermanagement.php on line 166
+[09-Jun-2025 08:40:51 Africa/Nairobi] PHP Warning:  Attempt to read property "last_seen" on array in C:\xampp\htdocs\falcon.sub\sudo\usermanagement.php on line 166
+[09-Jun-2025 08:40:51 Africa/Nairobi] PHP Deprecated:  DateTime::__construct(): Passing null to parameter #1 ($datetime) of type string is deprecated in C:\xampp\htdocs\falcon.sub\sudo\usermanagement.php on line 166
+[09-Jun-2025 08:40:55 Africa/Nairobi] PHP Warning:  Attempt to read property "last_seen" on array in C:\xampp\htdocs\falcon.sub\sudo\usermanagement.php on line 166
+[09-Jun-2025 08:40:55 Africa/Nairobi] PHP Deprecated:  DateTime::__construct(): Passing null to parameter #1 ($datetime) of type string is deprecated in C:\xampp\htdocs\falcon.sub\sudo\usermanagement.php on line 166
+[09-Jun-2025 08:40:55 Africa/Nairobi] PHP Warning:  Attempt to read property "last_seen" on array in C:\xampp\htdocs\falcon.sub\sudo\usermanagement.php on line 166
+[09-Jun-2025 08:40:55 Africa/Nairobi] PHP Deprecated:  DateTime::__construct(): Passing null to parameter #1 ($datetime) of type string is deprecated in C:\xampp\htdocs\falcon.sub\sudo\usermanagement.php on line 166
+[09-Jun-2025 10:15:17 Africa/Nairobi] User bryo4419@gmail.com manually logged out.
+[09-Jun-2025 14:35:32 Africa/Nairobi] Session timeout - Last activity: 15615 seconds ago. Redirecting to: index
+[09-Jun-2025 14:38:15 Africa/Nairobi] PHP Fatal error:  Uncaught Error: mysqli object is already closed in C:\xampp\htdocs\falcon.sub\sudo\dbcon.php:32
+Stack trace:
+#0 C:\xampp\htdocs\falcon.sub\sudo\dbcon.php(32): mysqli_close(Object(mysqli))
+#1 [internal function]: {closure}()
+#2 {main}
+  thrown in C:\xampp\htdocs\falcon.sub\sudo\dbcon.php on line 32
+[09-Jun-2025 14:39:00 Africa/Nairobi] PHP Fatal error:  Uncaught Error: mysqli object is already closed in C:\xampp\htdocs\falcon.sub\sudo\dbcon.php:32
+Stack trace:
+#0 C:\xampp\htdocs\falcon.sub\sudo\dbcon.php(32): mysqli_close(Object(mysqli))
+#1 [internal function]: {closure}()
+#2 {main}
+  thrown in C:\xampp\htdocs\falcon.sub\sudo\dbcon.php on line 32
+[09-Jun-2025 15:42:17 Africa/Nairobi] User bryo4419@gmail.com manually logged out.
+[09-Jun-2025 17:58:51 Africa/Nairobi] Session timeout - Last activity: 8194 seconds ago. Redirecting to: index
+[09-Jun-2025 20:51:17 Africa/Nairobi] User bryo4419@gmail.com manually logged out.
+[10-Jun-2025 03:13:17 Africa/Nairobi] User bryo4419@gmail.com manually logged out.
+[10-Jun-2025 03:13:17 Africa/Nairobi] User unknown manually logged out.
+[10-Jun-2025 03:42:27 Africa/Nairobi] User unknown manually logged out.
+[10-Jun-2025 04:28:45 Africa/Nairobi] PHP Warning:  Undefined variable $unreadMessagesCount in C:\xampp\htdocs\falcon.sub\sudo\navi.php on line 467
+[10-Jun-2025 04:30:44 Africa/Nairobi] PHP Warning:  Undefined variable $unreadMessagesCount in C:\xampp\htdocs\falcon.sub\sudo\navi.php on line 467
+[10-Jun-2025 04:31:45 Africa/Nairobi] PHP Warning:  Undefined variable $unreadMessagesCount in C:\xampp\htdocs\falcon.sub\sudo\navi.php on line 467
+[10-Jun-2025 04:31:58 Africa/Nairobi] User bryo4419@gmail.com manually logged out.

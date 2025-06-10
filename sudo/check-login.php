@@ -12,11 +12,11 @@ include('functions.php');
 
 function check_login() {
     if (!isset($_SESSION['odmsaid']) || strlen($_SESSION['odmsaid']) == 0) {
-        $host = $_SERVER['HTTP_HOST'];
-        $uri  = rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
-        $extra = "login.php";
+        // Store current page for redirect
+        $redirect_url = urlencode($_SERVER['REQUEST_URI']);
+
         $_SESSION["id"] = "";
-        header("Location: http://$host$uri/$extra");
+        header("Location: login?redirect=" . $redirect_url);
         exit();
     }
 }
@@ -65,14 +65,20 @@ function logout() {
 $self = $_SERVER["PHP_SELF"];
 $allowed_pages = ['login.php', 'reset-password.php', 'forgot-password.php'];
 
+// Store current page for redirect (but not for login pages)
+if (!in_array(basename($_SERVER['PHP_SELF']), $allowed_pages)) {
+    $_SESSION['last_page'] = $_SERVER['REQUEST_URI'];
+}
+
 if (stripos($self, 'index.php') !== false) {
     if (!isset($_SESSION['odmsaid']) || (isset($_SESSION['odmsaid']) && strlen($_SESSION['odmsaid']) == 0)) {
-        header('Location: login.php');
+        $redirect_url = urlencode($_SERVER['REQUEST_URI']);
+        header("Location: login?redirect=" . $redirect_url);
         exit();
     }
 } elseif (array_reduce($allowed_pages, fn($carry, $page) => $carry || stripos($self, $page) !== false, false)) {
     if (isset($_SESSION['odmsaid']) && strlen($_SESSION['odmsaid']) > 0) {
-        header('Location: index.php');
+        header('Location: index');
         exit();
     }
 }
@@ -84,14 +90,20 @@ $session_timeout_duration = 3600; // 60 minutes
 if (isset($_SESSION['last_activity'])) {
     // Check if the session is older than 60 minutes
     if (time() - $_SESSION['last_activity'] > $session_timeout_duration) {
-        // Store the current page before logging out
-        $_SESSION['last_page'] = $_SERVER['REQUEST_URI'];
+        // Get the last page before logout
+        $last_page = $_SESSION['last_page'] ?? 'index';
+
+        // Add session timeout logging
+        error_log("Session timeout - Last activity: " . (time() - $_SESSION['last_activity']) . " seconds ago. Redirecting to: " . $last_page);
+
+        // Store the redirect URL before destroying session
+        $redirect_url = urlencode($last_page);
 
         // Logout the user
         logout();
 
-        // Redirect to login page
-        header("Location: login.php");
+        // Redirect to login page with last page parameter
+        header("Location: login?redirect=" . $redirect_url);
         exit();
     }
 }
@@ -133,5 +145,6 @@ if (!isset($_SESSION['odmsaid']) && isset($_COOKIE['rememberme'])) {
             exit();
         }
     }
+    $stmt->close();
 }
 ?>

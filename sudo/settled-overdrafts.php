@@ -123,7 +123,7 @@ $msg = "";
                                             <td class="align-middle white-space-nowrap product">Bose SoundSport Wireless Headphones</td>
                                             <td class="align-middle text-center fs-9 white-space-nowrap payment"><span class="badge badge rounded-pill badge-subtle-success">Success<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span>
                                             </td>
-                                            <td class="align-middle text-end amount">$634</td>
+                                            <td class="align-middle amount">$634</td>
                                             <td class="align-middle white-space-nowrap text-end">
                                                 <div class="dropstart font-sans-serif position-static d-inline-block">
                                                     <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal float-end" type="button" id="dropdown-simple-pagination-table-item-1" data-bs-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false" data-bs-reference="parent"><span class="fas fa-ellipsis-h fs-10"></span></button>

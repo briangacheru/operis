@@ -9,15 +9,6 @@ if (isset($_SESSION['odmsaid'])) {
     exit();
 }
 
-// Query to fetch late tasks details
-$lateTasksQuery = mysqli_query($con, "SELECT * FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND due_date < NOW()  ORDER BY due_date ASC");
-
-$lateTasks = []; // Initialize array to hold late tasks data
-while ($task = mysqli_fetch_assoc($lateTasksQuery)) {
-    $lateTasks[] = $task; // Add each late task to the array
-}
-
-$lateTasksCount = count($lateTasks); // Count the number of late tasks for notifications
 
 // Fetch userID from the database using the email stored in the session
 $userQuery = mysqli_query($con, "SELECT id FROM tbladmin WHERE email = '$aid'");
@@ -33,7 +24,6 @@ while ($message = mysqli_fetch_assoc($unreadMessagesQuery)) {
 }
 
 $unreadMessagesCount = count($unreadMessages); // Count the number of unread messages
-
 ?>
 <!DOCTYPE html>
 <html data-bs-theme="light" lang="en-US" dir="ltr">

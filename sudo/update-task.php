@@ -44,73 +44,54 @@ if ($_POST['action'] == 'submitForm') {
     mysqli_stmt_fetch($stmt);
     mysqli_stmt_close($stmt);
 
+    $spacesHelper = new SpacesHelper();
+
     // Process existing files (those not removed)
     $existingFiles = $_POST['existingFiles'] ?? [];
     $removedFiles = !empty($_POST['removedFiles']) ? json_decode($_POST['removedFiles'], true) : [];
 
-    // Filter out the removed files from the existing files array
-    $remainingFiles = array_filter($existingFiles, function($filePath) use ($removedFiles) {
-        return !in_array($filePath, $removedFiles);
-    });
+// Create arrays to store the final file data
+    $finalFilePaths = [];
+    $finalFileUrls = [];
+    $finalFileSizes = [];
 
-    // Process newly uploaded files
-    $uploadedFiles = json_decode($_POST['uploadedFiles'], true);
-    if (!is_array($uploadedFiles)) {
-        $uploadedFiles = []; // Set to empty array if not valid
-    }
-
-    // Get filenames for task_files column (comma-separated list of filenames)
-    $uploadedFileNames = array_map(function($file) {
-        return $file['filePath'];
-    }, $uploadedFiles);
-
-    $allFiles = array_merge($remainingFiles, $uploadedFileNames);
-    $filesString = implode(',', $allFiles);
-
-    // Handle file_urls and file_sizes for Digital Ocean Spaces
-    $spacesHelper = new SpacesHelper();
-
-    // Process existing file URLs and sizes
+// Process existing files - only keep those not in the removed list
     $existingUrlsArray = !empty($existingFileUrls) ? explode(',', $existingFileUrls) : [];
     $existingSizesArray = !empty($existingFileSizes) ? explode(',', $existingFileSizes) : [];
 
-    // Remove URLs and sizes for deleted files
-    if (!empty($removedFiles)) {
-        foreach ($removedFiles as $removedFile) {
-            // Find and remove the URL and size that contains this filename
-            foreach ($existingUrlsArray as $key => $url) {
-                if (strpos($url, basename($removedFile)) !== false) {
-                    unset($existingUrlsArray[$key]);
-                    // Also remove the corresponding file size
-                    if (isset($existingSizesArray[$key])) {
-                        unset($existingSizesArray[$key]);
-                    }
-                    // Optionally delete the file from Digital Ocean
-                    $spacesHelper->deleteFile('taskfiles/' . basename($removedFile));
-                    break;
-                }
+// Loop through existing files and keep only non-removed ones
+    foreach ($existingFiles as $index => $filePath) {
+        if (!in_array($filePath, $removedFiles)) {
+            $finalFilePaths[] = $filePath;
+
+            // Add corresponding URL and size if they exist
+            if (isset($existingUrlsArray[$index])) {
+                $finalFileUrls[] = $existingUrlsArray[$index];
+            }
+            if (isset($existingSizesArray[$index])) {
+                $finalFileSizes[] = $existingSizesArray[$index];
             }
         }
-        // Reindex arrays after removal
-        $existingUrlsArray = array_values($existingUrlsArray);
-        $existingSizesArray = array_values($existingSizesArray);
     }
 
-    // Add new file URLs and sizes
-    $newUrls = [];
-    $newSizes = [];
+// Process newly uploaded files
+    $uploadedFiles = json_decode($_POST['uploadedFiles'], true);
+    if (!is_array($uploadedFiles)) {
+        $uploadedFiles = [];
+    }
+
+// Add new files to the final arrays
     foreach ($uploadedFiles as $file) {
+        $finalFilePaths[] = $file['filePath'];
         $fileUrl = $spacesHelper->getFileUrl('taskfiles/' . $file['filePath']);
-        $newUrls[] = $fileUrl;
-        $newSizes[] = isset($file['fileSize']) ? $file['fileSize'] : '0';
+        $finalFileUrls[] = $fileUrl;
+        $finalFileSizes[] = isset($file['fileSize']) ? $file['fileSize'] : '0';
     }
 
-    // Combine remaining existing URLs and sizes with new ones
-    $allUrls = array_merge($existingUrlsArray, $newUrls);
-    $allSizes = array_merge($existingSizesArray, $newSizes);
-
-    $urlsString = implode(',', array_filter($allUrls));
-    $sizesString = implode(',', array_filter($allSizes));
+// Create the final strings for database storage
+    $filesString = implode(',', $finalFilePaths);
+    $urlsString = implode(',', $finalFileUrls);
+    $sizesString = implode(',', $finalFileSizes);
 
     // Update the database with task_files, file_urls, and file_sizes
     $sql = "UPDATE tbltasks SET topic=?, subject=?, account=?, description=?, writer=?, email=?, status=?, due_date=?, cpp=?, pages=?, is_confirmed=?, task_files=?, file_urls=?, file_sizes=? WHERE id=?";
@@ -294,11 +275,17 @@ if ($_POST['action'] == 'submitForm') {
                 }
 
                 header('Content-Type: application/json');
-                $message = 'Task updated successfully.';
+                $response = [
+                    'status' => 'success',
+                    'message' => 'Task updated successfully.',
+                    'task_id' => base64_encode($taskId)
+                ];
+
                 if (!empty($emailStatus)) {
-                    $message .= ' ' . $emailStatus;
+                    $response['emailStatus'] = $emailStatus;
                 }
-                echo json_encode(['status' => 'success', 'message' => $message, 'task_id' => base64_encode($taskId)]);
+
+                echo json_encode($response);
             } else {
                 header('Content-Type: application/json');
                 echo json_encode(['status' => 'error', 'message' => 'No changes were made or task not found.']);

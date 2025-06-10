@@ -2,8 +2,6 @@
     <title>Version Update |iTasker</title>
 <?php include "navi.php";?><div id="alert-container"></div>
 <?php
-
-
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

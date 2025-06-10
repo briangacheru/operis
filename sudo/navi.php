@@ -107,21 +107,69 @@
         background-color: #28a745; /* Example color for Savings */
     }
 
-    /*.create-product-description-textarea textarea {
-        width: 100%;
-        min-height: 120px;
-        padding: 12px;
-        border: 1.5px solid #ced4da;
-        border-radius: 6px;
-        font-size: 1rem;
-        resize: vertical;
-        transition: border-color 0.2s;
+    .custom-toast {
+        position: fixed !important;
+        top: 20px !important;
+        right: 20px !important;
+        min-width: 300px !important;
+        background: white !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        z-index: 99999 !important;
+        animation: slideInRight 0.3s ease-out !important;
+        border-left: 4px solid #28a745 !important;
+        display: block !important;
+        visibility: visible !important;
     }
 
-    .create-product-description-textarea textarea:focus {
-        border-color: #86b7fe;
-        outline: none;
-    }*/
+    .toast-success {
+        border-left-color: #28a745 !important;
+    }
+
+    .toast-error {
+        border-left-color: #dc3545 !important;
+    }
+
+    .toast-content {
+        display: flex !important;
+        align-items: center !important;
+        padding: 15px !important;
+    }
+
+    .toast-icon {
+        font-size: 20px !important;
+        margin-right: 10px !important;
+    }
+
+    .toast-message {
+        flex: 1 !important;
+        font-weight: 500 !important;
+        color: #333 !important;
+    }
+
+    .toast-close {
+        background: none !important;
+        border: none !important;
+        font-size: 18px !important;
+        cursor: pointer !important;
+        color: #999 !important;
+        margin-left: 10px !important;
+    }
+
+    .toast-close:hover {
+        color: #666 !important;
+    }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
 </style>
 
 <script>
@@ -591,8 +639,77 @@
                     </li>
 
                     <li class="nav-item dropdown">
+                        <?php
+                        // Query to count new submitted tasks (not yet acknowledged)
+                        $newTasksCountQuery = mysqli_query($con, "SELECT COUNT(*) AS new_task_count FROM tbltasks WHERE is_deleted = 0 AND status = 'Submitted' AND admin_acknowledged = 0");
+                        $newTasksCountResult = mysqli_fetch_assoc($newTasksCountQuery);
+                        $newTasksCount = $newTasksCountResult['new_task_count'];
+
+                        // Query to fetch new tasks details
+                        $newTasksQuery = mysqli_query($con, "SELECT * FROM tbltasks WHERE is_deleted = 0 AND status = 'Submitted' AND admin_acknowledged = 0 ORDER BY submitted_on DESC");
+                        $newTasks = [];
+                        while ($task = mysqli_fetch_assoc($newTasksQuery)) {
+                            $newTasks[] = $task;
+                        }
+                        ?>
+
+                        <a class="nav-link notification-indicator notification-indicator-success px-0 fa-icon-wait" id="navbarDropdownNewTasks" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <span class="fas fa-tasks" data-fa-transform="shrink-6" style="font-size: 33px;"></span>
+                            <?php if($newTasksCount > 0): ?>
+                                <span class="notification-indicator-number"><?php echo $newTasksCount; ?></span>
+                            <?php endif; ?>
+                        </a>
+
+                        <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end dropdown-menu-card dropdown-menu-notification dropdown-caret-bg" aria-labelledby="navbarDropdownNewTasks">
+                            <div class="card card-notification shadow-none">
+                                <div class="card-header">
+                                    <div class="row justify-content-between align-items-center">
+                                        <div class="col-auto">
+                                            <h6 class="card-header-title mb-0 text-success">New Submitted Tasks</h6>
+                                        </div>
+                                        <div class="col-auto ps-0 ps-sm-3">
+                                            <a class="card-link fw-normal" href="#" onclick="markAllAsRead()">Mark all as read</a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="scrollbar-overlay" style="max-height:19rem">
+                                    <div class="list-group list-group-flush fw-normal fs-10">
+                                        <div class="list-group-title border-bottom text-success">You have <?php echo $newTasksCount; ?> new submitted tasks.</div>
+
+                                        <?php foreach ($newTasks as $key => $task): ?>
+                                            <div class="list-group-item">
+                                                <?php $encodedId = base64_encode($task['id']); ?>
+                                                <a class="notification notification-flush notification-unread" href="view-task?task_id=<?php echo htmlspecialchars($encodedId); ?>" onclick="markTaskAsRead(<?php echo $task['id']; ?>)">
+                                                    <div class="notification-avatar">
+                                                        <div class="avatar avatar-2xl me-3">
+                                                            <span class="material-icons text-success fs-3">assignment</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="notification-body">
+                                                        <p class="mb-1 text-success"><strong>New Task:</strong> <?php echo $task['topic']; ?></p>
+                                                        <span class="notification-time text-muted">
+                                                            <span class="me-2" role="img" aria-label="Time">Submitted: </span>
+                                                            <?php echo date('M j, Y g:i A', strtotime($task['submitted_on'])); ?>
+                                                        </span>
+                                                    </div>
+                                                </a>
+                                            </div>
+                                            <?php if ($key >= 2) break; ?>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                                <div class="card-footer text-center border-top">
+                                    <a class="card-link d-block" href="submitted-tasks">View all</a>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+
+                    <li class="nav-item dropdown">
                         <a class="nav-link notification-indicator notification-indicator-info px-0 fa-icon-wait" id="navbarDropdownNotification" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" data-hide-on-body-scroll="data-hide-on-body-scroll">
                             <span class="fas fa-comment" data-fa-transform="shrink-6" style="font-size: 33px;"></span>
+
                             <span class="notification-indicator-number"><?php echo $unreadMessagesCount; ?></span>
                         </a>
                         <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end dropdown-menu-card dropdown-menu-notification dropdown-caret-bg" aria-labelledby="navbarDropdownNotification">
@@ -666,6 +783,15 @@
                     } ?>
 
                     <li class="nav-item dropdown">
+                        <?php
+                        // Query to fetch late tasks details
+                        $lateTasksQuery = mysqli_query($con, "SELECT * FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND due_date < NOW()  ORDER BY due_date ASC");
+                        $lateTasks = []; // Initialize array to hold late tasks data
+                        while ($task = mysqli_fetch_assoc($lateTasksQuery)) {
+                            $lateTasks[] = $task; // Add each late task to the array
+                        }
+                        $lateTasksCount = count($lateTasks); // Count the number of late tasks for notifications
+                        ?>
                         <a class="nav-link notification-indicator notification-indicator-primary px-0 fa-icon-wait" id="navbarDropdownNotification" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" data-hide-on-body-scroll="data-hide-on-body-scroll"><span class="fas fa-bell" data-fa-transform="shrink-6" style="font-size: 33px;"></span><span class="notification-indicator-number"><?php echo $lateTasksCount; ?></span></a>
                         <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end dropdown-menu-card dropdown-menu-notification dropdown-caret-bg" aria-labelledby="navbarDropdownNotification">
                             <div class="card card-notification shadow-none">
@@ -769,6 +895,7 @@
 
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="changelog">Version</a>
+                                <a class="dropdown-item" href="logs">Logs</a>
 
                                 <div class="dropdown-divider"></div>
                                 <a class="dropdown-item" href="logout?logout=1">Logout</a>

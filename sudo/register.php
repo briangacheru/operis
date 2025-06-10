@@ -1,6 +1,5 @@
 <?php
 include "check-login.php";
-include "functions.php";
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;

@@ -50,10 +50,6 @@ function exportOverdraftAs() {
     form.action = action;
     form.submit();
 }
-    $('#summernote').summernote({
-    tabsize: 1,
-    height: 200
-});
 
 /* -------------------------------------------------------------------------- */
 /*                              Fetch totals for overdraft                    */
@@ -99,42 +95,6 @@ document.addEventListener('DOMContentLoaded', function () {
             alertDiv.classList.remove('alert-success', 'alert-danger');
             alertDiv.textContent = '';
         });
-    });
-
-    document.getElementById('writer-form').addEventListener('submit', function (e) {
-        e.preventDefault();
-
-        const formData = new FormData(this);
-
-        fetch('update-writer', {
-            method: 'POST',
-            body: formData
-        })
-            .then(response => response.json())
-            .then(data => {
-                let alertDiv = document.getElementById('user-modal-alert');
-                if (data.success) {
-                    alertDiv.classList.remove('d-none', 'alert-danger');
-                    alertDiv.classList.add('alert-success');
-                    alertDiv.textContent = data.message;
-                    // Refresh the table data
-                    document.getElementById('table-simple-pagination-body').load(' #table-simple-pagination-body > *');
-                    // Hide the modal after 5 seconds
-                    setTimeout(function() {
-                        $('#user-edit-modal').modal('hide');
-                    }, 5000);
-                } else {
-                    alertDiv.classList.remove('d-none', 'alert-success');
-                    alertDiv.classList.add('alert-danger');
-                    alertDiv.textContent = data.message;
-                }
-            })
-            .catch(error => {
-                let alertDiv = document.getElementById('user-modal-alert');
-                alertDiv.classList.remove('d-none', 'alert-success');
-                alertDiv.classList.add('alert-danger');
-                alertDiv.textContent = 'An error occurred: ' + error.message;
-            });
     });
 });
 

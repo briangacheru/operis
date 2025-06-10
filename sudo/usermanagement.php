@@ -2,6 +2,176 @@
     <title>iTasker | Writer Management</title>
 <?php include "navi.php";
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require 'phpmailer/src/Exception.php';
+require 'phpmailer/src/PHPMailer.php';
+require 'phpmailer/src/SMTP.php';
+
+function sendVerificationEmail($writerName, $writerEmail, $action, $writerId)
+{
+    $mail = new PHPMailer(true);
+    try {
+        $mail->isSMTP();
+        $mail->Host = 'mail.monkbrian.com';
+        $mail->SMTPAuth = true;
+        $mail->Username = 'support@monkbrian.com';
+        $mail->Password = 'EDU+pass.';
+        $mail->SMTPSecure = 'ssl';
+        $mail->Port = 465;
+
+        // Recipients
+        $mail->setFrom('support@monkbrian.com', 'itasker');
+        $mail->addReplyTo('bryo4419@gmail.com', 'itasker admin');
+        $mail->addAddress($writerEmail);
+        $mail->addAddress('bryo4419@gmail.com', 'itasker admin');
+
+        // Content
+        $status = $action == 'verified' ? 'VERIFIED' : 'UNVERIFIED';
+        $statusColor = $action == 'verified' ? '#28a745' : '#dc3545';
+        $mail->isHTML(true);
+        $mail->Subject = 'Account ' . $status . ' - itasker Writer ID: ' . $writerId . ' ';
+
+        // Email Body with Logo and Modern Formatting
+        $companyLogo = 'https://web.monkbrian.com/assets/img/team/itasker-email-header.png';
+        $dashboardUrl = "https://web.monkbrian.com/login";
+
+        $verificationMessage = $action == 'verified'
+            ? "Congratulations! Your writer account has been successfully verified. You can now access all platform features and start receiving tasks."
+            : "Your writer account verification has been revoked. Please contact support if you believe this is an error.";
+
+        $actionButton = $action == 'verified'
+            ? "<a class='btn' href='$dashboardUrl' style='background: #28a745;'>Access itasker</a>"
+            : "<a class='btn' href='mailto:bryo4419@gmail.com' style='background: #dc3545;'>Contact Support</a>";
+
+        $mail->Body = "
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        background-color: #f4f4f4;
+                        padding: 20px;
+                    }
+                    .email-container {
+                        max-width: 600px;
+                        background: #ffffff;
+                        margin: 0 auto;
+                        padding: 20px;
+                        border-radius: 8px;
+                        box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+                    }
+                    .email-header {
+                        text-align: center;
+                        border-bottom: 2px solid #0073e6;
+                        padding-bottom: 15px;
+                    }
+                    .email-header img {
+                        max-width: 100%;
+                        height: auto;
+                        max-height:100px;
+                    }
+                    .email-content {
+                        padding: 20px;
+                    }
+                    .email-content h2 {
+                        color: $statusColor;
+                        text-align: center;
+                    }
+                    .email-content p {
+                        font-size: 16px;
+                        line-height: 1.5;
+                        color: #333;
+                    }
+                    .highlight {
+                        font-weight: bold;
+                        color: #0073e6;
+                    }
+                    .status-badge {
+                        display: inline-block;
+                        background: $statusColor;
+                        color: white;
+                        padding: 8px 16px;
+                        border-radius: 20px;
+                        font-weight: bold;
+                        font-size: 14px;
+                    }
+                    .btn {
+                        display: block;
+                        text-align: center;
+                        color: #ffffff;
+                        padding: 12px;
+                        border-radius: 5px;
+                        text-decoration: none;
+                        font-size: 16px;
+                        font-weight: bold;
+                        margin-top: 20px;
+                        transition: opacity 0.3s ease-in-out;
+                    }
+                    .btn:hover {
+                        opacity: 0.8;
+                        color: #ffffff !important;
+                    }
+                    .footer {
+                        text-align: center;
+                        padding-top: 15px;
+                        font-size: 12px;
+                        color: #777;
+                    }
+                    .verification-info {
+                        background: #f8f9fa;
+                        padding: 15px;
+                        border-radius: 5px;
+                        margin: 15px 0;
+                        border-left: 4px solid $statusColor;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class='email-container'>
+                    <div class='email-header'>
+                        <img src='{$companyLogo}' alt='Company Logo'>
+                    </div>
+                    <div class='email-content'>
+                        <h2>Account Verification Update</h2>
+                        <p>Hello <span class='highlight'>$writerName</span>,</p>
+                        <div class='verification-info'>
+                            <p style='margin: 0; text-align: center;'>
+                                Your account status: <span class='status-badge'>$status</span>
+                            </p>
+                        </div>
+                        <p>$verificationMessage</p>
+                        <p><strong>Writer ID:</strong> <span class='highlight'>$writerId</span></p>
+                        <p><strong>Email:</strong> <span class='highlight'>$writerEmail</span></p>
+                        <p><strong>Status Changed:</strong> <span class='highlight'>" . date('F j, Y \a\t g:i A') . "</span></p>
+                        $actionButton
+                    </div>
+                    <div class='footer'>
+                        <p>For any questions, contact <a href='mailto:bryo4419@gmail.com'>bryo4419@gmail.com</a></p>
+                        <p>&copy; " . date('Y') . " itasker. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>";
+        $mail->AltBody = "Account Verification Update\n\n
+                    Hello $writerName,\n\n
+                    Your account status: $status\n
+                    $verificationMessage\n\n
+                    Writer ID: $writerId\n
+                    Email: $writerEmail\n
+                    Status Changed: " . date('F j, Y \a\t g:i A') . "\n\n
+                    Dashboard: $dashboardUrl\n\n
+                    For any questions, contact bryo4419@gmail.com";
+
+        $mail->send();
+
+    } catch (Exception $e) {
+        error_log("Verification email could not be sent. Mailer Error: {$mail->ErrorInfo}");
+    }
+}
+
 $status = "OK";
 $msg = "";
 if (isset($_GET['delid'])) {
@@ -29,23 +199,38 @@ if (isset($_GET['delid'])) {
     exit;
 }
 
-// Place this code near your deletion logic
+// Writer verification
 if (isset($_GET['verifyid'])) {
     $userid = $_GET['verifyid'];
     if (is_numeric($userid) && !empty($userid)) {
-        // Check current verification status
-        $checkQuery = mysqli_query($con, "SELECT is_verified FROM tblwriters WHERE id='$userid'");
-        $row = mysqli_fetch_assoc($checkQuery);
-        $newStatus = $row['is_verified'] ? 0 : 1; // Toggle status
+        // Get writer details before updating
+        $writerQuery = mysqli_query($con, "SELECT username, email, is_verified FROM tblwriters WHERE id='$userid'");
+        $writerData = mysqli_fetch_assoc($writerQuery);
 
-        // Perform the update operation
-        $query = mysqli_query($con, "UPDATE tblwriters SET is_verified = '$newStatus' WHERE id='$userid'");
-        if ($query) {
-            $_SESSION['alert'] = '<div class="alert alert-success alert-dismissible fade show" role="alert">User verification status updated.
-                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>';
+        if ($writerData) {
+            $currentStatus = $writerData['is_verified'];
+            $newStatus = $currentStatus ? 0 : 1; // Toggle status
+            $writerName = $writerData['username'];
+            $writerEmail = $writerData['email'];
+
+            // Perform the update operation
+            $query = mysqli_query($con, "UPDATE tblwriters SET is_verified = '$newStatus' WHERE id='$userid'");
+            if ($query) {
+                // Send email notification
+                $action = $newStatus ? 'verified' : 'unverified';
+                sendVerificationEmail($writerName, $writerEmail, $action, $userid);
+
+                $statusText = $newStatus ? 'verified' : 'unverified';
+                $_SESSION['alert'] = '<div class="alert alert-success alert-dismissible fade show" role="alert">User verification status updated to ' . $statusText . '. Email notification sent.
+                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>';
+            } else {
+                $_SESSION['alert'] = '<div class="alert alert-warning alert-dismissible fade show" role="alert">Error updating verification status.
+                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>';
+            }
         } else {
-            $_SESSION['alert'] = '<div class="alert alert-warning alert-dismissible fade show" role="alert">Error updating verification status.
+            $_SESSION['alert'] = '<div class="alert alert-warning alert-dismissible fade show" role="alert">Writer not found.
                                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>';
         }
@@ -82,11 +267,6 @@ if (isset($_GET['verifyid'])) {
             </div>
         </div>
     </div>
-    <!--<div class="alert alert-success border-0 d-flex align-items-center" role="alert">
-        <div class="bg-success me-3 icon-item"><span class="fas fa-check-circle text-white fs-6"></span></div>
-        <p class="mb-0 flex-1">A simple success alert—check it out!</p>
-        <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>-->
 
 <?php
 if (isset($_SESSION['alert'])) {
@@ -107,20 +287,8 @@ if (isset($_SESSION['alert'])) {
                                         <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
                                         </div>
                                         <div class="col-6 col-sm-auto ms-auto text-end ps-0">
-                                            <!--<div class="d-none" id="table-simple-pagination-actions">
-                                                <div class="d-flex">
-                                                    <button type="button" class="btn btn-falcon-info btn-sm ms-2" onclick="submitForm('mark-tasks-completed.php')">Mark as Completed</button>
-                                                    <button type="button" class="btn btn-falcon-success btn-sm ms-2" onclick="submitForm('mark-tasks-paid.php')">Mark as Paid</button>
-                                                </div>
-                                            </div>-->
                                             <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
                                                 <button class="btn btn-falcon-primary btn-sm" onclick="exportWriter()" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
-                                                <!--<div class="dropdown font-sans-serif ms-2">
-                                                    <button class="btn btn-falcon-default text-600 btn-sm dropdown-toggle dropdown-caret-none" type="button" id="preview-dropdown" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-ellipsis-h fs-11"></span></button>
-                                                    <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="preview-dropdown"><a class="dropdown-item" href="#!">View</a><a class="dropdown-item" href="#!">Export</a>
-                                                        <div class="dropdown-divider"></div><a class="dropdown-item text-danger" href="#!">Remove</a>
-                                                    </div>
-                                                </div>-->
                                             </div>
                                         </div>
                                     </div>
@@ -156,7 +324,41 @@ if (isset($_SESSION['alert'])) {
                                                     </div>
                                                 </td>
                                                 <td class="align-middle white-space-nowrap "><?php echo $row["id"];?></td>
-                                                <td class="align-middle white-space-nowrap fw-semi-bold"><a href="writer?writerID=<?php echo $encodedId;?>"><?php echo $row["username"];?></a></td>
+                                                <td>
+                                                    <div class="d-flex align-items-center position-relative">
+                                                        <div class="flex-1">
+                                                            <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" target="_blank" href="writer?writerID=<?php echo $encodedId;?>"><?php echo $row["username"];?></a></h6>
+                                                            <p class="fw-semi-bold mb-0 text-500">
+                                                                <?php
+                                                                if (isset($row["last_seen"]) && !empty($row["last_seen"])) {
+                                                                    $lastSeen = new DateTime($row["last_seen"]);
+                                                                    $now = new DateTime();
+                                                                    $diff = $now->diff($lastSeen);
+
+                                                                    if ($diff->y > 0) {
+                                                                        echo "Last seen " . $diff->y . "y ago";
+                                                                    } elseif ($diff->m > 0) {
+                                                                        echo "Last seen " . $diff->m . "mo ago";
+                                                                    } elseif ($diff->days >= 7) {
+                                                                        $weeks = floor($diff->days / 7);
+                                                                        echo "Last seen " . $weeks . "w ago";
+                                                                    } elseif ($diff->days > 0) {
+                                                                        echo "Last seen " . $diff->days . "d ago";
+                                                                    } elseif ($diff->h > 0) {
+                                                                        echo "Last seen " . $diff->h . "h ago";
+                                                                    } elseif ($diff->i > 0) {
+                                                                        echo "Last seen " . $diff->i . "m ago";
+                                                                    } else {
+                                                                        echo "Online";
+                                                                    }
+                                                                } else {
+                                                                    echo "Last seen: Unknown";
+                                                                }
+                                                                ?>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </td>
                                                 <td class="align-middle white-space-nowrap text-900"><?php echo $row["email"];?></td>
                                                 <td class="align-middle white-space-nowrap text-900"><?php echo date("jS M, Y", strtotime($row['created_at'])); ?></td>
                                                 <td class="align-middle white-space-nowrap email">
@@ -174,7 +376,12 @@ if (isset($_SESSION['alert'])) {
                                                         <a class="btn btn-outline-primary bg-primary icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" href="#user-edit-modal" title="Edit Writer" data-writer-id="<?php echo $row['id']; ?>" data-writer="<?php echo $row['username']; ?>" data-email="<?php echo $row['email']; ?>" data-phone="<?php echo $row['phone']; ?>"><span class="far fa-edit"></span></a>
                                                         <a href="usermanagement?verifyid=<?php echo $row['id'];?>" class="btn btn-outline-danger bg-<?php echo $row['is_verified'] ? 'danger' : 'success'; ?> icon-item rounded-3 me-2 fs-11 icon-item-sm" onclick="return confirm('Do you want to <?php echo $row['is_verified'] ? 'unverify' : 'verify'; ?> this writer?');" title="<?php echo $row['is_verified'] ? 'Unverify' : 'Verify'; ?> Writer"><i class="bi bi-<?php echo $row['is_verified'] ? 'x-circle-fill' : 'check-circle-fill'; ?>"></i></a>
                                                         <?php if ($row['is_verified'] == 0) { ?>
-                                                            <a href="usermanagement?delid=<?php echo $row['id'];?>" class="btn btn-outline-danger bg-danger icon-item rounded-3 me-2 fs-11 icon-item-sm" onclick="return confirm('Are you sure you want to delete this writer?');" title="Delete Writer"><span class="fas fa-trash"></span></a>
+                                                            <button type="button" class="btn btn-outline-danger bg-danger icon-item rounded-3 me-2 fs-11 icon-item-sm delete-writer-btn"
+                                                                    data-writer-id="<?php echo $row['id']; ?>"
+                                                                    data-writer-username="<?php echo htmlspecialchars($row['username']); ?>"
+                                                                    title="Delete Writer">
+                                                                <span class="fas fa-trash"></span>
+                                                            </button>
                                                         <?php } ?>
                                                     </div>
                                                     <div class="dropdown font-sans-serif btn-reveal-trigger">
@@ -197,6 +404,70 @@ if (isset($_SESSION['alert'])) {
         </div>
     </div>
 
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="delete-confirmation-modal" tabindex="-1" aria-labelledby="deleteConfirmationLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteConfirmationLabel">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Confirm Deletion
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-warning me-2"></i>
+                        <strong>Warning:</strong> This action cannot be undone!
+                    </div>
+                    <p>Are you absolutely sure you want to delete this writer account?</p>
+                    <p><strong>Writer:</strong> <span id="writer-to-delete"></span></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="proceed-to-verification">Yes, Proceed to Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Username Verification Modal -->
+    <div class="modal fade" id="username-verification-modal" tabindex="-1" aria-labelledby="usernameVerificationLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="usernameVerificationLabel">
+                        <i class="fas fa-shield-alt me-2"></i>Verify Username to Delete
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <strong>Final Step:</strong> Type the exact username to confirm deletion.
+                    </div>
+                    <p>To confirm deletion, click the Auto-fill button to populate the username: <strong><span id="username-to-verify"></span></strong></p>                    <div class="mb-3">
+                        <label for="username-input" class="form-label">Enter Username:</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="username-input" placeholder="Click copy button then paste here">
+                            <button class="btn btn-outline-secondary" type="button" id="copy-username-btn" title="Auto-fill Username">
+                                <i class="fas fa-magic"></i> Auto-fill
+                            </button>
+                        </div>
+                        <div class="form-text text-danger d-none" id="username-error">Username does not match!</div>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Username is case-sensitive and must match exactly.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete-btn" disabled>Delete Writer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="user-edit-modal" tabindex="-1" role="dialog" aria-labelledby="user-edit-modal-label" aria-hidden="true">
         <div class="modal-dialog mt-6" role="document">
             <div class="modal-content border-0">
@@ -211,7 +482,7 @@ if (isset($_SESSION['alert'])) {
                     <form id="writer-form">
                         <input type="hidden" id="writer-id" name="writer-id">
                         <div class="mb-3">
-                            <label class="form-label" for="modal-auth-writer">Name</label>
+                            <label class="form-label" for="modal-auth-writer">Username</label>
                             <input class="form-control" type="text" autocomplete="on" name="name" id="modal-auth-writer" />
                         </div>
                         <div class="mb-3">
@@ -233,6 +504,153 @@ if (isset($_SESSION['alert'])) {
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            let currentWriterId = null;
+            let currentWriterUsername = null;
+
+            // Handle delete button clicks
+            const deleteButtons = document.querySelectorAll('.delete-writer-btn');
+            deleteButtons.forEach((button, index) => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    currentWriterId = this.getAttribute('data-writer-id');
+                    currentWriterUsername = this.getAttribute('data-writer-username');
+
+                    // Show writer info in confirmation modal
+                    const writerToDeleteElement = document.getElementById('writer-to-delete');
+                    if (writerToDeleteElement) {
+                        writerToDeleteElement.textContent = currentWriterUsername;
+                    }
+
+                    // Show first confirmation modal
+                    const modalElement = document.getElementById('delete-confirmation-modal');
+                    if (modalElement) {
+                        const confirmModal = new bootstrap.Modal(modalElement);
+                        confirmModal.show();
+                    }
+                });
+            });
+
+            // Handle copy username button
+            const copyUsernameBtn = document.getElementById('copy-username-btn');
+            if (copyUsernameBtn) {
+                copyUsernameBtn.addEventListener('click', function() {
+                    const usernameInput = document.getElementById('username-input');
+
+                    if (currentWriterUsername && usernameInput) {
+                        // Directly paste into input field
+                        usernameInput.value = currentWriterUsername;
+                        usernameInput.focus();
+
+                        // Trigger input event to validate
+                        usernameInput.dispatchEvent(new Event('input'));
+
+                        // Visual feedback
+                        const originalText = copyUsernameBtn.innerHTML;
+                        copyUsernameBtn.innerHTML = '<i class="fas fa-check"></i> Done!';
+                        copyUsernameBtn.classList.remove('btn-outline-secondary');
+                        copyUsernameBtn.classList.add('btn-success');
+
+                        setTimeout(function() {
+                            copyUsernameBtn.innerHTML = originalText;
+                            copyUsernameBtn.classList.remove('btn-success');
+                            copyUsernameBtn.classList.add('btn-outline-secondary');
+                        }, 1500);
+                    }
+                });
+            }
+
+            // Handle proceed to verification
+            const proceedBtn = document.getElementById('proceed-to-verification');
+            if (proceedBtn) {
+                proceedBtn.addEventListener('click', function() {
+                    // Hide first modal
+                    const confirmModal = bootstrap.Modal.getInstance(document.getElementById('delete-confirmation-modal'));
+                    if (confirmModal) {
+                        confirmModal.hide();
+                    }
+
+                    // Show username verification modal
+                    const usernameToVerifyElement = document.getElementById('username-to-verify');
+                    if (usernameToVerifyElement) {
+                        usernameToVerifyElement.textContent = currentWriterUsername;
+                    }
+
+                    document.getElementById('username-input').value = '';
+                    document.getElementById('username-error').classList.add('d-none');
+                    document.getElementById('confirm-delete-btn').disabled = true;
+
+                    const verificationModal = new bootstrap.Modal(document.getElementById('username-verification-modal'));
+                    verificationModal.show();
+                });
+            }
+
+            // Handle username input validation
+            const usernameInput = document.getElementById('username-input');
+            if (usernameInput) {
+                usernameInput.addEventListener('input', function() {
+                    const enteredUsername = this.value;
+                    const errorDiv = document.getElementById('username-error');
+                    const confirmBtn = document.getElementById('confirm-delete-btn');
+
+                    if (enteredUsername === currentWriterUsername) {
+                        errorDiv.classList.add('d-none');
+                        confirmBtn.disabled = false;
+                        this.classList.remove('is-invalid');
+                        this.classList.add('is-valid');
+                    } else {
+                        if (enteredUsername.length > 0) {
+                            errorDiv.classList.remove('d-none');
+                            this.classList.remove('is-valid');
+                            this.classList.add('is-invalid');
+                        } else {
+                            errorDiv.classList.add('d-none');
+                            this.classList.remove('is-invalid', 'is-valid');
+                        }
+                        confirmBtn.disabled = true;
+                    }
+                });
+            }
+
+            // Handle final deletion
+            const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+            if (confirmDeleteBtn) {
+                confirmDeleteBtn.addEventListener('click', function() {
+                    // Hide the verification modal
+                    const verificationModal = bootstrap.Modal.getInstance(document.getElementById('username-verification-modal'));
+                    if (verificationModal) {
+                        verificationModal.hide();
+                    }
+
+                    // Redirect to delete URL
+                    window.location.href = `usermanagement?delid=${currentWriterId}`;
+                });
+            }
+
+            // Reset modals when closed
+            const deleteConfirmModal = document.getElementById('delete-confirmation-modal');
+            if (deleteConfirmModal) {
+                deleteConfirmModal.addEventListener('hidden.bs.modal', function() {
+                    // Keep variables for verification modal
+                });
+            }
+
+            const usernameVerificationModal = document.getElementById('username-verification-modal');
+            if (usernameVerificationModal) {
+                usernameVerificationModal.addEventListener('hidden.bs.modal', function() {
+                    document.getElementById('username-input').value = '';
+                    document.getElementById('username-error').classList.add('d-none');
+                    document.getElementById('username-input').classList.remove('is-valid', 'is-invalid');
+                    document.getElementById('confirm-delete-btn').disabled = true;
+
+                    // Reset variables only when verification modal closes
+                    currentWriterId = null;
+                    currentWriterUsername = null;
+                });
+            }
+
+            // Existing edit modal functionality
             document.querySelectorAll('[data-bs-toggle="modal"]').forEach(button => {
                 button.addEventListener('click', function () {
                     const id = this.getAttribute('data-writer-id');
@@ -297,7 +715,6 @@ if (isset($_SESSION['alert'])) {
                 window.location.href = 'export_writers';
             }
         }
-
     </script>
 <?php
 include "footer.php";

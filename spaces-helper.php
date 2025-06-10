@@ -29,8 +29,8 @@ class SpacesHelper {
         }
 
         try {
-            // Generate a unique file name to avoid overwriting
-            $uniqueFileName = time() . '_' . $fileName;
+            // Use filename as-is (assuming it already has unique ID from upload_update.php)
+            $uniqueFileName = $fileName;
 
             // Add folder prefix if specified
             $objectKey = empty($folder) ? $uniqueFileName : trim($folder, '/') . '/' . $uniqueFileName;

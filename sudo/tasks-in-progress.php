@@ -187,10 +187,10 @@ if (isset($_GET['del'])) {
                                             </th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task #</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Topic</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap text-center">Status</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Status</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Account</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Deadline</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">Amount</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Amount</th>
                                             <th class="text-900 no-sort pe-1 align-middle data-table-row-action"></th>
                                         </tr>
                                         </thead>
@@ -294,7 +294,7 @@ if (isset($_GET['del'])) {
                                                 <h6 class="mb-1 fw-semi-bold text-nowrap"><?php echo $timeDiff;?></h6>
                                                 <p class="fw-semi-bold mb-0 text-500"><?php echo date('M j, g:ia', strtotime($row["due_date"]));?></p>
                                             </td>
-                                            <td class="align-middle text-end amount">
+                                            <td class="align-middle amount">
                                                 <h6 class="mb-0"><?php echo number_format($totalprice,2); ?></h6>
                                                 <p class="fs-11 mb-0"><?php echo $statusBadgePay;?></p>
                                             </td>
@@ -321,7 +321,7 @@ if (isset($_GET['del'])) {
                                             <td class="align-middle white-space-nowrap product">Bose SoundSport Wireless Headphones</td>
                                             <td class="align-middle text-center fs-9 white-space-nowrap payment"><span class="badge badge rounded-pill badge-subtle-success">Success<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span>
                                             </td>
-                                            <td class="align-middle text-end amount">$634</td>
+                                            <td class="align-middle amount">$634</td>
                                             <td class="align-middle white-space-nowrap text-end">
                                                 <div class="dropstart font-sans-serif position-static d-inline-block">
                                                     <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal float-end" type="button" id="dropdown-simple-pagination-table-item-1" data-bs-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false" data-bs-reference="parent"><span class="fas fa-ellipsis-h fs-10"></span></button>

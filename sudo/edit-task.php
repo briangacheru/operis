@@ -619,11 +619,20 @@ if ($row = mysqli_fetch_array($result)) {
         function removeFileReference(filePath, elementToRemove) {
             if (confirm('Are you sure you want to remove this file from the task?')) {
                 elementToRemove.remove();
+
                 // Add the removed file path to a hidden input field
                 const removedFilesInput = document.getElementById('removedFiles');
                 let removedFiles = removedFilesInput.value ? JSON.parse(removedFilesInput.value) : [];
                 removedFiles.push(filePath);
                 removedFilesInput.value = JSON.stringify(removedFiles);
+
+                // Also remove from existing files array if it exists
+                const existingFilesInputs = document.querySelectorAll('input[name="existingFiles[]"]');
+                existingFilesInputs.forEach(input => {
+                    if (input.value === filePath) {
+                        input.remove();
+                    }
+                });
             }
         }
 
@@ -675,16 +684,24 @@ if ($row = mysqli_fetch_array($result)) {
                             // TRIGGER FIREWORKS ON SUCCESS!
                             triggerFireworks();
 
+                            let fullMessage = '🎉 Task updated successfully! 🎉';
+
+                            // Check if there's email status information in the response
+                            if (data.emailStatus) {
+                                if (data.emailStatus.includes('successfully')) {
+                                    fullMessage += ' Email sent successfully.';
+                                } else {
+                                    fullMessage += ' Email sending failed.';
+                                }
+                            }
+
                             // Show success message with fireworks
-                            displayBootstrapAlert('🎉 Task updated successfully! 🎉', 'success');
+                            displayBootstrapAlert(fullMessage, 'success');
 
                             // Delay the redirect to let users enjoy the fireworks
                             setTimeout(() => {
-                                const message = encodeURIComponent(data.message);
-                                const fullMessage = data.message;
-                                window.location.href = `view-task?task_id=${data.task_id}&message=${encodeURIComponent(fullMessage)}`;
-                            }, 4500); // 2 second delay
-
+                                window.location.href = `view-task?task_id=${data.task_id}`;
+                            }, 5500);
                         } else if (data.status === 'error') {
                             displayBootstrapAlert(`Failed to update the task: ${data.message}`, 'danger');
                             resetButton();
