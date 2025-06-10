@@ -33,7 +33,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // Generate a unique filename to prevent overwriting
         $originalName = $file['name'];
         $extension = pathinfo($originalName, PATHINFO_EXTENSION);
-        $uniqueName = uniqid() . '_' . $originalName;
+        $uniqueString = substr(md5(uniqid()), 0, 4); // Generate a 4-character unique string
+        $filenameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME); // Get filename without extension
+        $uniqueName = $filenameWithoutExt . '_' . $uniqueString . '.' . $extension; // Append unique string
 
         // Create a temporary file path
         $tempFilePath = $file['tmp_name'];
@@ -72,8 +74,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             header('Content-Type: application/json');
             echo json_encode([
                 'status' => 'success',
-                'filePath' => $uniqueName, // Just the filename
-                'fileUrl' => $fileUrl // The full URL
+                'message' => 'File uploaded successfully',
+                'filePath' => $uniqueName,
+                'fileUrl' => $fileUrl,
+                'fileSize' => $file['size']
             ]);
         } catch (AwsException $e) {
             header('Content-Type: application/json');

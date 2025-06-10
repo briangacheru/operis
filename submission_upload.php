@@ -36,7 +36,7 @@ function downloadFile($url, $localPath) {
     return $success;
 }
 
-if ($_POST['action'] == 'submitForm') {
+if (isset($_POST['action']) && $_POST['action'] == 'submitForm') {
     // Ensure taskfiles has at least one file
     if (empty($_POST['uploadedFiles']) || $_POST['uploadedFiles'] === '[]') {
         header('Content-Type: application/json');
@@ -78,11 +78,11 @@ if ($_POST['action'] == 'submitForm') {
     }
 
     // Fetch existing files and sizes from the database
-    $query = "SELECT submitted_files, submitted_file_sizes FROM tbltasks WHERE id = ?";
+    $query = "SELECT submitted_files, submitted_file_urls, submitted_file_sizes FROM tbltasks WHERE id = ?";
     if ($stmt = mysqli_prepare($con, $query)) {
         mysqli_stmt_bind_param($stmt, 'i', $taskId);
         mysqli_stmt_execute($stmt);
-        mysqli_stmt_bind_result($stmt, $existingFilesString, $existingFileSizesString);
+        mysqli_stmt_bind_result($stmt, $existingFilesString, $existingFileUrlsString, $existingFileSizesString);
         mysqli_stmt_fetch($stmt);
         mysqli_stmt_close($stmt);
     } else {
@@ -128,6 +128,7 @@ if ($_POST['action'] == 'submitForm') {
 
         if (mysqli_stmt_execute($stmt)) {
             if (mysqli_stmt_affected_rows($stmt) > 0) {
+                $emailStatus = '';
                 if ($sendEmail == '1') {
                     $encodedId = base64_encode((string)$taskId);
                     $total_price = $pages * $cpp;
@@ -162,11 +163,8 @@ if ($_POST['action'] == 'submitForm') {
                         // Content
                         $mail->isHTML(true); // Set email format to HTML
                         $mail->Subject = 'Task ID: ' . $taskId . ' - ' . $topic . ' - [ ' . $account . ' ] ';
-
-// Email Body with Logo and Modern Formatting
                         $companyLogo = 'https://web.monkbrian.com/assets/img/team/itasker-email-header.png';
                         $taskDetailsUrl = "https://web.monkbrian.com/view-task?task_id=" . $encodedId;
-
                         $mail->Body = "
                             <!DOCTYPE html>
                             <html>
@@ -239,7 +237,7 @@ if ($_POST['action'] == 'submitForm') {
                             <body>
                                 <div class='email-container'>
                                     <div class='email-header'>
-                                        <img src='{$companyLogo}' alt='Company Logo'>
+                                        <img src='{$companyLogo}' alt='itasker logo'>
                                     </div>
                                     <div class='email-content'>
                                         <h2>Task Submitted Successfully!</h2>
@@ -287,7 +285,11 @@ if ($_POST['action'] == 'submitForm') {
                 }
 
                 header('Content-Type: application/json');
-                echo json_encode(['status' => 'success', 'message' => 'Task submitted successfully. ' . ($sendEmail == '1' ? $emailStatus : ''), 'task_id' => base64_encode($taskId)]);
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => 'Task submitted successfully. ' . ($sendEmail == '1' ? $emailStatus : ''),
+                    'task_id' => base64_encode($taskId)
+                ]);
             } else {
                 header('Content-Type: application/json');
                 echo json_encode(['status' => 'error', 'message' => 'No changes were made or task not found.']);

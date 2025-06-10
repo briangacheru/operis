@@ -150,7 +150,7 @@ if (isset($_GET['task_id'])) {
                         alertElement.remove();
                     });
                 }
-            }, 60000); // 5000 milliseconds = 5 seconds
+            }, 5000); // 5000 milliseconds = 5 seconds
         </script>
                 ";
         }
@@ -620,28 +620,27 @@ if (isset($_SESSION['alert'])) {
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             const timeElement = document.getElementById('time-remaining');
+            // Exit early if element doesn't exist
+            if (!timeElement) {
+                return;
+            }
             let remainingSeconds = <?= $remainingSeconds ?>;
-
             function updateTime() {
                 if (remainingSeconds <= 0) {
                     timeElement.style.color = 'red';
                     timeElement.innerHTML = "Past Due";
                     return;
                 }
-
                 const hours = Math.floor(remainingSeconds / 3600);
                 const minutes = Math.floor((remainingSeconds % 3600) / 60);
                 const seconds = remainingSeconds % 60;
 
                 timeElement.innerHTML = `Time Remaining: ${hours} hrs ${minutes} min ${seconds} sec`;
                 timeElement.style.color = 'green';
-
                 remainingSeconds--;
             }
-
             // Update every second
             setInterval(updateTime, 1000);
-
             // Initialize immediately
             updateTime();
         });

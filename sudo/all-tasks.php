@@ -131,7 +131,7 @@ if (isset($_GET['del'])) {
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Status</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Account</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Deadline</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">Amount</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Amount</th>
                                             <th class="text-900 no-sort pe-1 align-middle data-table-row-action"></th>
                                         </tr>
                                         </thead>
@@ -243,7 +243,7 @@ if (isset($_GET['del'])) {
                                                 <h6 class="mb-0"><?php echo $timeDiff;?></h6>
                                                 <p class="fs-11 mb-0"><?php  echo date("d M Y, g:i A", strtotime($row['create_date']));?></p>
                                             </td>
-                                            <td class="align-middle text-end amount">
+                                            <td class="align-middle amount">
                                                 <h6 class="mb-0"><?php echo number_format($totalprice,2); ?></h6>
                                                 <p class="fs-11 mb-0"><?php echo $statusBadgePay;?></p>
                                             </td>

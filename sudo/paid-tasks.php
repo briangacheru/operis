@@ -68,7 +68,7 @@ $msg = "";
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Status</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Account</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Subject</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">Amount</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Amount</th>
                                             <th class="text-900 no-sort pe-1 align-middle data-table-row-action"></th>
                                         </tr>
                                         </thead>
@@ -185,7 +185,7 @@ $msg = "";
                                                 <p class="fw-semi-bold mb-0 text-500"><?php echo $row["writer"];?></p>
                                                 </td>
                                             <td class="align-middle white-space-nowrap text-900"><?php echo $row["subject"];?></td>
-                                            <td class="align-middle text-end amount">
+                                            <td class="align-middle amount">
                                                 <h6 class="mb-0"><?php echo number_format($totalprice,2); ?></h6>
                                                 <p class="fs-11 mb-0"><?php echo $statusBadgePay;?> |
                                                 <?php if ($is_paid == 1):

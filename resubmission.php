@@ -115,28 +115,29 @@ $confirmation = "<span class='badge $confirmationClass'>$confirmationText</span>
 
     <!-- Display Bootstrap Alerts -->
 <?php
-if (isset($_GET['message'])) {
-    // Sanitize the message to remove any HTML tags
-    $message = htmlspecialchars($_GET['message'], ENT_QUOTES, 'UTF-8');
+if (isset($_SESSION['success_message'])) {
+    $message = htmlspecialchars($_SESSION['success_message'], ENT_QUOTES, 'UTF-8');
     echo "
-                <div class='alert alert-success border-0 d-flex align-items-center' role='alert'>
-                    <div class='bg-success me-3 icon-item'><span class='fas fa-check-circle text-white fs-6'></span></div>
-                        <p class='mb-0 flex-1'>$message</p>
-                    <button class='btn-close' type='button' data-bs-dismiss='alert' aria-label='Close'></button>
-                </div>
-                <script>
-            // Use JavaScript to hide the alert after 5 seconds
-            setTimeout(function() {
-                var alertElement = document.querySelector('.alert');
-                if (alertElement) {
-                    alertElement.classList.add('fade'); // Add Bootstrap's fade class
-                    alertElement.addEventListener('transitionend', function() {
-                        alertElement.remove();
-                    });
-                }
-            }, 5000); // 5000 milliseconds = 5 seconds
-        </script>
-                ";
+    <div class='alert alert-success border-0 d-flex align-items-center' role='alert'>
+    <div class='bg-success me-3 icon-item'><span class='fas fa-check-circle text-white fs-6'></span></div>
+    <p class='mb-0 flex-1'>$message</p>
+    <button class='btn-close' type='button' data-bs-dismiss='alert' aria-label='Close'></button>
+    </div>
+    <script>
+    // Use JavaScript to hide the alert after 5 seconds
+    setTimeout(function() {
+    var alertElement = document.querySelector('.alert-success');
+    if (alertElement) {
+    alertElement.classList.add('fade');
+    alertElement.addEventListener('transitionend', function() {
+    alertElement.remove();
+    });
+    }
+    }, 5000);
+    </script>
+    ";
+    // Clear the message after displaying it
+    unset($_SESSION['success_message']);
 }
 ?>
 <?php
@@ -638,7 +639,7 @@ if (isset($_SESSION['alert'])) {
             }
 
             async function deleteFileFromServer(filePath) {
-                const url = 'delete_file';
+                const url = 'delete-file';
                 const formData = new FormData();
                 formData.append('filePath', filePath);
                 formData.append('action', 'deleteFile');
@@ -659,7 +660,7 @@ if (isset($_SESSION['alert'])) {
 
             function deleteFile(filePath, elementToRemove) {
                 if (confirm('Are you sure you want to delete this file?')) {
-                    fetch('delete_file', {  // Updated to use the new delete_file endpoint
+                    fetch('delete-file', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
@@ -762,7 +763,7 @@ if (isset($_SESSION['alert'])) {
                                 setTimeout(() => {
                                     const message = encodeURIComponent(data.message);
                                     window.location.href = `view-task?task_id=${data.task_id}&message=${message}`;
-                                }, 3500); // Increased timeout to match fireworks duration
+                                }, 4000);
                             } else {
                                 displayBootstrapAlert(`Failed to update the form: ${data.message}`, 'danger');
                                 // Reset button state

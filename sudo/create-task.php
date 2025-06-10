@@ -511,17 +511,13 @@
                                 // TRIGGER FIREWORKS ON SUCCESS!
                                 triggerFireworks();
 
-                                const message = encodeURIComponent(data.message);
-                                const emailSentMessage = data.emailSent ? 'Email sent successfully.' : 'Email sending failed.';
-                                const fullMessage = `${data.message} ${emailSentMessage}`;
-
                                 // Show success message with fireworks
-                                displayBootstrapAlert('🎉 Task created successfully! 🎉', 'success');
+                                displayBootstrapAlert(`🎉 ${data.message} 🎉`, 'success');
 
                                 // Delay the redirect to let users enjoy the fireworks
                                 setTimeout(() => {
-                                    window.location.href = `view-task?task_id=${data.task_id}&message=${encodeURIComponent(fullMessage)}`;
-                                }, 4500);
+                                    window.location.href = `view-task?task_id=${data.task_id}`;
+                                }, 5000);
 
                             } else if (data.status === 'error') {
                                 displayBootstrapAlert(`Failed to submit the form: ${data.message}`, 'danger');

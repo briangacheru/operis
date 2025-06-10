@@ -29,8 +29,13 @@ class SpacesHelper {
         }
 
         try {
-            // Generate a unique file name to avoid overwriting
-            $uniqueFileName = time() . '_' . $fileName;
+            /// Generate a unique file name with 4 random characters after the filename
+            $pathInfo = pathinfo($fileName);
+            $baseName = $pathInfo['filename'];
+            $extension = isset($pathInfo['extension']) ? '.' . $pathInfo['extension'] : '';
+            $randomId = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 4);
+
+            $uniqueFileName = $baseName . '_' . $randomId . $extension;
 
             // Add folder prefix if specified
             $objectKey = empty($folder) ? $uniqueFileName : trim($folder, '/') . '/' . $uniqueFileName;

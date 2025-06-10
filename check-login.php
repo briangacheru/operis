@@ -4,61 +4,13 @@ session_start();
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+ini_set('log_errors', 1); // Log errors to file
+ini_set('error_log', __DIR__ . '/php-errors.log');
 date_default_timezone_set('Africa/Nairobi');
 
 include('dbcon.php');
 include('functions.php');
 
-function check_login() {
-    if (!isset($_SESSION['sessionWriter']) || strlen($_SESSION['sessionWriter']) == 0) {
-        $host = $_SERVER['HTTP_HOST'];
-        $uri  = rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
-        $extra = "login.php";
-        $_SESSION["id"] = "";
-        header("Location: http://$host$uri/$extra");
-        exit();
-    }
-}
-
-function formatSizeUnits($bytes) {
-    if ($bytes >= 1073741824) {
-        $bytes = number_format($bytes / 1073741824, 2) . ' GB';
-    } elseif ($bytes >= 1048576) {
-        $bytes = number_format($bytes / 1048576, 2) . ' MB';
-    } elseif ($bytes >= 1024) {
-        $bytes = number_format($bytes / 1024, 2) . ' KB';
-    } elseif ($bytes > 1) {
-        $bytes = $bytes . ' bytes';
-    } elseif ($bytes == 1) {
-        $bytes = $bytes . ' byte';
-    } else {
-        $bytes = '0 bytes';
-    }
-    return $bytes;
-}
-
-function updateUserStatus($email, $userType, $isOnline) {
-    global $con;
-    $table = $userType === 'admin' ? 'tblwriters' : 'tblwriters';
-    $lastSeen = $isOnline ? 'NOW()' : 'NOW()';
-
-    $query = "UPDATE $table SET is_online = ?, last_seen = $lastSeen WHERE email = ?";
-    $stmt = $con->prepare($query);
-    $stmt->bind_param("is", $isOnline, $email);
-    $stmt->execute();
-    $stmt->close();
-}
-
-function logout() {
-    if (isset($_SESSION['sessionWriter'])) {
-        $email = $_SESSION['sessionWriter'];
-        $userType = 'admin'; // Adjust if necessary
-        updateUserStatus($email, $userType, false);
-    }
-    session_unset();     // Unset $_SESSION variables
-    session_destroy();   // Destroy session data on the server
-    setcookie('PHPSESSID', '', time() - 3600, '/'); // Destroy session data in the cookie
-}
 
 $self = $_SERVER["PHP_SELF"];
 $allowed_pages = ['login.php', 'reset-password.php', 'forgot-password.php'];
@@ -76,20 +28,23 @@ if (stripos($self, 'index.php') !== false) {
 }
 
 // Define session timeout duration
-$session_timeout_duration = 3600; // 60 minutes
+$session_timeout_duration = 86400; // 24 hrs
 
 // Check if last_activity is set
 if (isset($_SESSION['last_activity'])) {
     // Check if the session is older than 60 minutes
     if (time() - $_SESSION['last_activity'] > $session_timeout_duration) {
         // Store the current page before logging out
-        $_SESSION['last_page'] = $_SERVER['REQUEST_URI'];
+        $lastPage = $_SERVER['REQUEST_URI'];
+
+        // Store in cookie since session will be destroyed
+        setcookie('last_page_before_timeout', $lastPage, time() + 300, '/', '', isset($_SERVER["HTTPS"]), true); // 5 minutes
 
         // Logout the user
         logout();
 
-        // Redirect to login page
-        header("Location: login.php");
+        // Redirect to login page with timeout parameter
+        header("Location: login.php?timeout=1");
         exit();
     }
 }
@@ -116,18 +71,32 @@ if (!isset($_SESSION['sessionWriter']) && isset($_COOKIE['rememberme'])) {
 
     if ($result->num_rows == 1) {
         $row = $result->fetch_assoc();
-        $_SESSION['sessionWriter'] = $row['email']; // Log the user in by setting the session variable
+        $_SESSION['sessionWriter'] = $row['email'];
+
+        // Log automatic login via remember me token
+        if (isset($activityLogger)) {
+            $additionalData = [
+                'login_method' => 'remember_token',
+                'auto_login' => true
+            ];
+            $activityLogger->logActivity($row['email'], 'login_success', null, $additionalData);
+        }
 
         // Update user status to online
         $email = $_SESSION['sessionWriter'];
-        $userType = 'writer'; // Adjust if necessary
+        $userType = 'writer';
         updateUserStatus($email, $userType, true);
 
-        // Redirect back to the last page if set
-        if (isset($_SESSION['last_page'])) {
-            $last_page = $_SESSION['last_page'];
-            unset($_SESSION['last_page']); // Clear the stored last page
-            header("Location: $last_page");
+        // Check for last page cookies and redirect
+        if (isset($_COOKIE['last_page_before_timeout'])) {
+            $lastPage = $_COOKIE['last_page_before_timeout'];
+            setcookie('last_page_before_timeout', '', time() - 3600, '/');
+            header("Location: $lastPage");
+            exit();
+        } elseif (isset($_COOKIE['last_page_before_logout'])) {
+            $lastPage = $_COOKIE['last_page_before_logout'];
+            setcookie('last_page_before_logout', '', time() - 3600, '/');
+            header("Location: $lastPage");
             exit();
         }
     }

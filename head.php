@@ -16,7 +16,6 @@ $userID = $userResult['id']; // Get the userID
 
 // Query to fetch unread messages details by userID
 $unreadMessagesQuery = mysqli_query($con, "SELECT * FROM chat_messages WHERE is_read = 0 AND receiver_id = '$userID' ORDER BY timestamp ASC");
-
 $unreadMessages = []; // Initialize array to hold unread messages data
 while ($message = mysqli_fetch_assoc($unreadMessagesQuery)) {
     $unreadMessages[] = $message; // Add each unread message to the array

@@ -266,4 +266,34 @@ function formatFileSize($bytes) {
     return round($bytes, 2) . ' ' . $units[$pow];
 }
 
+// Function to calculate time ago
+function time_ago($timestamp) {
+    $currentTime = time();
+    $timeDifference = $currentTime - strtotime($timestamp);
+
+    $seconds = $timeDifference;
+    $minutes = round($timeDifference / 60);
+    $hours = round($timeDifference / 3600);
+    $days = round($timeDifference / 86400);
+    $weeks = round($timeDifference / 604800);
+    $months = round($timeDifference / 2419200);
+    $years = round($timeDifference / 29030400);
+
+    if ($seconds <= 60) {
+        return "Just Now";
+    } else if ($minutes <= 60) {
+        return $minutes . " minutes ago";
+    } else if ($hours <= 24) {
+        return $hours . " hours ago";
+    } else if ($days <= 7) {
+        return $days . " days ago";
+    } else if ($weeks <= 4) {
+        return $weeks . " weeks ago";
+    } else if ($months <= 12) {
+        return $months . " months ago";
+    } else {
+        return $years . " years ago";
+    }
+}
+
 ?>

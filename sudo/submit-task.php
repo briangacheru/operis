@@ -239,8 +239,15 @@ if ($_POST['action'] == 'submitForm') {
                     // Handle email sending error
                     error_log("Message could not be sent. Mailer Error: {$mail->ErrorInfo}");
                 }
+                $emailStatus = $emailSent ? 'Email sent successfully.' : 'Email sending failed.';
+                $successMessage = "Task created successfully. {$emailStatus}";
 
-                echo json_encode(['status' => 'success', 'message' => 'Task created successfully.', 'task_id' => $encodedId, 'emailSent' => $emailSent]);
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => $successMessage,
+                    'task_id' => $encodedId,
+                    'emailSent' => $emailSent
+                ]);
             } else {
                 header('Content-Type: application/json');
                 echo json_encode(['status' => 'error', 'message' => 'Failed to create task.']);

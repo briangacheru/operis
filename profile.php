@@ -154,7 +154,6 @@ if($query->rowCount() > 0)
                   <div class="collapse show" id="profile-intro">
                     <p class="mt-3  text-primary">I’ve acquired a wide depth of knowledge and expertise in using my technical skills in programming, computer science, software development, and mobile app development to developing solutions to help organizations increase productivity, and accelerate business performance. </p>
                     <p class="text-primary">It’s great that we live in an age where we can share so much with technology but I’m but I’m ready for the next phase of my career, with a healthy balance between the virtual world and a workplace where I help others face-to-face.</p>
-                    <p class=" mb-0 text-primary">There’s always something new to learn, especially in IT-related fields. People like working with me because I can explain technology to everyone, from staff to executives who need me to tie together the details and the big picture. I can also implement the technologies that successful projects need.</p>
                   </div>
                 </div>
                 <div class="card-footer bg-body-tertiary p-0 border-top">

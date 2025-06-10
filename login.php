@@ -1,6 +1,5 @@
 <?php
 require_once('check-login.php');
-
 $loginMessage = ''; // Initialize a variable to hold the login message
 $loginError = ''; // Initialize a variable to hold the login error message
 
@@ -30,30 +29,63 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $_SESSION['sessionWriter'] = $email;
 
                 if (isset($_POST['remember'])) {
-                    $rememberToken = bin2hex(random_bytes(16)); // Secure random token
-                    // Securely hash the remember token before storing it
+                    $rememberToken = bin2hex(random_bytes(16));
                     $hashedRememberToken = password_hash($rememberToken, PASSWORD_DEFAULT);
                     $updateTokenSql = "UPDATE tblwriters SET remember_token = ? WHERE email = ?";
                     $stmt = $con->prepare($updateTokenSql);
                     $stmt->bind_param('ss', $hashedRememberToken, $email);
                     $stmt->execute();
 
-                    setcookie('rememberme', $rememberToken, time() + 86400, '/', '', true, true); // Secure cookie attributes
+                    setcookie('rememberme', $rememberToken, time() + 86400, '/', '', true, true);
                 }
+
                 // Update user status to online
                 updateUserStatus($email, 'admin', true);
 
                 $loginMessage = "
                     <div class='alert alert-success alert-dismissible fade show' role='alert'>
-                        <i class='bi bi-check-circle me-1'></i> Login successful. Redirecting!
-                        <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
+                    <i class='bi bi-check-circle me-1'></i> Login successful. Redirecting!
+                    <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
                     </div>";
 
+                // Determine redirect location
+                $redirectUrl = 'index.php'; // Default redirect
+
+                // Debug: Check what cookies exist
+                error_log("Available cookies: " . print_r($_COOKIE, true));
+
+                // Check for last page cookies
+                if (isset($_COOKIE['last_page_before_timeout'])) {
+                    $redirectUrl = $_COOKIE['last_page_before_timeout'];
+                    setcookie('last_page_before_timeout', '', time() - 420, '/'); // Clear cookie
+                    error_log("Redirecting to timeout page: " . $redirectUrl);
+                } elseif (isset($_COOKIE['last_page_before_logout'])) {
+                    $redirectUrl = $_COOKIE['last_page_before_logout'];
+                    setcookie('last_page_before_logout', '', time() - 420, '/'); // Clear cookie
+                    error_log("Redirecting to logout page: " . $redirectUrl);
+                }
+
+                // Ensure redirect URL is safe - only check for external URLs
+                if (strpos($redirectUrl, 'http://') === 0 || strpos($redirectUrl, 'https://') === 0) {
+                    // Check if it's the same domain
+                    $parsedUrl = parse_url($redirectUrl);
+                    $currentDomain = $_SERVER['HTTP_HOST'];
+                    if ($parsedUrl['host'] !== $currentDomain) {
+                        $redirectUrl = 'index.php'; // Fallback for external URLs
+                    }
+                }
+
+                // Remove any login.php references to avoid loops
+                if (strpos($redirectUrl, 'login.php') !== false) {
+                    $redirectUrl = 'index.php';
+                }
+
                 echo "<script>
-                        setTimeout(function(){
-                            window.location.href = 'index.php';
-                        }, 2000); // Redirect after 2 seconds
-                      </script>";
+                    console.log('Redirecting to: $redirectUrl');
+                    setTimeout(function(){
+                        window.location.href = '$redirectUrl';
+                    }, 2000);
+                    </script>";
             } else {
                 $loginError = "
                     <div class='alert alert-danger alert-dismissible fade show' role='alert'>
@@ -159,11 +191,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             <div class="col-md-7 d-flex flex-center">
                                 <div class="p-4 p-md-5 flex-grow-1">
                                     <?php
-                                    if (session_status() == PHP_SESSION_NONE) {
-                                        session_start();
+                                    // Check for timeout message FIRST
+                                    if (isset($_GET['timeout']) && $_GET['timeout'] == '1') {
+                                        $loginError = "
+                                            <div class='alert alert-warning alert-dismissible fade show' role='alert'>
+                                            <i class='bi bi-clock me-1'></i> Your session has expired due to inactivity. Please log in again.
+                                            <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
+                                            </div>";
                                     }
-                                    // Attempt to display any error message first
+
+                                    // Then display any existing login errors
                                     echo $loginError;
+
                                     // Check if there is a success message to display
                                     if (!empty($loginMessage)) {
                                         echo "<p>$loginMessage</p>";
