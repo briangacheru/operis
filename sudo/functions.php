@@ -114,8 +114,6 @@ function display_subAlert() {
         unset($_SESSION['subAlert']); // Clear the alert after displaying it
     }
 }
-
-
 function redirect($location){
     return header("Location: {$location}");
 }
@@ -295,5 +293,61 @@ function time_ago($timestamp) {
         return $years . " years ago";
     }
 }
+
+function timeAgo($datetime)
+{
+    $commentTime = new DateTime($datetime);
+    $now = new DateTime();
+    $interval = $now->diff($commentTime);
+
+    if ($interval->y > 0) {
+        return $interval->y . ' year' . ($interval->y > 1 ? 's' : '') . ' ago';
+    } elseif ($interval->m > 0) {
+        return $interval->m . ' month' . ($interval->m > 1 ? 's' : '') . ' ago';
+    } elseif ($interval->d > 0) {
+        return $interval->d . ' day' . ($interval->d > 1 ? 's' : '') . ' ago';
+    } elseif ($interval->h > 0) {
+        return $interval->h . ' hour' . ($interval->h > 1 ? 's' : '') . ' ago';
+    } elseif ($interval->i > 0) {
+        return $interval->i . ' minute' . ($interval->i > 1 ? 's' : '') . ' ago';
+    } else {
+        return 'Just now';
+    }
+}
+
+function timeSubAgo($datetime, $showFullDateAfter = 31) { // Show full date after 7 days
+    $time = time() - strtotime($datetime);
+    $days = floor($time / 86400);
+
+    // Show full date if older than specified days
+    if ($days > $showFullDateAfter) {
+        return date('M j, Y g:i A', strtotime($datetime));
+    }
+
+    if ($time < 60) return 'just now';
+    if ($time < 3600) return floor($time/60) . 'm ago';
+    if ($time < 86400) return floor($time/3600) . 'h ago';
+    return $days . 'd ago';
+}
+
+// Helper functions
+function sanitize($data) {
+    return htmlspecialchars(strip_tags(trim($data)));
+}
+
+function formatDateTime($date, $time) {
+    return date('M j, Y g:i A', strtotime($date . ' ' . $time));
+}
+
+function getPriorityBadge($priority) {
+    $badges = [
+        'low' => 'badge-success',
+        'medium' => 'badge-warning',
+        'high' => 'badge-danger'
+    ];
+    return $badges[$priority] ?? 'badge-secondary';
+}
+
+
 
 ?>

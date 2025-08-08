@@ -216,10 +216,14 @@ include "footer.php";
                 var badgeClass = badges[status] || 'badge-subtle-secondary';
                 content.classList.add('badge', 'w-100', 'rounded-pill', badgeClass);
                 content.innerHTML = '<strong>' + info.event.title + '</strong>';
+                content.title = info.event.title; // Show full text on hover
                 return { domNodes: [content] };
             }
         });
         calendar.render();
+        window.addEventListener('resize', function() {
+            calendar.updateSize();
+        });
 
         document.querySelectorAll('.dropdown-item').forEach(function(item) {
             item.addEventListener('click', function(e) {

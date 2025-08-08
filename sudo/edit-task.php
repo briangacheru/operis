@@ -14,7 +14,7 @@ if (isset($_GET['task_id'])) {
 
 
 // Define variables for task data
-$taskTopic = $taskSubject = $taskAccount = $taskStatus = $taskConfirmation = $taskIsPaid = $taskDescription = $taskWriter = $taskDueDate  = $taskCPP = $taskDuplicate = $taskPages = $existingFiles = '';
+$taskTopic = $taskSubject = $taskAccount = $taskStatus = $taskConfirmation = $taskIsPaid = $taskDescription = $taskWriter = $taskDueDate  = $taskCPP = $taskDuplicate = $taskPages = '';
 
 // Retrieve the task data from the database
 $sql2 = "SELECT * FROM tbltasks WHERE id='$taskId'";
@@ -33,9 +33,10 @@ if ($row = mysqli_fetch_array($result)) {
     $taskDueDate = $row["due_date"];
     $taskCPP = $row["cpp"];
     $taskPages = $row["pages"];
-    $existingFiles = $row['task_files']; // Assuming this contains comma-separated file paths
     $taskCreatedOn = $row["create_date"];
     $taskDuplicate = $row["is_duplicate"];
+    $admin_acknowledged = $row["admin_acknowledged"];
+    $acknowledged = $row["acknowledged"];
 
 }
 ?>
@@ -102,7 +103,7 @@ if ($row = mysqli_fetch_array($result)) {
                                 </div>
                                 <div class="col-sm-6 mb-3">
                                     <label class="form-label" for="product-summary">Pages: </label>
-                                    <input class="form-control"  type="number" name="pages" id="pages" min="0" step="0.01" value="<?php  echo $taskPages;?>" required="required"/>
+                                    <input class="form-control"  type="number" name="pages" id="pages" min="0" step="0.5" value="<?php  echo $taskPages;?>" required="required"/>
                                     <div class="invalid-feedback">This field is required</div>
                                 </div>
                                 <div class="col-sm-6 mb-3">
@@ -133,7 +134,7 @@ if ($row = mysqli_fetch_array($result)) {
                                 </div>
                                 <div class="col-sm-6 mb-3">
                                     <label class="form-label" for="cpp">Select writer: </label>
-                                    <select class="form-select" name="writer" id="writerSelect" required="required">
+                                    <select class="form-select js-choice" name="writer" id="writerSelect" required="required" data-options='{"removeItemButton":true,"placeholder":true}'>
                                         <option disabled value="">Select Writer</option>
                                         <?php
                                         // Assuming $con is your database connection
@@ -168,6 +169,20 @@ if ($row = mysqli_fetch_array($result)) {
                                         <option value="0">No</option>
                                     </select>
                                 </div>
+                                <div class='col-sm-6 mb-3'>
+                                    <label class='form-label' for='cpp'>Admin Acknowledged: </label>
+                                    <select class='form-select' id='admin_acknowledged' name='admin_acknowledged' required='required'>
+                                        <option value='1' <?php echo ($admin_acknowledged == '1') ? 'selected' : ''; ?>>Yes</option>
+                                        <option value="0" <?php echo ($admin_acknowledged == '0') ? 'selected' : ''; ?>>No</option>
+                                    </select>
+                                </div>
+                                <div class='col-sm-6 mb-3'>
+                                    <label class='form-label' for='cpp'>Writer Acknowledged: </label>
+                                    <select class='form-select' id='acknowledged' name='acknowledged' required='required'>
+                                        <option value='1' <?php echo ($acknowledged == '1') ? 'selected' : ''; ?>>Yes</option>
+                                        <option value="0" <?php echo ($acknowledged == '0') ? 'selected' : ''; ?>>No</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -179,7 +194,7 @@ if ($row = mysqli_fetch_array($result)) {
                             <div class="row gx-2">
                                 <div class="col-12 mb-3">
                                     <label class="form-label" for="task-description">Task description:</label>
-                                    <div class="min-vh-25" id="description"><?php echo ($taskDescription); ?></div>
+                                    <div id="description"><?php echo ($taskDescription); ?></div>
                                     <input type="hidden" name="description" id="description-input">
                                     <script>
                                         const quill = new Quill('#description', {
@@ -241,46 +256,57 @@ if ($row = mysqli_fetch_array($result)) {
                             </div>
                         </div>
                     </div>
-                    <div class="col mb-3">
-                        <div class="row g-3">
-                            <div class="col-xxl-12">
-                                <div class="card h-100 h-xxl-auto mt-xxl-3">
-                                    <div class="card-header d-flex flex-between-center bg-body-tertiary py-2">
-                                        <h6 class="mb-0">Task Files</h6><!--<a class="py-1 fs-10 font-sans-serif" href="#!">View All</a>-->
+
+                    <!-- Task Files card section -->
+                    <div class='col mb-3'>
+                        <div class='row g-3'>
+                            <div class='col-xxl-12'>
+                                <div class='card h-100 h-xxl-auto mt-xxl-3'>
+                                    <div class='card-header d-flex flex-between-center bg-body-tertiary py-2'>
+                                        <h6 class='mb-0'>Task Files</h6>
                                     </div>
-                                    <div class="card-body position-relative">
-                                        <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/icons/spot-illustrations/corner-2.png);">
-                                        </div>
+                                    <div class='card-body position-relative'>
+                                        <div class='bg-holder bg-card d-none d-md-block'
+                                             style='background-image:url(../assets/img/icons/spot-illustrations/corner-2.png);'></div>
                                         <?php
-                                        if (!empty($existingFiles)) {
-                                            $filePaths = explode(',', $existingFiles);
-                                            foreach ($filePaths as $filePath) {
-                                                $fileName = basename($filePath); // Extracts the filename from the path
+                                        // Get task files from new table
+                                        $taskFilesQuery = "SELECT * FROM tbl_task_files WHERE task_id = ? AND file_type = 'task' AND is_deleted = 0 ORDER BY upload_time ASC";
+                                        $stmt = mysqli_prepare($con, $taskFilesQuery);
+                                        mysqli_stmt_bind_param($stmt, 'i', $taskId);
+                                        mysqli_stmt_execute($stmt);
+                                        $taskFilesResult = mysqli_stmt_get_result($stmt);
 
-                                                $spacesHelper = new SpacesHelper();
-                                                $fileUrl = $spacesHelper->getFileUrl($filePath);
-                                                $formattedDate = date("d M Y, g:i A", strtotime($taskCreatedOn)); // Format 'submitted_on' date
-                                                $fileSize = "Unknown size";
-                                                $thumbnailPath = "../assets/img/icons/docs.png"; // Placeholder path for the thumbnail
+                                        if (mysqli_num_rows($taskFilesResult) > 0) {
+                                            while ($fileRow = mysqli_fetch_assoc($taskFilesResult)) {
+                                                $fileName = $fileRow['original_file_name'];
+                                                $filePath = $fileRow['file_path'];
+                                                $fileUrl = $fileRow['file_url'];
+                                                $fileSize = $fileRow['file_size'];
+                                                $uploadTime = $fileRow['upload_time'];
+                                                $fileId = $fileRow['id'];
+                                                $formattedSize = formatFileSize($fileSize);
+                                                $formattedDate = date('d M Y, g:i A', strtotime($uploadTime));
 
+                                                // Determine thumbnail based on file extension
+                                                $thumbnailPath = '../assets/img/icons/docs.png';
                                                 $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
                                                 switch (strtolower($fileExtension)) {
                                                     case 'pdf':
-                                                        $thumbnailPath = "../assets/img/icons/pdf.png";
+                                                        $thumbnailPath = '../assets/img/icons/pdf.png';
                                                         break;
                                                     case 'doc':
                                                     case 'docx':
                                                     case 'rtf':
-                                                        $thumbnailPath = "../assets/img/icons/word.png";
+                                                        $thumbnailPath = '../assets/img/icons/word.png';
                                                         break;
                                                     case 'xls':
                                                     case 'xlsx':
                                                     case 'csv':
-                                                        $thumbnailPath = "../assets/img/icons/excel.png";
+                                                        $thumbnailPath = '../assets/img/icons/excel.png';
                                                         break;
                                                     case 'ppt':
                                                     case 'pptx':
-                                                        $thumbnailPath = "../assets/img/icons/powerpoint.png";
+                                                        $thumbnailPath = '../assets/img/icons/powerpoint.png';
                                                         break;
                                                     case 'mp4':
                                                     case 'avi':
@@ -293,40 +319,63 @@ if ($row = mysqli_fetch_array($result)) {
                                                     case '3gp':
                                                     case 'webm':
                                                     case 'm4v':
-                                                        $thumbnailPath = "../assets/img/icons/mp4.png";
+                                                        $thumbnailPath = '../assets/img/icons/mp4.png';
                                                         break;
                                                     case 'jpg':
                                                     case 'jpeg':
                                                     case 'png':
                                                     case 'gif':
-                                                        $thumbnailPath = "../assets/img/icons/image.png";
+                                                        $thumbnailPath = '../assets/img/icons/image.png';
                                                         break;
                                                     case 'zip':
                                                     case 'rar':
-                                                        $thumbnailPath = "../assets/img/icons/zip.png";
+                                                        $thumbnailPath = '../assets/img/icons/zip.png';
                                                         break;
                                                     default:
-                                                        $thumbnailPath = "../assets/img/icons/docs.png";
+                                                        $thumbnailPath = '../assets/img/icons/docs.png';
                                                         break;
                                                 }
                                                 ?>
                                                 <div class="d-flex mb-3 hover-actions-trigger align-items-center">
-                                                    <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
+                                                    <div class="file-thumbnail">
+                                                        <img class="border h-100 w-100 object-fit-cover rounded-2"
+                                                             src="<?php echo $thumbnailPath; ?>" alt=""/>
+                                                    </div>
                                                     <div class="ms-3 flex-shrink-1 flex-grow-1">
-                                                        <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                                        <div class="fs-10"><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
-                                                        <input type="hidden" name="existingFiles[]" value="<?php echo htmlspecialchars($filePath); ?>">
-                                                        <input type="hidden" id="removedFiles" name="removedFiles" value="">
-                                                        <!-- Add or adjust action buttons as necessary -->
+                                                        <h6 class="mb-1">
+                                                            <a class="stretched-link text-900 fw-semi-bold"
+                                                               href="<?php echo $fileUrl; ?>"><?php echo htmlspecialchars($fileName); ?></a>
+                                                        </h6>
+                                                        <div class="fs-10">
+                                                            <span class="fw-medium text-600"><?php echo $formattedSize; ?></span>
+                                                            <span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span>
+                                                        </div>
+                                                        <input type="hidden" name="existingFileIds[]"
+                                                               value="<?php echo $fileId; ?>">
+                                                        <input type="hidden" id="removedFileIds" name="removedFileIds"
+                                                               value="">
                                                         <div class="hover-actions end-0 top-50 translate-middle-y">
-                                                            <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="../assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
-                                                            <button class="btn btn-tertiary border-300 btn-sm me-1 text-600 shadow-none delete-btn" type="button" data-file-path="<?php echo htmlspecialchars($filePath); ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Remove"><img src="../assets/img/icons/delete.svg" alt="" width="15" /></button>
+                                                            <a class="btn btn-tertiary border-300 btn-sm me-1 text-600"
+                                                               data-bs-toggle="tooltip" data-bs-placement="top"
+                                                               title="Download" href="<?php echo $fileUrl; ?>"
+                                                               download="<?php echo htmlspecialchars($fileName); ?>">
+                                                                <img src="../assets/img/icons/cloud-download.svg" alt=""
+                                                                     width="15"/>
+                                                            </a>
+                                                            <button class="btn btn-tertiary border-300 btn-sm me-1 text-600 shadow-none delete-btn"
+                                                                    type="button" data-file-id="<?php echo $fileId; ?>"
+                                                                    data-bs-toggle="tooltip" data-bs-placement="top"
+                                                                    title="Remove">
+                                                                <img src="../assets/img/icons/delete.svg" alt=""
+                                                                     width="15"/>
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <hr class="text-200" />
+                                                <hr class="text-200"/>
                                                 <?php
                                             }
+                                            mysqli_stmt_close($stmt);
                                         } else {
                                             echo '<div>No task files attached.</div>';
                                         }
@@ -336,6 +385,7 @@ if ($row = mysqli_fetch_array($result)) {
                             </div>
                         </div>
                     </div>
+
                     <div class="card mb-3">
                         <div class="card-header bg-body-tertiary">
                             <h6 class="mb-0">Add task file(s)</h6>
@@ -509,8 +559,8 @@ if ($row = mysqli_fetch_array($result)) {
         fileContainer.addEventListener('click', function(e) {
             if (e.target.closest('.delete-btn')) {
                 e.preventDefault();
-                const filePath = e.target.closest('.delete-btn').getAttribute('data-file-path');
-                removeFileReference(filePath, e.target.closest('.d-flex'));
+                const fileId = e.target.closest('.delete-btn').getAttribute('data-file-id');
+                removeFileReference(fileId, e.target.closest('.d-flex'));
             }
         });
 
@@ -616,23 +666,54 @@ if ($row = mysqli_fetch_array($result)) {
             }
         }
 
-        function removeFileReference(filePath, elementToRemove) {
+        async function removeFileReference(fileId, elementToRemove) {
             if (confirm('Are you sure you want to remove this file from the task?')) {
-                elementToRemove.remove();
+                try {
+                    // Show loading state on delete button
+                    const deleteBtn = elementToRemove.querySelector('.delete-btn');
+                    const originalContent = deleteBtn.innerHTML;
+                    deleteBtn.disabled = true;
+                    deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
 
-                // Add the removed file path to a hidden input field
-                const removedFilesInput = document.getElementById('removedFiles');
-                let removedFiles = removedFilesInput.value ? JSON.parse(removedFilesInput.value) : [];
-                removedFiles.push(filePath);
-                removedFilesInput.value = JSON.stringify(removedFiles);
+                    // Make AJAX call to delete file immediately
+                    const formData = new FormData();
+                    formData.append('action', 'delete_file');
+                    formData.append('file_id', fileId);
 
-                // Also remove from existing files array if it exists
-                const existingFilesInputs = document.querySelectorAll('input[name="existingFiles[]"]');
-                existingFilesInputs.forEach(input => {
-                    if (input.value === filePath) {
-                        input.remove();
+                    const response = await fetch('update-task', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const responseText = await response.text();
+                    console.log('Delete response:', responseText);
+
+                    // Try to parse JSON from response
+                    const jsonMatch = responseText.match(/(\{.*\})$/s);
+                    if (jsonMatch && jsonMatch[1]) {
+                        const data = JSON.parse(jsonMatch[1]);
+
+                        if (data.status === 'success') {
+                            // Remove the element from DOM
+                            elementToRemove.remove();
+                            displayBootstrapAlert('File removed successfully!', 'success');
+                        } else {
+                            displayBootstrapAlert(`Failed to remove file: ${data.message}`, 'danger');
+                            // Reset button state
+                            deleteBtn.disabled = false;
+                            deleteBtn.innerHTML = originalContent;
+                        }
+                    } else {
+                        throw new Error('Invalid server response');
                     }
-                });
+                } catch (error) {
+                    console.error('Error removing file:', error);
+                    displayBootstrapAlert('Error removing file. Please try again.', 'danger');
+                    // Reset button state
+                    const deleteBtn = elementToRemove.querySelector('.delete-btn');
+                    deleteBtn.disabled = false;
+                    deleteBtn.innerHTML = '<img src="../assets/img/icons/delete.svg" alt="" width="15" />';
+                }
             }
         }
 

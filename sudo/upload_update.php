@@ -5,6 +5,19 @@ require 'vendor/autoload.php';
 use Aws\S3\S3Client;
 use Aws\Exception\AwsException;
 
+// Sanitize filename to remove problematic characters
+function sanitizeFileName($fileName) {
+    // Replace problematic characters with underscores (excluding space)
+    $fileName = str_replace(['#', '?', '&', '%', '+', '='], '_', $fileName);
+    // Remove any remaining special characters except dots, hyphens, underscores, and spaces
+    $fileName = preg_replace('/[^a-zA-Z0-9._\s-]/', '_', $fileName);
+    // Remove multiple consecutive underscores
+    $fileName = preg_replace('/_+/', '_', $fileName);
+    // Remove leading/trailing underscores
+    $fileName = trim($fileName, '_');
+    return $fileName;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'upload') {
     if (isset($_FILES['file'])) {
         $file = $_FILES['file'];
@@ -30,11 +43,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             exit;
         }
 
-        // Generate a unique filename to prevent overwriting
+        // Sanitize the original filename first
         $originalName = $file['name'];
-        $extension = pathinfo($originalName, PATHINFO_EXTENSION);
+        $sanitizedName = sanitizeFileName($originalName);
+
+        // Generate a unique filename to prevent overwriting
+        $extension = pathinfo($sanitizedName, PATHINFO_EXTENSION);
         $uniqueString = substr(md5(uniqid()), 0, 4); // Generate a 4-character unique string
-        $filenameWithoutExt = pathinfo($originalName, PATHINFO_FILENAME); // Get filename without extension
+        $filenameWithoutExt = pathinfo($sanitizedName, PATHINFO_FILENAME); // Get filename without extension
         $uniqueName = $filenameWithoutExt . '_' . $uniqueString . '.' . $extension; // Append unique string
 
         // Create a temporary file path
@@ -68,16 +84,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 'ContentType' => mime_content_type($tempFilePath),
             ]);
 
-            // Use CDN endpoint if available
-            $fileUrl = $config['cdn_endpoint'] . '/' . $key;
+            // Use direct Spaces URL instead of CDN
+            $fileUrl = 'https://' . $config['bucket'] . '.' . $config['region'] . '.digitaloceanspaces.com/' . $key;
 
             header('Content-Type: application/json');
             echo json_encode([
                 'status' => 'success',
                 'message' => 'File uploaded successfully',
-                'filePath' => $uniqueName,
+                'filePath' => $uniqueName, // Just the filename, not the full path
                 'fileUrl' => $fileUrl,
-                'fileSize' => $file['size']
+                'fileSize' => $file['size'],
+                'originalFileName' => $originalName, // Keep original for display
+                'actualFileName' => $uniqueName // Just the sanitized + unique filename
             ]);
         } catch (AwsException $e) {
             header('Content-Type: application/json');

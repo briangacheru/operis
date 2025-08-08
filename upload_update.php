@@ -12,6 +12,19 @@ function generateShortId($length = 4) {
     return $randomString;
 }
 
+// Sanitize filename to remove problematic characters
+function sanitizeFileName($fileName) {
+    // Replace problematic characters with underscores (excluding space)
+    $fileName = str_replace(['#', '?', '&', '%', '+', '='], '_', $fileName);
+    // Remove any remaining special characters except dots, hyphens, underscores, and spaces
+    $fileName = preg_replace('/[^a-zA-Z0-9._\s-]/', '_', $fileName);
+    // Remove multiple consecutive underscores
+    $fileName = preg_replace('/_+/', '_', $fileName);
+    // Remove leading/trailing underscores
+    $fileName = trim($fileName, '_');
+    return $fileName;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'upload') {
     if (isset($_FILES['file'])) {
         $file = $_FILES['file'];
@@ -27,9 +40,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $originalFileName = $file['name'];
         $fileSize = $file['size'];
 
+        // Sanitize the original filename
+        $sanitizedFileName = sanitizeFileName($originalFileName);
+
         // Process filename to add unique ID
-        $fileExtension = pathinfo($originalFileName, PATHINFO_EXTENSION);
-        $fileNameWithoutExt = pathinfo($originalFileName, PATHINFO_FILENAME);
+        $fileExtension = pathinfo($sanitizedFileName, PATHINFO_EXTENSION);
+        $fileNameWithoutExt = pathinfo($sanitizedFileName, PATHINFO_FILENAME);
 
         // Generate unique 4-character ID
         $uniqueId = generateShortId(4);
@@ -46,8 +62,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 'status' => 'success',
                 'filePath' => $result['key'],
                 'fileUrl' => $result['url'],
-                'fileName' => $originalFileName, // Keep original filename for display
-                'actualFileName' => $newFileName, // Actual filename with unique ID
+                'fileName' => $originalFileName,        // Keep this for backward compatibility
+                'originalName' => $originalFileName,    // Add this for clarity
+                'actualFileName' => $newFileName,
                 'fileSize' => $fileSize
             ]);
         } else {

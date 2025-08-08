@@ -246,16 +246,29 @@ if (isset($_SESSION['alert'])) {
                         <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(assets/img/icons/spot-illustrations/corner-2.png);">
                         </div>
                         <?php
-                        if (!empty($existingFiles)) {
-                            $filePaths = explode(',', $existingFiles);
-                            $fileUrls = !empty($rowTask['file_urls']) ? explode(',', $rowTask['file_urls']) : array_fill(0, count($filePaths), '');
+                        $taskFilesQuery = 'SELECT * FROM tbl_task_files WHERE task_id = ? AND file_type = "task" AND is_deleted = 0 ORDER BY upload_time ASC';
+                        $stmt = mysqli_prepare($con, $taskFilesQuery);
+                        mysqli_stmt_bind_param($stmt, 'i', $taskId);
+                        mysqli_stmt_execute($stmt);
+                        $taskFilesResult = mysqli_stmt_get_result($stmt);
 
-                            foreach ($filePaths as $index => $filePath) {
-                                $fileName = basename($filePath); // Extracts the filename from the path
-                                $fileUrl = isset($fileUrls[$index]) ? $fileUrls[$index] : ''; // Get the corresponding URL
-                                $formattedDate = date("d M Y, g:i A", strtotime($taskCreatedOn));
-                                $thumbnailPath = "assets/img/icons/docs.png";
+                        if (mysqli_num_rows($taskFilesResult) > 0) {
+                            while ($fileRow = mysqli_fetch_assoc($taskFilesResult)) {
+                                $fileName = $fileRow['original_file_name'];
+                                $fileUrl = $fileRow['file_url'];
+                                $fileSize = $fileRow['file_size'];
+                                $uploadTime = $fileRow['upload_time'];
+                                $formattedDate = date('d M Y, g:i A', strtotime($uploadTime));
 
+                                // Format file size
+                                $formattedSize = 'Unknown size';
+                                if ($fileSize > 0) {
+                                    $units = ['B', 'KB', 'MB', 'GB'];
+                                    $power = $fileSize > 0 ? floor(log($fileSize, 1024)) : 0;
+                                    $formattedSize = round($fileSize / pow(1024, $power), 2) . ' ' . $units[$power];
+                                }
+
+                                $thumbnailPath = 'assets/img/icons/docs.png';
                                 $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
                                 switch (strtolower($fileExtension)) {
                                     case 'pdf':
@@ -307,9 +320,9 @@ if (isset($_SESSION['alert'])) {
                                     <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
                                     <div class="ms-3 flex-shrink-1 flex-g$rowTask-1">
                                         <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                        <div class="fs-10"><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
+                                        <div class="fs-10"><span class='fw-medium text-600'><?php echo $formattedSize; ?></span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                         <div class="hover-actions end-0 top-50 translate-middle-y">
-                                            <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
+                                            <a class="btn btn-tertiary border-300 btn-sm me-1 text-600"  data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
                                         </div>
                                     </div>
                                 </div>
@@ -319,6 +332,7 @@ if (isset($_SESSION['alert'])) {
                         } else {
                             echo '<div>No task files attached.</div>';
                         }
+                        mysqli_stmt_close($stmt);
                         ?>
                     </div>
                 </div>
@@ -337,16 +351,29 @@ if (isset($_SESSION['alert'])) {
                         <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(assets/img/icons/spot-illustrations/corner-7.png);">
                         </div>
                         <?php
-                        if (!empty($submittedFiles)) {
-                            $filePaths = explode(',', $submittedFiles);
-                            $fileUrls = !empty($rowTask['submitted_file_urls']) ? explode(',', $rowTask['submitted_file_urls']) : array_fill(0, count($filePaths), '');
+                        $submittedFilesQuery = 'SELECT * FROM tbl_task_files WHERE task_id = ? AND file_type = "submitted" AND is_deleted = 0 ORDER BY upload_time ASC';
+                        $stmt = mysqli_prepare($con, $submittedFilesQuery);
+                        mysqli_stmt_bind_param($stmt, 'i', $taskId);
+                        mysqli_stmt_execute($stmt);
+                        $submittedFilesResult = mysqli_stmt_get_result($stmt);
 
-                            foreach ($filePaths as $index => $filePath) {
-                                $fileName = basename($filePath); // Extracts the filename from the path
-                                $fileUrl = isset($fileUrls[$index]) ? $fileUrls[$index] : ''; // Get the corresponding URL
-                                $formattedDate = date("d M Y, g:i A", strtotime($submittedOn)); // Format 'submitted_on' date
-                                $thumbnailPath = "assets/img/icons/docs.png"; // Placeholder path for the thumbnail
+                        if (mysqli_num_rows($submittedFilesResult) > 0) {
+                            while ($fileRow = mysqli_fetch_assoc($submittedFilesResult)) {
+                                $fileName = $fileRow['original_file_name'];
+                                $fileUrl = $fileRow['file_url'];
+                                $fileSize = $fileRow['file_size'];
+                                $uploadTime = $fileRow['upload_time'];
+                                $formattedDate = date('d M Y, g:i A', strtotime($uploadTime));
 
+                                // Format file size
+                                $formattedSize = 'Unknown size';
+                                if ($fileSize > 0) {
+                                    $units = ['B', 'KB', 'MB', 'GB'];
+                                    $power = $fileSize > 0 ? floor(log($fileSize, 1024)) : 0;
+                                    $formattedSize = round($fileSize / pow(1024, $power), 2) . ' ' . $units[$power];
+                                }
+
+                                $thumbnailPath = 'assets/img/icons/docs.png';
                                 $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
                                 switch (strtolower($fileExtension)) {
                                     case 'pdf':
@@ -398,9 +425,9 @@ if (isset($_SESSION['alert'])) {
                                     <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
                                     <div class="ms-3 flex-shrink-1 flex-grow-1">
                                         <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                        <div class="fs-10"><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
+                                        <div class="fs-10"><span class='fw-medium text-600'><?php echo $formattedSize; ?><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                         <div class="hover-actions end-0 top-50 translate-middle-y">
-                                            <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
+                                            <a class="btn btn-tertiary border-300 btn-sm me-1 text-600"  data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
                                         </div>
                                     </div>
                                 </div>
@@ -410,12 +437,14 @@ if (isset($_SESSION['alert'])) {
                         } else {
                             echo '<div>No submitted files.</div>';
                         }
+                        mysqli_stmt_close($stmt);
                         ?>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
     <div id="alertPlaceholder"></div>
     <form class="needs-validation" novalidate="novalidate" id="taskForm" method="post" action="submission_upload" enctype="multipart/form-data">
         <div class="card mb-3" id="filesSubmission">
@@ -434,6 +463,31 @@ if (isset($_SESSION['alert'])) {
                 <input type="hidden" name="uploadedFiles" id="uploadedFiles" value="">
             </div>
         </div>
+
+        <!-- Writer Comments Section -->
+        <div class='card mb-3' id='writerComments'>
+            <div class='card-header bg-body-tertiary d-flex align-items-center'>
+                <i class='fas fa-comment-dots me-2 text-primary'></i>
+                <h6 class='mb-0'>Add Comment</h6>
+            </div>
+            <div class='card-body'>
+                <div class='mb-3'>
+                    <label for='writerCommentsTextarea' class='form-label'>Message for Admin</label>
+                    <textarea
+                            class='form-control'
+                            id='writerCommentsTextarea'
+                            name='writer_comments'
+                            rows='4'
+                            placeholder='Add any comments, notes, or explanations about your submission...'
+                    ></textarea>
+                    <div class='form-text'>
+                        Optional: Provide any additional context, explanations, or notes about your submitted work. This
+                        will start a conversation thread with the admin.
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card mt-3">
             <div class="card-body">
                 <div class="row justify-content-between align-items-center">
@@ -635,6 +689,7 @@ if (isset($_SESSION['alert'])) {
                                 // Store filePath, fileUrl, and fileSize
                                 uploadedFilePaths.push({
                                     fileName: file.name,
+                                    originalName: file.name,
                                     filePath: response.filePath,
                                     fileUrl: response.fileUrl,
                                     fileSize: response.fileSize || file.size // Use server response or fallback to client size

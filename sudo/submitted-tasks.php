@@ -71,10 +71,20 @@ $msg = "";
                                             </h4>
                                         </div>
 
-                                        <div class="col-md-auto mt-4 mt-md-0">
-                                            <button id="completeTasksBtn" class="btn btn-sm btn-falcon-default me-2" type="button" onclick="submitForm('mark-tasks-completed')" style="display: none;">
-                                                <span class="fas fa-check-double" data-fa-transform="shrink-3 down-2"></span>
-                                                <span class="d-none d-sm-inline-block ms-1">Mark as Completed</span>
+                                        <div class='col-md-auto mt-4 mt-md-0'>
+                                            <button id='completeTasksBtn' class='btn btn-sm btn-falcon-default me-2'
+                                                    type='button' onclick="submitForm('mark-tasks-completed')"
+                                                    style='display: none;'>
+                                                <span class='fas fa-check-double'
+                                                      data-fa-transform='shrink-3 down-2'></span>
+                                                <span class='d-none d-sm-inline-block ms-1'>Mark as Completed</span>
+                                            </button>
+                                            <button id='markUnreadBtn' class='btn btn-sm btn-falcon-warning me-2'
+                                                    type='button' onclick="submitForm('mark-tasks-unread')"
+                                                    style='display: none;'>
+                                                <span class='fas fa-envelope'
+                                                      data-fa-transform='shrink-3 down-2'></span>
+                                                <span class='d-none d-sm-inline-block ms-1'>Mark as Unread</span>
                                             </button>
                                         </div>
                                     </div>
@@ -140,7 +150,7 @@ $msg = "";
                                                 $confirmationText = ($is_confirmed == 0) ? 'Confirmed' : 'Unconfirmed';
                                                 $confirmation = "<span class='badge badge rounded-pill $confirmationClass'>$confirmationText</span>";
                                     ?>
-                                        <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100">
+                                         <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100 <?php echo ($row['admin_acknowledged'] == 0) ? 'table-active' : ''; ?>">
                                             <td class="align-middle" style="width: 28px;">
                                                 <div class="form-check mb-0">
                                                     <input class="form-check-input bulk-select-checkbox" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
@@ -150,7 +160,12 @@ $msg = "";
                                             <td>
                                                 <div class="d-flex align-items-center position-relative">
                                                     <div class="flex-1">
-                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
+                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a
+                                                                    class="text-900 stretched-link view-task-link"
+                                                                    href="view-task?task_id=<?php echo $encodedId; ?>"
+                                                                    data-task-id="<?php echo $row['id']; ?>"
+                                                                    data-acknowledged="<?php echo $row['admin_acknowledged']; ?>"><?php echo $row['topic']; ?></a>
+                                                        </h6>
                                                         <p class="fw-semi-bold mb-0 text-500"><?php echo $row["pages"];?> Page(s) | CPP: <?php echo $row["cpp"];?></p>
                                                     </div>
                                                 </div>
@@ -233,49 +248,22 @@ $msg = "";
                                                 <p class="fs-11 mb-0"><?php echo $statusBadgePay;?></p>
                                             </td>
                                             <td class="align-middle white-space-nowrap text-end position-relative">
-                                                <div class="hover-actions bg-100">
-                                                    <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>" title="View task" ><span class="far fa-eye"></span></a>
-                                                    <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" target="_blank" href="edit-task?task_id=<?php echo $encodedId; ?>" title="Edit Task"><span class="far fa-edit"></span></a>
-                                                    <a class="btn bg-warning-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" target="_blank" href="duplicate-task?task_id=<?php echo $encodedId; ?>" title="Duplicate Task"><span class="fas fa-copy"></span></a>
+                                                <div class="hover-actions">
+                                                    <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm view-task-link" href="view-task?task_id=<?php echo $encodedId; ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="View task" data-task-id="<?php echo $row['id']; ?>" data-acknowledged="<?php echo $row['admin_acknowledged']; ?>"><span class="far fa-eye"></span></a>
+                                                    <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm"  href="edit-task?task_id=<?php echo $encodedId; ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Task"><span class="far fa-edit"></span></a>
+                                                    <a class="btn bg-warning-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm"  href="duplicate-task?task_id=<?php echo $encodedId; ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Duplicate Task"><span class="fas fa-copy"></span></a>
+
+                                                    <?php if ($row['admin_acknowledged'] == 1): ?>
+                                                        <button class="btn bg-info-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm mark-unread-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Mark as Unread" data-task-id="<?php echo $row['id']; ?>" onclick="markSingleTaskAsUnread(<?php echo $row['id']; ?>, this)">
+                                                            <span class="fas fa-envelope"></span>
+                                                        </button>
+                                                    <?php endif; ?>
                                                 </div>
                                                 <div class="dropdown font-sans-serif btn-reveal-trigger">
                                                     <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal-sm transition-none" type="button" id="crm-recent-leads-4" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-chevron-left fs-11"></span></button>
                                                 </div>
                                             </td>
                                         </tr>
-                                        <!--<tr class="btn-reveal-trigger">
-                                            <td class="align-middle" style="width: 28px;">
-                                                <div class="form-check mb-0">
-                                                    <input class="form-check-input" type="checkbox" id="simple-pagination-item-1" data-bulk-select-row="data-bulk-select-row" />
-                                                </div>
-                                            </td>
-                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><a href="../../app/e-commerce/customer-details.html">Homer</a></td>
-                                            <td class="align-middle white-space-nowrap email">sylvia@mail.ru</td>
-                                            <td class="align-middle white-space-nowrap product">Bose SoundSport Wireless Headphones</td>
-                                            <td class="align-middle text-center fs-9 white-space-nowrap payment"><span class="badge badge rounded-pill badge-subtle-success">Success<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span>
-                                            </td>
-                                            <td class="align-middle amount">$634</td>
-                                            <td class="align-middle white-space-nowrap text-end">
-                                                <div class="dropstart font-sans-serif position-static d-inline-block">
-                                                    <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal float-end" type="button" id="dropdown-simple-pagination-table-item-1" data-bs-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false" data-bs-reference="parent"><span class="fas fa-ellipsis-h fs-10"></span></button>
-                                                    <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="dropdown-simple-pagination-table-item-1"><a class="dropdown-item" href="#!">View</a><a class="dropdown-item" href="#!">Edit</a><a class="dropdown-item" href="#!">Refund</a>
-                                                        <div class="dropdown-divider"></div><a class="dropdown-item text-warning" href="#!">Archive</a><a class="dropdown-item text-danger" href="#!">Delete</a>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td class="align-middle white-space-nowrap text-end">
-                                                <div class="dropstart font-sans-serif position-static d-inline-block">
-                                                    <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal float-end" type="button" id="dropdown-simple-pagination-table-item-0" data-bs-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false" data-bs-reference="parent"><span class="fas fa-ellipsis-h fs-10"></span></button>
-                                                    <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="dropdown-simple-pagination-table-item-0">
-                                                        <a class="dropdown-item text-info" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><span class="fas fa-eye" data-fa-transform="shrink-2"></span> View</a>
-                                                        <a class="dropdown-item text-success" target="_blank" href="edit-task?task_id=<?php echo $encodedId; ?>"><span class="bi bi-pen" data-fa-transform="shrink-2"></span> Edit</a>
-                                                        <a class="dropdown-item text-warning" target="_blank" href="duplicate-task?task_id=<?php echo $encodedId; ?>" ><span class="fas fa-copy" data-fa-transform="shrink-2"></span> Duplicate</a>
-                                                        <div class="dropdown-divider"></div>
-                                                        <a class="dropdown-item text-danger" href="all-tasks?del=<?php echo $encodedId; ?>" onclick="return confirm('Do you really want to cancel task?');"><span class="fas fa-trash" data-fa-transform="shrink-2"></span> Cancel</>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>-->
                                         <?php
                                                 $cnt=$cnt+1;
                                             }
@@ -294,8 +282,8 @@ $msg = "";
 
     <script>
         function submitForm(action) {
-            document.getElementById("tasksForm").action = action + ".php";
-            document.getElementById("tasksForm").submit();
+            document.getElementById('tasksForm').action = action + '.php';
+            document.getElementById('tasksForm').submit();
         }
 
         function selectAllTasks(source) {
@@ -304,27 +292,186 @@ $msg = "";
             updateArchiveButtonVisibility();
         }
 
-        // Function to check if any checkbox is selected and update button visibility
-        function updateArchiveButtonVisibility() {
+        function updateButtonVisibility() {
             const checkboxes = document.querySelectorAll('.bulk-select-checkbox:checked');
-            const archiveButton = document.querySelector('.btn-falcon-default');
+            const completeButton = document.getElementById('completeTasksBtn');
+            const unreadButton = document.getElementById('markUnreadBtn');
 
             if (checkboxes.length > 0) {
-                archiveButton.style.display = 'block';
+                completeButton.style.display = 'inline-block';
+                unreadButton.style.display = 'inline-block';
             } else {
-                archiveButton.style.display = 'none';
+                completeButton.style.display = 'none';
+                unreadButton.style.display = 'none';
             }
         }
 
-        // Attach event listeners to all checkboxes
-        document.addEventListener("DOMContentLoaded", function() {
+        // Function to mark task as read
+        function markTaskAsRead(taskId, linkElement) {
+            const params = new URLSearchParams();
+            params.append('task_id', taskId);
+            params.append('acknowledged', '1');
+
+            fetch('update-task-acknowledgment', {
+                method: 'POST',
+                body: params,
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin',
+                cache: 'no-cache'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && data.success) {
+                        // Remove the table-active styling from the row
+                        const row = linkElement.closest('tr');
+                        if (row) {
+                            row.classList.remove('table-active');
+                        }
+
+                        // Update the data attribute to prevent future AJAX calls
+                        linkElement.setAttribute('data-acknowledged', '1');
+                    } else {
+                        alert('Failed to mark task as read: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    alert('Error marking task as read: ' + error.message);
+                });
+        }
+
+        // Function to mark single task as unread
+        function markSingleTaskAsUnread(taskId, buttonElement) {
+            // Prevent multiple rapid clicks
+            if (buttonElement.dataset.processing === 'true') {
+                return;
+            }
+
+            buttonElement.dataset.processing = 'true';
+            buttonElement.disabled = true;
+
+            const params = new URLSearchParams();
+            params.append('task_id', taskId);
+            params.append('acknowledged', '0');
+
+            fetch('update-task-acknowledgment', {
+                method: 'POST',
+                body: params,
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin',
+                cache: 'no-cache'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && data.success) {
+                        // Add the table-active styling to the row (mark as unread)
+                        const row = buttonElement.closest('tr');
+                        if (row) {
+                            row.classList.add('table-active');
+                        }
+
+                        // Hide the unread button since task is now unread
+                        buttonElement.style.display = 'none';
+
+                        // Update the view task link's data attribute
+                        const viewTaskLink = row.querySelector('.view-task-link');
+                        if (viewTaskLink) {
+                            viewTaskLink.setAttribute('data-acknowledged', '0');
+                        }
+
+                        // Show success message (optional)
+                        showTaskToast('Task marked as unread!', 'success');
+                    } else {
+                        alert('Failed to mark task as unread: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    alert('Error marking task as unread: ' + error.message);
+                })
+                .finally(() => {
+                    buttonElement.dataset.processing = 'false';
+                    buttonElement.disabled = false;
+                });
+        }
+
+        // Optional: Simple toast notification function
+        function showTaskToast(message, type = 'info') {
+            // Create a simple toast notification
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type} position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 250px;';
+            toast.innerHTML = `
+        <div class="d-flex align-items-center">
+            <div class="bg-${type} me-3 icon-item">
+                <span class="fas fa-${type === 'success' ? 'check' : 'info'}-circle text-white fs-5"></span>
+            </div>
+            <p class="mb-0 flex-1">${message} </p>
+            <button class="btn-close" type="button" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+    `;
+
+            document.body.appendChild(toast);
+
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 6000);
+        }
+
+        // Event listener setup
+        document.addEventListener('DOMContentLoaded', function () {
             const checkboxes = document.querySelectorAll('.bulk-select-checkbox');
             checkboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', updateArchiveButtonVisibility);
+                checkbox.addEventListener('change', updateButtonVisibility);
             });
 
-            // Initial check to set correct button state
-            updateArchiveButtonVisibility();
+            updateButtonVisibility();
+
+            const viewTaskLinks = document.querySelectorAll('.view-task-link');
+
+            viewTaskLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    const taskId = this.getAttribute('data-task-id');
+                    const acknowledged = this.getAttribute('data-acknowledged');
+
+                    if (!taskId || taskId === 'null' || taskId === 'undefined') {
+                        return;
+                    }
+
+                    // Only mark as read if it's currently unread (admin_acknowledged = 0)
+                    if (acknowledged === '0') {
+                        // Prevent multiple rapid clicks
+                        if (this.dataset.processing === 'true') {
+                            return;
+                        }
+
+                        this.dataset.processing = 'true';
+                        markTaskAsRead(taskId, this);
+
+                        // Reset processing flag after a delay
+                        setTimeout(() => {
+                            this.dataset.processing = 'false';
+                        }, 2000);
+                    }
+                });
+            });
         });
     </script>
 

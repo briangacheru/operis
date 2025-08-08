@@ -81,7 +81,7 @@ class SpacesHelper {
             return $this->config['cdn_endpoint'] . '/' . $objectKey;
         }
 
-        // Otherwise, use the regular Spaces URL
+        // Otherwise, use the regular Spaces URL - DO NOT URL encode the object key
         return 'https://' . $this->config['bucket'] . '.' . $this->config['region'] . '.digitaloceanspaces.com/' . $objectKey;
     }
 }

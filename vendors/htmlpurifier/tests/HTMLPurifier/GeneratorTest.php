@@ -176,7 +176,7 @@ class HTMLPurifier_GeneratorTest extends HTMLPurifier_Harness
         $theta_char = $this->_entity_lookup->table['theta'];
         $this->assertGenerateAttributes(
             array('title' => 'Theta is ' . $theta_char),
-            'title="Theta is ' . $theta_char . '"'
+            'data-bs-toggle="tooltip" data-bs-placement="top" title="Theta is ' . $theta_char . '"'
         );
     }
 

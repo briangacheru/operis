@@ -1,0 +1,25 @@
+[02-Jul-2025 03:20:29 Africa/Nairobi] Available cookies: Array
+(
+    [PHPSESSID] => 8m0ad7reeu0gc3c1le4mnq168e
+)
+
+[03-Jul-2025 03:22:39 Africa/Nairobi] Available cookies: Array
+(
+    [PHPSESSID] => ekpqo5p68bo5o8g21t6i96pgfe
+)
+
+[08-Jul-2025 21:38:14 Africa/Nairobi] Available cookies: Array
+(
+    [PHPSESSID] => l9g223mpbie0kat1qqsmom56fr
+)
+
+[08-Jul-2025 21:58:45 Africa/Nairobi] PHP Fatal error:  Uncaught PDOException: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'tasker.tbltaskcomments' doesn't exist in C:\xampp\htdocs\falcon.sub\all-comments.php:53
+Stack trace:
+#0 C:\xampp\htdocs\falcon.sub\all-comments.php(53): PDOStatement->execute()
+#1 {main}
+  thrown in C:\xampp\htdocs\falcon.sub\all-comments.php on line 53
+[24-Jul-2025 13:37:44 Africa/Nairobi] Available cookies: Array
+(
+    [PHPSESSID] => 2earoplur4ff2tq1ea8704dh5n
+)
+

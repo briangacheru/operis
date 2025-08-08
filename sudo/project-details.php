@@ -52,7 +52,7 @@ if (isset($_SESSION['alert'])) {
                         <div class="flex-1 fs-10">
                             <h4 ><?php echo htmlspecialchars($projectName); ?></h4>
                             <span class="fs-9 text-warning fw-semi-bold">Ksh. <?php echo number_format($projectAmount, 2); ?></span>
-                            <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" aria-label="Projected capital" data-bs-original-title="Projected capital">
+                            <span class="ms-1 text-400" data-bs-toggle="tooltip" data-bs-placement="top" aria-label="Projected capital" data-bs-original-data-bs-toggle="tooltip" data-bs-placement="top" title="Projected capital">
                                 <span class="far fa-question-circle" data-fa-transform="shrink-1"></span>
                             </span>
                         </div>

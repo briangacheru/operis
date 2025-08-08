@@ -10,7 +10,7 @@ $msg = "";
             <div>
                 <button class="btn btn-outline-primary btn-sm me-2" type="button" data-bs-toggle="modal" data-bs-target="#addProjectModal">
                     <span class="fas fa-plus fs-11"></span>
-                    <span class="d-none d-sm-inline-block ms-1 align-middle" title="Add a new project">Add Project</span>
+                    <span class="d-none d-sm-inline-block ms-1 align-middle" data-bs-toggle="tooltip" data-bs-placement="top" title="Add a new project">Add Project</span>
                 </button>
             </div>
         </div>
@@ -211,11 +211,11 @@ if (isset($_SESSION['alert'])) {
                                 </td>
                                 <td class="align-middle white-space-nowrap text-end position-relative">
                                     <div class="hover-actions bg-100">
-                                        <button class="btn btn-outline-danger icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" data-bs-target="#editProjectModal" title="Edit this project"
+                                        <button class="btn btn-outline-danger icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" data-bs-target="#editProjectModal" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit this project"
                                                 onclick="populateEditModal(<?php echo $row['projectID']; ?>, '<?php echo $row['projectName']; ?>', '<?php echo $row['projectDescription']; ?>', <?php echo $row['projectAmount']; ?>, <?php echo $row['projectStatus']; ?>, <?php echo $row['is_achieved']; ?>,'<?php echo $row['projectPeriod']; ?>')">
                                             <span class="fas fa-edit"></span>
                                         </button>
-                                        <button class="btn icon-item rounded-3 me-2 fs-11 icon-item-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteProjectModal" title="Delete this project"
+                                        <button class="btn icon-item rounded-3 me-2 fs-11 icon-item-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteProjectModal" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete this project"
                                                 onclick="populateDeleteModal(<?php echo $row['projectID']; ?>)">
                                             <span class="fas fa-trash"></span>
                                         </button>

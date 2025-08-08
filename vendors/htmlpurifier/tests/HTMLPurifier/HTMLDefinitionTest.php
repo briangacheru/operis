@@ -177,8 +177,8 @@ a[href|title]
         $this->config->set('HTML.AllowedElements', array('p', 'br'));
         $this->config->set('HTML.AllowedAttributes', 'p@style,br@class,title');
         $this->assertPurification(
-            '<p style="font-weight:bold;" class="foo" title="foo">Jelly</p><br style="clear:both;" class="foo" title="foo" />',
-            '<p style="font-weight:bold;" title="foo">Jelly</p><br class="foo" title="foo" />'
+            '<p style="font-weight:bold;" class="foo" data-bs-toggle="tooltip" data-bs-placement="top" title="foo">Jelly</p><br style="clear:both;" class="foo" data-bs-toggle="tooltip" data-bs-placement="top" title="foo" />',
+            '<p style="font-weight:bold;" data-bs-toggle="tooltip" data-bs-placement="top" title="foo">Jelly</p><br class="foo" data-bs-toggle="tooltip" data-bs-placement="top" title="foo" />'
         );
     }
 

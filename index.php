@@ -48,7 +48,15 @@ if ($rowWriter->is_verified == 1) {
                                 <div class="row flex-between-center">
                                     <div class="col">
                                         <div class="d-flex">
-                                            <h3 class="text-primary mb-1"><?php echo $greeting; ?>, <span class="text-info"><?php echo $rowWriter->username; ?>!</span></h3>
+                                            <?php
+                                            // Process username to show only first letter of second name
+                                            $nameParts = explode(' ', trim($rowWriter->username));
+                                            $displayName = $nameParts[0]; // First name
+                                            if (count($nameParts) > 1) {
+                                                $displayName .= ' ' . strtoupper(substr($nameParts[1], 0, 1)) . '.';
+                                            }
+                                            ?>
+                                            <h3 class="text-primary mb-1"><?php echo $greeting; ?>, <span class="text-info"><?php echo $displayName; ?></span></h3>
                                         </div>
                                     </div>
                                     <div class="col-auto d-flex align-items-center">
@@ -88,7 +96,7 @@ if ($rowWriter->is_verified == 1) {
                                     $totalCompletedTasks = (float) $result1['total']; // Cast to float to ensure arithmetic operation
 
                                     // Query to sum amount from tbloverdrafts
-                                    $query2 = mysqli_query($con, "SELECT SUM(amount) AS total FROM tbloverdrafts WHERE is_settled = 0 AND email = '$aid'");
+                                    $query2 = mysqli_query($con, "SELECT SUM(amount) AS total FROM tbloverdrafts WHERE is_deleted = 0 AND is_settled = 0 AND email = '$aid'");
                                     $result2 = mysqli_fetch_assoc($query2);
                                     $totalOverdrafts = (float) $result2['total']; // Cast to float to ensure arithmetic operation
 
@@ -105,7 +113,7 @@ if ($rowWriter->is_verified == 1) {
                                     $aid = mysqli_real_escape_string($con, $aid);
 
                                     $query = mysqli_query($con, "SELECT created_at FROM tbloverdrafts 
-                                    WHERE is_settled = 0 AND is_deleted = 0 AND description = 'iTasker' AND email = '$aid' 
+                                    WHERE is_deleted = 0 AND description = 'iTasker' AND email = '$aid' 
                                     ORDER BY created_at DESC 
                                     LIMIT 1");
 
@@ -441,7 +449,7 @@ if ($rowWriter->is_verified == 1) {
             <div class="card-body position-relative">
                 <?php
                 $allUnpaid = "";
-                $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed' AND email = '$aid'";
+                $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed'  AND email = '$aid'";
                 $result = mysqli_query($con, $query);
                 if ($result) {
                     $rowWriter = mysqli_fetch_assoc($result);
@@ -470,21 +478,36 @@ if ($rowWriter->is_verified == 1) {
                 <?php
                 $totalPaidFormatted = "No data"; // Default message if the query fails
                 $totalPaidRaw = 0; // Raw total for JavaScript
+                $totalPaidShortened = "0"; // Shortened version
                 $query = mysqli_query($con, "SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE is_deleted = 0 AND is_paid = 1 AND email = '$aid'");
                 if ($query) {
                     $rowWriter = mysqli_fetch_array($query);
                     if ($rowWriter && $rowWriter['total'] !== null) {
                         $totalPaidRaw = $rowWriter['total']; // Keep the raw total
                         $totalPaidFormatted = 'Ksh. ' . number_format($rowWriter['total'], 2);
+
+                        // Create shortened version
+                        if ($totalPaidRaw >= 1000000) {
+                            $totalPaidShortened = 'Ksh. ' . number_format($totalPaidRaw / 1000000, 2) . 'M';
+                        } elseif ($totalPaidRaw >= 1000) {
+                            $totalPaidShortened = 'Ksh. ' . number_format($totalPaidRaw / 1000, 2) . 'K';
+                        } else {
+                            $totalPaidShortened = 'Ksh. ' . number_format($totalPaidRaw, 2);
+                        }
                     } else {
                         $totalPaidFormatted = 'Ksh. 0.00';
+                        $totalPaidShortened = 'Ksh. 0.00';
                     }
                 } else {
                     $totalPaidFormatted = "Error: " . mysqli_error($con);
+                    $totalPaidShortened = "Error";
                 }
                 ?>
                 <h6>Total Paid Amount</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $totalPaidRaw; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div>
+                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary"
+                     data-bs-toggle="tooltip" data-bs-placement="right" title="<?php echo $totalPaidFormatted; ?>">
+                    <?php echo $totalPaidShortened; ?>
+                </div>
                 <a class="fw-semi-bold fs-10 text-nowrap text-primary" href="paid-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
@@ -544,7 +567,7 @@ if ($rowWriter->is_verified == 1) {
                     $totalOverDraftsFormatted = "Error: " . mysqli_error($con);
                 }
                 ?>
-                <h6>Total Total Overdraft Amount</h6>
+                <h6>Total Overdraft Amount</h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $totalOverDraftsRaw; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div>
                 <a class="fw-semi-bold fs-10 text-nowrap text-info" href="overdraft">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>

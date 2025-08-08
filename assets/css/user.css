@@ -1,39 +1,56 @@
-/* -------------------------------------------------------------------------- */
-/*                                Falcon Button                               */
-/* -------------------------------------------------------------------------- */
-/* prettier-ignore */
-/*# sourceMappingURL=user.css.map */
-/* Summernote Additional CSS */
-.note-editable{
-    background: #fff;
-}
-.note-btn.dropdown-toggle:after {
-    content: none;
-}
-.note-btn[aria-label="Help"]{
-    display: none;
+.pdf-viewer-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
-.note-editor .note-toolbar .note-color-all .note-dropdown-menu, .note-popover .popover-content .note-color-all .note-dropdown-menu{
-    min-width: 185px;
-}
-/* Customize Summernote editor */
-.note-editor {
-    /* Your custom styles here */
-}
-
-.note-editable {
-    /* Your custom styles here */
-}
-
-/* Toolbar customization */
-.note-toolbar {
-    /* Your custom styles here */
+.pdf-controls {
+    background: #f8f9fa;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
-/* Buttons customization */
-.note-btn {
-    /* Your custom styles here */
+.pdf-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.pdf-btn:hover {
+    background: #0056b3;
+}
+
+.pdf-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+#page-info, #zoom-level {
+    font-size: 12px;
+    font-weight: bold;
+    color: #333;
+}
+
+#pdf-canvas {
+    max-width: 100%;
+    max-height: calc(100vh - 200px);
+    object-fit: contain;
+}
+
+.pdf-canvas-container {
+    flex: 1;
+    overflow: auto;
+    text-align: center;
+    padding: 10px;
 }
 
 /*Toast Notification CSS*/

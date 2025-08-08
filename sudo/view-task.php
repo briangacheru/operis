@@ -1,5 +1,13 @@
 <?php include "head.php";
-
+if (!function_exists('formatFileSize')) {
+    function formatFileSize($bytes) {
+        if ($bytes == 0 || $bytes == '0' || $bytes === null) return 'Unknown size';
+        $bytes = (int)$bytes;
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $power = $bytes > 0 ? floor(log($bytes, 1024)) : 0;
+        return round($bytes / pow(1024, $power), 2) . ' ' . $units[$power];
+    }
+}
 if (isset($_GET['task_id'])) {
     $encodedId = $_GET['task_id'];
     $taskId = base64_decode($encodedId);
@@ -12,7 +20,7 @@ if (isset($_GET['task_id'])) {
 }
 
 // Define variables for task data
-$taskTopic = $taskSubject = $taskAccount = $taskCreatedOn = $taskStatus = $taskIsPaid = $taskDescription = $taskWriter = $taskWriterEmail = $taskDueDate = $taskCPP = $taskPages = $existingFiles = $taskSubmitTime = $submittedOn = $completedOn = '';
+$taskTopic = $taskSubject = $taskAccount = $taskCreatedOn = $taskStatus = $taskIsPaid = $taskDescription = $taskWriter = $taskWriterEmail = $taskDueDate = $taskCPP = $taskPages = $taskSubmitTime = $submittedOn = $completedOn = '';
 
 // Retrieve the task data from the database
 $sql2 = "SELECT * FROM tbltasks WHERE id='$taskId'";
@@ -32,8 +40,6 @@ if ($rowTask = mysqli_fetch_array($result)) {
     $taskDueDate = $rowTask["due_date"];
     $taskCPP = $rowTask["cpp"];
     $taskPages = $rowTask["pages"];
-    $existingFiles = $rowTask['task_files']; // Assuming this contains comma-separated file paths
-    $submittedFiles = $rowTask['submitted_files'];
     $taskSubmitTime = $rowTask['submitted_on'];
     $submittedOn = $rowTask['submitted_on'];
     $completedOn = $rowTask['completed_on'];
@@ -177,8 +183,13 @@ if (isset($_SESSION['alert'])) {
                             <span class="calendar-day"><?php echo $currentDay; ?> </span></div>
                         <div class="flex-1 fs-10">
                             <h5 class="mb-sm-0 text-primary fs-7">Task ID: <span class="text-info fw-medium">#<?php  echo $taskId;?></span></h5>
-                            <p class="mb-0">Posted <span class="text-info ms-2"><?php  echo date("d M Y, g:i A", strtotime($taskCreatedOn));?></span></p>
-                            <div class="fs-9 mb-3 mb-sm-0 text-primary"><strong class="me-2">Status: </strong><?php  echo $statusBadge;?>
+                            <p class="mb-0">Posted on <span class="text-info ms-2"><?php  echo date("d M Y, g:i A", strtotime($taskCreatedOn));?></span></p>
+                            <?php if ($rowTask['acknowledged'] == 0): ?>
+                                <p class='mb-0'>Viewed on <span class='badge badge rounded-pill badge-subtle-secondary'> Not Viewed<span class='ms-1 fas fa-eye-slash' data-fa-transform='shrink-2'></span></span></p>
+                            <?php elseif ($rowTask['acknowledged'] == 1): ?>
+                                <p class='mb-0'>Viewed on <span class='text-info ms-2'><?php echo date('d M Y, g:i A', strtotime($rowTask['acknowledged_at'])); ?></span></p>
+                            <?php endif; ?>
+                            <div class="fs-9 mt-2 mb-3 mb-sm-0 text-primary"><strong class="me-2">Status: </strong><?php  echo $statusBadge;?>
                                 <?php if ($taskStatus == 'Submitted' && !empty($submittedOn)): ?>
                                     <span class="fs-10 text-info ms-2"><?php echo date("d M Y, g:i A", strtotime($submittedOn)); ?></span>
                                 <?php elseif ($taskStatus == 'Completed' && !empty($completedOn)): ?>
@@ -192,11 +203,11 @@ if (isset($_SESSION['alert'])) {
                     </div>
                 </div>
                 <div class="col-md-auto mt-4 mt-md-0">
-                    <a class="btn btn-sm btn-outline-primary me-2" type="button" href="edit-task?task_id=<?php  echo $encodedId; ?>" title="Edit Task">
+                    <a class="btn btn-sm btn-outline-primary me-2" type="button" href="edit-task?task_id=<?php  echo $encodedId; ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Task">
                         <i class="fas fa-edit" aria-hidden="true"></i>
                         <span class="ms-1 d-none d-sm-inline-block">Edit Task</span>
                     </a>
-                    <a class="btn btn-outline-info btn-sm mx-2" type="button" target="_blank" href="duplicate-task?task_id=<?php echo $encodedId; ?>" title="Duplicate Task" onclick="return confirmDuplicate();">
+                    <a class="btn btn-outline-info btn-sm mx-2" type="button"  href="duplicate-task?task_id=<?php echo $encodedId; ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Duplicate Task" onclick="return confirmDuplicate();">
                         <i class="fas fa-copy" aria-hidden="true"></i>
                         <span class="d-none d-sm-inline-block d-xl-none d-xxl-inline-block ms-1">Duplicate</span>
                     </a>
@@ -205,7 +216,7 @@ if (isset($_SESSION['alert'])) {
                         <span id="favorite-text" class="d-none d-sm-inline-block d-xl-none d-xxl-inline-block ms-1"><?php echo ($is_favorite == 1) ? 'Unfavorite' : 'Favorite'; ?></span>
                     </a>
                     <?php if ($taskStatus =='Submitted'): ?>
-                        <a class="btn btn-outline-success btn-sm mx-2" type="button" id="complete-task-btn-<?php echo $taskId; ?>" title="Complete Task" onclick="completeTask('<?php echo $encodedId; ?>', <?php echo $taskId; ?>)">
+                        <a class="btn btn-outline-success btn-sm mx-2" type="button" id="complete-task-btn-<?php echo $taskId; ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Complete Task" onclick="completeTask('<?php echo $encodedId; ?>', <?php echo $taskId; ?>)">
                             <i class="fas fa-check-circle" aria-hidden="true"></i>
                             <span id="complete-task-text-<?php echo $taskId; ?>" class="d-none d-sm-inline-block d-xl-none d-xxl-inline-block ms-1">Complete</span>
                         </a>
@@ -227,8 +238,8 @@ if (isset($_SESSION['alert'])) {
                         <div class="col">
                             <div class="row align-items-center">
                                 <div class="col col-sm-12">
-                                    <h6 class="fw-semi-bold text-400 fs-9"><span class="fas fa-book text-white me-1"> </span><?php  echo $taskSubject;?></h6>
-                                    <h2 class="fw-bold text-white"><?php  echo $taskTopic;?> </h2>
+                                    <h6 class="fw-semi-bold text-400 fs-9 text-uppercase"><span class="fas fa-book text-white me-1"> </span><?php  echo $taskSubject;?></h6>
+                                    <h2 class="fw-bold text-white text-uppercase"><?php  echo $taskTopic;?> </h2>
                                     <p class="text-white fw-semi-bold fs-10"><span class="me-1 fs-9">Due</span><span class="text-info ms-2 fs-10"><?php  echo date("d M Y, g:i A", strtotime($taskDueDate));?></span>
                                      </p>
                                     <?php
@@ -323,8 +334,9 @@ if (isset($_SESSION['alert'])) {
     <div class="row ">
         <div class="col-lg-12 order-1 order-lg-0">
             <div class="card mb-3">
-                <div class="card-header bg-body-tertiary">
-                    <h5 class="mb-0">Description</h5>
+                <div class='card-header d-flex bg-body-tertiary align-items-center'>
+                    <i class='fas fa-sliders-h me-2 text-primary'></i>
+                    <h6 class="mb-0">Description</h6>
                 </div>
                 <div class="card-body position-relative">
                     <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/icons/spot-illustrations/corner-1.png);">
@@ -336,7 +348,15 @@ if (isset($_SESSION['alert'])) {
                             <div class="d-flex">
                                 <dd>
                                     <?php
-                                    echo $taskDescription;
+                                    // Remove slashes and make links clickable
+                                    $cleanText = stripslashes($taskDescription);
+
+                                    // Convert URLs to clickable links with highlighting
+                                    $pattern = '/(https?:\/\/[^\s]+)/';
+                                    $replacement = '<a href="$1" class="highlighted-link" target="_blank">$1</a>';
+                                    $formattedText = preg_replace($pattern, $replacement, $cleanText);
+
+                                    echo $formattedText;
                                     ?>
                                 </dd>
                             </div>
@@ -347,210 +367,380 @@ if (isset($_SESSION['alert'])) {
         </div>
     </div>
 
-            <div class="col mb-3">
-                <div class="row g-3">
-                    <div class="col-xxl-12">
-                        <div class="card h-100 h-xxl-auto mt-xxl-3">
-                            <div class="card-header d-flex flex-between-center bg-body-tertiary py-2">
-                                <h6 class="mb-0">Task Files</h6><!--<a class="py-1 fs-10 font-sans-serif" href="#!">View All</a>-->
-                            </div>
-                            <div class="card-body position-relative">
-                                <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/icons/spot-illustrations/corner-2.png);">
-                                </div>
-                                <?php
-                                if (!empty($existingFiles)) {
-                                    $filePaths = explode(',', $existingFiles);
-                                    $fileUrls = !empty($rowTask['file_urls']) ? explode(',', $rowTask['file_urls']) : array_fill(0, count($filePaths), '');
-                                    $fileSizes = !empty($rowTask['file_sizes']) ? explode(',', $rowTask['file_sizes']) : [];
+    <!-- Task Files card section -->
+    <div class='col mb-3'>
+        <div class='row g-3'>
+            <div class='col-xxl-12'>
+                <div class='card h-100 h-xxl-auto mt-xxl-3'>
+                    <div class='card-header d-flex bg-body-tertiary align-items-center'>
+                        <i class='far fa-folder-open me-2 text-primary'></i>
+                        <h6 class='mb-0'>Task Files</h6>
+                    </div>
+                    <div class='card-body position-relative'>
+                        <div class='bg-holder bg-card d-none d-md-block'
+                             style='background-image:url(../assets/img/icons/spot-illustrations/corner-2.png);'></div>
+                        <?php
+                        // Get task files from new table
+                        $taskFilesQuery = "SELECT * FROM tbl_task_files WHERE task_id = ? AND file_type = 'task' AND is_deleted = 0 ORDER BY upload_time ASC";
+                        $stmt = mysqli_prepare($con, $taskFilesQuery);
+                        mysqli_stmt_bind_param($stmt, 'i', $taskId);
+                        mysqli_stmt_execute($stmt);
+                        $taskFilesResult = mysqli_stmt_get_result($stmt);
 
-                                    foreach ($filePaths as $index => $filePath) {
-                                        $fileName = basename($filePath); // Extracts the filename from the path
-                                        $fileUrl = isset($fileUrls[$index]) ? $fileUrls[$index] : ''; // Get the corresponding URL
-                                        $fileSize = isset($fileSizes[$index]) ? $fileSizes[$index] : null;
-                                        $formattedSize = formatFileSize($fileSize);
+                        if (mysqli_num_rows($taskFilesResult) > 0) {
+                            $fileIndex = 0;
+                            while ($fileRow = mysqli_fetch_assoc($taskFilesResult)) {
+                                $fileName = $fileRow['original_file_name'];
+                                $fileUrl = $fileRow['file_url'];
+                                $fileSize = $fileRow['file_size'];
+                                $uploadTime = $fileRow['upload_time'];
+                                $formattedSize = formatFileSize($fileSize);
+                                $formattedDate = date('d M Y, g:i A', strtotime($uploadTime));
 
-                                        $formattedDate = date("d M Y, g:i A", strtotime($taskCreatedOn));
-                                        $thumbnailPath = "../assets/img/icons/docs.png";
-                                        $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
-                                        switch (strtolower($fileExtension)) {
-                                            case 'pdf':
-                                                $thumbnailPath = "../assets/img/icons/pdf.png";
-                                                break;
-                                            case 'doc':
-                                            case 'docx':
-                                            case 'rtf':
-                                                $thumbnailPath = "../assets/img/icons/word.png";
-                                                break;
-                                            case 'xls':
-                                            case 'xlsx':
-                                            case 'csv':
-                                                $thumbnailPath = "../assets/img/icons/excel.png";
-                                                break;
-                                            case 'ppt':
-                                            case 'pptx':
-                                                $thumbnailPath = "../assets/img/icons/powerpoint.png";
-                                                break;
-                                            case 'mp4':
-                                            case 'avi':
-                                            case 'mov':
-                                            case 'mkv':
-                                            case 'wmv':
-                                            case 'flv':
-                                            case 'mpeg':
-                                            case 'mpg':
-                                            case '3gp':
-                                            case 'webm':
-                                            case 'm4v':
-                                                $thumbnailPath = "../assets/img/icons/mp4.png";
-                                                break;
-                                            case 'jpg':
-                                            case 'jpeg':
-                                            case 'png':
-                                            case 'gif':
-                                                $thumbnailPath = "../assets/img/icons/image.png";
-                                                break;
-                                            case 'zip':
-                                            case 'rar':
-                                                $thumbnailPath = "../assets/img/icons/zip.png";
-                                                break;
-                                            default:
-                                                $thumbnailPath = "../assets/img/icons/docs.png";
-                                                break;
-                                        }
-                                        ?>
-                                        <div class="d-flex mb-3 hover-actions-trigger align-items-center">
-                                            <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
-                                            <div class="ms-3 flex-shrink-1 flex-grow-1">
-                                                <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                                <div class="fs-10"><span class="fw-medium text-600 file-size"><?php echo $formattedSize; ?></span> <span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
-                                                <div class="hover-actions end-0 top-50 translate-middle-y">
-                                                    <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="../assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <hr class="text-200" />
-                                        <?php
-                                    }
-                                } else {
-                                    echo '<div>No task files attached.</div>';
+                                // Determine thumbnail based on file extension
+                                $thumbnailPath = '../assets/img/icons/docs.png';
+                                $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
+                                switch (strtolower($fileExtension)) {
+                                    case 'pdf':
+                                        $thumbnailPath = '../assets/img/icons/pdf.png';
+                                        break;
+                                    case 'doc':
+                                    case 'docx':
+                                    case 'rtf':
+                                        $thumbnailPath = '../assets/img/icons/word.png';
+                                        break;
+                                    case 'xls':
+                                    case 'xlsx':
+                                    case 'csv':
+                                        $thumbnailPath = '../assets/img/icons/excel.png';
+                                        break;
+                                    case 'ppt':
+                                    case 'pptx':
+                                        $thumbnailPath = '../assets/img/icons/powerpoint.png';
+                                        break;
+                                    case 'mp4':
+                                    case 'avi':
+                                    case 'mov':
+                                    case 'mkv':
+                                    case 'wmv':
+                                    case 'flv':
+                                    case 'mpeg':
+                                    case 'mpg':
+                                    case '3gp':
+                                    case 'webm':
+                                    case 'm4v':
+                                        $thumbnailPath = '../assets/img/icons/mp4.png';
+                                        break;
+                                    case 'jpg':
+                                    case 'jpeg':
+                                    case 'png':
+                                    case 'gif':
+                                        $thumbnailPath = '../assets/img/icons/image.png';
+                                        break;
+                                    case 'zip':
+                                    case 'rar':
+                                        $thumbnailPath = '../assets/img/icons/zip.png';
+                                        break;
+                                    default:
+                                        $thumbnailPath = '../assets/img/icons/docs.png';
+                                        break;
                                 }
                                 ?>
-                            </div>
-                        </div>
-
+                                <div class="d-flex mb-3 hover-actions-trigger align-items-center">
+                                    <div class="file-thumbnail">
+                                        <img class="border h-100 w-100 object-fit-cover rounded-2"
+                                             src="<?php echo $thumbnailPath; ?>" alt=""/>
+                                    </div>
+                                    <div class="ms-3 flex-shrink-1 flex-grow-1">
+                                        <h6 class="mb-1">
+                                            <a class="stretched-link text-900 fw-semi-bold"
+                                               href="<?php echo $fileUrl; ?>"><?php echo htmlspecialchars($fileName); ?></a>
+                                        </h6>
+                                        <div class="fs-10">
+                                            <span class="fw-medium text-600 file-size"><?php echo $formattedSize; ?></span>
+                                            <span class='fw-medium text-600 mx-1'>•</span>
+                                            <span class="fw-medium text-600"><?php echo $formattedDate; ?></span>
+                                        </div>
+                                        <div class="hover-actions end-0 top-50 translate-middle-y">
+                                            <button class="btn btn-tertiary border-300 btn-sm me-1 text-600"
+                                                    data-bs-toggle="tooltip" data-bs-placement="top" title="View File"
+                                                    onclick="previewFile('<?php echo $encodedId; ?>', <?php echo $fileIndex; ?>, 'task')">
+                                                <img src="../assets/img/icons/eye.svg" alt="" width="15"/>
+                                            </button>
+                                            <a class="btn btn-tertiary border-300 btn-sm me-1 text-600"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" title="Download"
+                                               href="<?php echo $fileUrl; ?>"
+                                               download="<?php echo htmlspecialchars($fileName); ?>">
+                                                <img src="../assets/img/icons/cloud-download.svg" alt="" width="15"/>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr class="text-200"/>
+                                <?php
+                                $fileIndex++;
+                            }
+                            mysqli_stmt_close($stmt);
+                        } else {
+                            echo '<div>No task files attached.</div>';
+                        }
+                        ?>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <div class="col mb-3">
-                <div class="row g-3">
-                    <div class="col-xxl-12">
-                        <div class="card h-100 h-xxl-auto mt-xxl-3">
-                            <div class="card-header d-flex flex-between-center bg-body-tertiary py-2">
-                                <h6 class="mb-0">Submitted Files</h6><!--<a class="py-1 fs-10 font-sans-serif" href="#!">View All</a>-->
-                            </div>
-                            <div class="card-body position-relative">
-                                <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/icons/spot-illustrations/corner-7.png);">
-                                </div>
-                                <?php
-                                if (!empty($submittedFiles)) {
-                                    $filePaths = explode(',', $submittedFiles);
-                                    $fileUrls = !empty($rowTask['submitted_file_urls']) ? explode(',', $rowTask['submitted_file_urls']) : array_fill(0, count($filePaths), '');
-                                    $fileSizes = !empty($rowTask['submitted_file_sizes']) ? explode(',', $rowTask['submitted_file_sizes']) : array_fill(0, count($filePaths), '');
+    <!-- Submitted Files card section -->
+    <div class='col mb-3'>
+        <div class='row g-3'>
+            <div class='col-xxl-12'>
+                <div class='card h-100 h-xxl-auto mt-xxl-3'>
+                    <div class='card-header d-flex bg-body-tertiary align-items-center'>
+                        <i class='far fa-folder me-2 text-primary'></i>
+                        <h6 class='mb-0'>Submitted Files</h6>
+                    </div>
+                    <div class='card-body position-relative'>
+                        <div class='bg-holder bg-card d-none d-md-block'
+                             style='background-image:url(../assets/img/icons/spot-illustrations/corner-7.png);'></div>
+                        <?php
+                        // Get submitted files from new table
+                        $submittedFilesQuery = "SELECT * FROM tbl_task_files WHERE task_id = ? AND file_type = 'submitted' AND is_deleted = 0 ORDER BY upload_time ASC";
+                        $stmt = mysqli_prepare($con, $submittedFilesQuery);
+                        mysqli_stmt_bind_param($stmt, 'i', $taskId);
+                        mysqli_stmt_execute($stmt);
+                        $submittedFilesResult = mysqli_stmt_get_result($stmt);
 
-                                    foreach ($filePaths as $index => $filePath) {
-                                        $fileName = basename($filePath); // Extracts the filename from the path
-                                        $fileUrl = isset($fileUrls[$index]) ? $fileUrls[$index] : ''; // Get the corresponding URL
-                                        $fileSize = isset($fileSizes[$index]) ? $fileSizes[$index] : '0';
-                                        $formattedDate = date("d M Y, g:i A", strtotime($submittedOn)); // Format 'submitted_on' date
-                                        $thumbnailPath = "../assets/img/icons/docs.png"; // Placeholder path for the thumbnail
+                        if (mysqli_num_rows($submittedFilesResult) > 0) {
+                            $fileIndex = 0;
+                            while ($fileRow = mysqli_fetch_assoc($submittedFilesResult)) {
+                                $fileName = $fileRow['original_file_name'];
+                                $fileUrl = $fileRow['file_url'];
+                                $fileSize = $fileRow['file_size'];
+                                $uploadTime = $fileRow['upload_time'];
+                                $formattedSize = formatFileSize($fileSize);
+                                $formattedDate = date('d M Y, g:i A', strtotime($uploadTime));
 
-                                        if (!function_exists('formatFileSize')) {
-                                            function formatFileSize($bytes) {
-                                                if ($bytes == 0 || $bytes == '0') return 'Unknown size';
-                                                $bytes = (int)$bytes;
-                                                $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-                                                $power = $bytes > 0 ? floor(log($bytes, 1024)) : 0;
-                                                return round($bytes / pow(1024, $power), 2) . ' ' . $units[$power];
-                                            }
-                                        }
-                                        $formattedFileSize = formatFileSize($fileSize);
-
-                                        $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
-                                        switch (strtolower($fileExtension)) {
-                                            case 'pdf':
-                                                $thumbnailPath = "../assets/img/icons/pdf.png";
-                                                break;
-                                            case 'doc':
-                                            case 'docx':
-                                            case 'rtf':
-                                                $thumbnailPath = "../assets/img/icons/word.png";
-                                                break;
-                                            case 'xls':
-                                            case 'xlsx':
-                                            case 'csv':
-                                                $thumbnailPath = "../assets/img/icons/excel.png";
-                                                break;
-                                            case 'ppt':
-                                            case 'pptx':
-                                                $thumbnailPath = "../assets/img/icons/powerpoint.png";
-                                                break;
-                                            case 'mp4':
-                                            case 'avi':
-                                            case 'mov':
-                                            case 'mkv':
-                                            case 'wmv':
-                                            case 'flv':
-                                            case 'mpeg':
-                                            case 'mpg':
-                                            case '3gp':
-                                            case 'webm':
-                                            case 'm4v':
-                                                $thumbnailPath = "../assets/img/icons/mp4.png";
-                                                break;
-                                            case 'jpg':
-                                            case 'jpeg':
-                                            case 'png':
-                                            case 'gif':
-                                                $thumbnailPath = "../assets/img/icons/image.png";
-                                                break;
-                                            case 'zip':
-                                            case 'rar':
-                                                $thumbnailPath = "../assets/img/icons/zip.png";
-                                                break;
-                                            default:
-                                                $thumbnailPath = "../assets/img/icons/docs.png";
-                                                break;
-                                        }
-                                        ?>
-                                        <div class="d-flex mb-3 hover-actions-trigger align-items-center" data-file-url="<?php echo $fileUrl; ?>">
-                                            <div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="<?php echo $thumbnailPath; ?>" alt="" /></div>
-                                            <div class="ms-3 flex-shrink-1 flex-grow-1">
-                                                <h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="<?php echo $fileUrl; ?>" target="_blank"><?php echo $fileName; ?></a></h6>
-                                                <div class="fs-10">
-                                                    <span class="fw-medium text-600"><?php echo $formattedFileSize; ?></span>
-                                                    <span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span>
-                                                </div>
-                                                <div class="hover-actions end-0 top-50 translate-middle-y">
-                                                    <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="../assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <hr class="text-200" />
-                                        <?php
-                                    }
-                                } else {
-                                    echo '<div>No submitted files.</div>';
+                                // Determine thumbnail based on file extension
+                                $thumbnailPath = '../assets/img/icons/docs.png';
+                                $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
+                                switch (strtolower($fileExtension)) {
+                                    case 'pdf':
+                                        $thumbnailPath = '../assets/img/icons/pdf.png';
+                                        break;
+                                    case 'doc':
+                                    case 'docx':
+                                    case 'rtf':
+                                        $thumbnailPath = '../assets/img/icons/word.png';
+                                        break;
+                                    case 'xls':
+                                    case 'xlsx':
+                                    case 'csv':
+                                        $thumbnailPath = '../assets/img/icons/excel.png';
+                                        break;
+                                    case 'ppt':
+                                    case 'pptx':
+                                        $thumbnailPath = '../assets/img/icons/powerpoint.png';
+                                        break;
+                                    case 'mp4':
+                                    case 'avi':
+                                    case 'mov':
+                                    case 'mkv':
+                                    case 'wmv':
+                                    case 'flv':
+                                    case 'mpeg':
+                                    case 'mpg':
+                                    case '3gp':
+                                    case 'webm':
+                                    case 'm4v':
+                                        $thumbnailPath = '../assets/img/icons/mp4.png';
+                                        break;
+                                    case 'jpg':
+                                    case 'jpeg':
+                                    case 'png':
+                                    case 'gif':
+                                        $thumbnailPath = '../assets/img/icons/image.png';
+                                        break;
+                                    case 'zip':
+                                    case 'rar':
+                                        $thumbnailPath = '../assets/img/icons/zip.png';
+                                        break;
+                                    default:
+                                        $thumbnailPath = '../assets/img/icons/docs.png';
+                                        break;
                                 }
                                 ?>
-                            </div>
-                        </div>
+                                <div class="d-flex mb-3 hover-actions-trigger align-items-center"
+                                     data-file-url="<?php echo $fileUrl; ?>">
+                                    <div class="file-thumbnail">
+                                        <img class="border h-100 w-100 object-fit-cover rounded-2"
+                                             src="<?php echo $thumbnailPath; ?>" alt=""/>
+                                    </div>
+                                    <div class="ms-3 flex-shrink-1 flex-grow-1">
+                                        <h6 class="mb-1">
+                                            <a class="stretched-link text-900 fw-semi-bold"
+                                               href="<?php echo $fileUrl; ?>"><?php echo htmlspecialchars($fileName); ?></a>
+                                        </h6>
+                                        <div class="fs-10">
+                                            <span class="fw-medium text-600"><?php echo $formattedSize; ?></span>
+                                            <span class='fw-medium text-600 mx-1'>•</span>
+                                            <span class="fw-medium text-600"><?php echo $formattedDate; ?></span>
+                                        </div>
+                                        <div class="hover-actions end-0 top-50 translate-middle-y">
+                                            <button class="btn btn-tertiary border-300 btn-sm me-1 text-600"
+                                                    data-bs-toggle="tooltip" data-bs-placement="top" title="View File"
+                                                    onclick="previewFile('<?php echo $encodedId; ?>', <?php echo $fileIndex; ?>, 'submitted')">
+                                                <img src="../assets/img/icons/eye.svg" alt="" width="15"/>
+                                            </button>
+                                            <a class="btn btn-tertiary border-300 btn-sm me-1 text-600"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" title="Download"
+                                               href="<?php echo $fileUrl; ?>"
+                                               download="<?php echo htmlspecialchars($fileName); ?>">
+                                                <img src="../assets/img/icons/cloud-download.svg" alt="" width="15"/>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr class="text-200"/>
+                                <?php
+                                $fileIndex++;
+                            }
+                            mysqli_stmt_close($stmt);
+                        } else {
+                            echo '<div>No submitted files.</div>';
+                        }
+                        ?>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <?php
+    // Fetch all comments for this task
+    $commentsQuery = 'SELECT * FROM tbl_task_comments WHERE task_id = ? ORDER BY created_at ASC';
+    $stmt = $con->prepare($commentsQuery);
+    $stmt->bind_param('i', $taskId);
+    $stmt->execute();
+    $commentsResult = $stmt->get_result();
+    $comments = $commentsResult->fetch_all(MYSQLI_ASSOC);
+    ?>
+
+    <div class='row'>
+        <div class='col-lg-12 order-1 order-lg-0'>
+            <div class='card mb-3'>
+                <div class='card-header bg-body-tertiary d-flex align-items-center justify-content-between'>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-comments me-2 text-primary"></i>
+                        <h6 class='mb-0'>Task Discussion</h6>
+                        <span class="badge badge-subtle-info ms-2"><?php echo count($comments); ?> messages</span>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="toggleCommentForm()">
+                        <i class="fas fa-plus me-1"></i>Add Comment
+                    </button>
+                </div>
+                <div class='card-body position-relative' style="max-height: 500px; overflow-y: auto;">
+
+                    <!-- Comment Form (Initially Hidden) -->
+                    <div id="commentForm" class="mb-3" style="display: none;">
+                        <form id="addCommentForm" onsubmit="addComment(event)">
+                            <div class="mb-2">
+                                <textarea class="form-control" id="commentText" rows="3"
+                                          placeholder="Type your message here..." required></textarea>
+                            </div>
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="toggleCommentForm()">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-paper-plane me-1"></i>Send
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Comments Thread -->
+                    <div id="commentsContainer">
+                        <?php if (empty($comments)): ?>
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-comment-slash fa-2x mb-2"></i>
+                                <p>No messages yet. Start the conversation!</p>
+                            </div>
+                        <?php else: ?>
+                            <?php foreach ($comments as $comment): ?>
+                                <div class="comment-item mb-3 <?php echo $comment['user_type'] === 'admin' ? 'admin-comment' : 'writer-comment'; ?>">
+                                    <div class="d-flex align-items-start">
+                                        <div class="notification-avatar">
+                                            <div class='avatar avatar-2xl me-2'>
+                                                <div class="avatar-name rounded-circle <?php echo $comment['user_type'] === 'admin' ? 'bg-primary' : 'bg-success'; ?>">
+                                            <span class='fs-9 text-white'>
+                                                <?php echo strtoupper(substr($comment['username'], 0, 2)); ?>
+                                            </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="comment-bubble p-3 rounded-3 <?php echo $comment['user_type'] === 'admin' ? 'bg-100 border border-primary-subtle' : 'bg-200 border border-success-subtle'; ?>">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <div class="comment-author fw-bold <?php echo $comment['user_type'] === 'admin' ? 'text-primary' : 'text-success'; ?>">
+                                                        <?php echo htmlspecialchars($comment['username']); ?>
+                                                        <?php if ($comment['user_type'] === 'writer' && $comment['is_read'] == 0): ?>
+                                                            <span class="badge badge-subtle-danger ms-2 unread-badge" style="font-size: 0.7em;">NEW</span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <small class="fw-medium text-600 fs-10">
+                                                        <?php echo date('M d, Y g:i A', strtotime($comment['created_at'])); ?>
+                                                    </small>
+                                                </div>
+                                                <div class="comment-text fs-9">
+                                                    <?php
+                                                    $unescaped_comment = stripcslashes($comment['comment']);
+                                                    echo nl2br(htmlspecialchars($unescaped_comment));
+                                                    ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- File Preview Modal -->
+    <div class='modal fade' id='filePreviewModal' tabindex='-1' aria-labelledby='filePreviewModalLabel' aria-hidden='true'>
+        <div class='modal-dialog modal-xl mt-6' style='max-width: 90vw;'>
+            <div class='modal-content'>
+                <div class='modal-header'>
+                    <h5 class='modal-title' id='filePreviewModalLabel'>itasker File Preview</h5>
+                    <button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>
+                </div>
+                <div class='modal-body' id='filePreviewContent'
+                     style='min-height: 70vh; display: flex; justify-content: center; align-items: center;'>
+                    <!-- Preview content will be injected here -->
+                    <div id='previewLoading' style='text-align:center;'>
+                        <div class='spinner-border text-primary' role='status'><span
+                                    class='visually-hidden'>Loading...</span></div>
+                        <p>Loading preview...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <script>
         function confirmDuplicate() {
             return confirm('Are you sure you want to duplicate this task?');
+        }
+
+        function viewFile(taskId, fileIndex, fileType) {
+            const url = `file-viewer.php?task_id=${taskId}&file=${fileIndex}&type=${fileType}`;
+            window.open(url, 'fileViewer', 'width=1000,height=700,scrollbars=yes,resizable=yes');
         }
 
         function toggleFavorite(taskId) {
@@ -564,18 +754,27 @@ if (isset($_SESSION['alert'])) {
                         const favoriteBtn = document.getElementById('favorite-btn');
                         const favoriteIcon = document.getElementById('favorite-icon');
                         const favoriteText = document.getElementById('favorite-text');
+
+                        let toastMessage = '';
                         if (response.is_favorite == 1) {
                             favoriteIcon.classList.remove('fa-heart-broken');
                             favoriteIcon.classList.add('fa-heart');
                             favoriteText.textContent = 'Unfavorite';
+                            toastMessage = 'Task added to favorites!';
                         } else {
                             favoriteIcon.classList.remove('fa-heart');
                             favoriteIcon.classList.add('fa-heart-broken');
                             favoriteText.textContent = 'Favorite';
+                            toastMessage = 'Task removed from favorites!';
                         }
+
+                        // Show success toast notification
+                        showBootstrapToast(toastMessage, 'success');
                     } else {
-                        alert('Failed to update favorite status.');
+                        showBootstrapToast('Failed to update favorite status.', 'danger');
                     }
+                } else {
+                    showBootstrapToast('An error occurred while updating favorite status.', 'danger');
                 }
             };
             xhr.send('task_id=' + taskId);
@@ -588,14 +787,61 @@ if (isset($_SESSION['alert'])) {
                     type: 'POST',
                     data: { task_id: encodedId },
                     success: function() {
-                        // Redirect to the task details page after completing the task
-                        window.location.href = 'view-task?task_id=' + encodedId;
+                        // Show success toast before redirecting
+                        showBootstrapToast('Task completed successfully!', 'success');
+
+                        // Delay redirect to allow toast to be seen
+                        setTimeout(function() {
+                            window.location.href = 'view-task?task_id=' + encodedId;
+                        }, 2000);
                     },
                     error: function() {
-                        alert('An error occurred while completing the task.');
+                        showBootstrapToast('An error occurred while completing the task.', 'danger');
                     }
                 });
             }
+        }
+
+        // Simple Bootstrap toast function
+        function showBootstrapToast(message, type = 'success') {
+            // Remove any existing toast
+            const existingToast = document.getElementById('dynamic-toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+
+            // Create the toast alert
+            const toast = document.createElement('div');
+            toast.id = 'dynamic-toast';
+            toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        max-width: 400px;
+    `;
+            toast.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+
+            document.body.appendChild(toast);
+
+            // Auto-dismiss after 4 seconds
+            setTimeout(() => {
+                const alert = toast.querySelector('.alert');
+                if (alert) {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }
+            }, 4000);
+
+            // Remove toast element when alert is closed
+            toast.addEventListener('closed.bs.alert', function() {
+                toast.remove();
+            });
         }
 
     </script>
@@ -643,6 +889,197 @@ if (isset($_SESSION['alert'])) {
             setInterval(updateTime, 1000);
             // Initialize immediately
             updateTime();
+        });
+    </script>
+    <script>
+        function previewFile(taskId, fileIndex, fileType) {
+            const modalElement = document.getElementById('filePreviewModal');
+            const contentContainer = document.getElementById('filePreviewContent');
+            const loadingIndicator = document.getElementById('previewLoading');
+
+            // Clean up any existing modal instance
+            const existingModal = bootstrap.Modal.getInstance(modalElement);
+            if (existingModal) {
+                existingModal.dispose();
+            }
+
+            // Create a fresh modal instance
+            const modal = new bootstrap.Modal(modalElement);
+
+            // Reset modal content
+            contentContainer.innerHTML = '';
+
+            // Create and show loading indicator
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'previewLoading';
+            loadingDiv.style.textAlign = 'center';
+            loadingDiv.innerHTML = `
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p>Loading preview...</p>
+      `;
+            contentContainer.appendChild(loadingDiv);
+
+            // Build the file viewer URL
+            const url = `file-viewer?task_id=${taskId}&file=${fileIndex}&type=${fileType}`;
+
+            // Create iframe for preview
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            iframe.style.width = '100%';
+            iframe.style.height = '70vh';
+            iframe.style.border = 'none';
+
+            // When iframe loads, hide loading spinner
+            iframe.onload = () => {
+                const currentLoading = document.getElementById('previewLoading');
+                if (currentLoading) {
+                    currentLoading.remove();
+                }
+            };
+
+            // Add error handling
+            iframe.onerror = () => {
+                const currentLoading = document.getElementById('previewLoading');
+                if (currentLoading) {
+                    currentLoading.innerHTML = '<p class="text-danger">Failed to load file preview.</p>';
+                }
+            };
+
+            // Add iframe to content container
+            contentContainer.appendChild(iframe);
+
+            // Clean up when modal is hidden
+            modalElement.addEventListener('hidden.bs.modal', function() {
+                contentContainer.innerHTML = '';
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance.dispose();
+                }
+            }, { once: true }); // Use { once: true } to prevent multiple event listeners
+
+            // Show modal
+            modal.show();
+        }
+    </script>
+    <script>
+        function toggleCommentForm() {
+            const form = document.getElementById('commentForm');
+            const isVisible = form.style.display !== 'none';
+
+            if (isVisible) {
+                form.style.display = 'none';
+                document.getElementById('commentText').value = '';
+            } else {
+                form.style.display = 'block';
+                document.getElementById('commentText').focus();
+            }
+        }
+
+        function addComment(event) {
+            event.preventDefault();
+
+            const commentText = document.getElementById('commentText').value.trim();
+            if (!commentText) return;
+
+            const formData = new FormData();
+            formData.append('task_id', <?php echo $taskId; ?>);
+            formData.append('comment', commentText);
+            formData.append('action', 'add_comment');
+
+            fetch('add-task-comment', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Reload the page to show the new comment
+                        window.location.reload();
+                    } else {
+                        showBootstrapToast(data.message || 'Failed to add comment', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showBootstrapToast('An error occurred while adding the comment', 'danger');
+                });
+        }
+
+        // Auto-scroll to bottom of comments on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const commentsContainer = document.getElementById('commentsContainer');
+            if (commentsContainer && commentsContainer.children.length > 0) {
+                commentsContainer.scrollTop = commentsContainer.scrollHeight;
+            }
+        });
+    </script>
+    <script>
+        function markCommentsAsReadOnLoad() {
+            const taskId = <?php echo $taskId; ?>;
+
+            fetch('mark-writer-comments-read', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    task_id: taskId,
+                    action: 'mark_writer_comments_read'
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.count > 0) {
+                        setTimeout(() => {
+                            updateCommentsUI();
+                        }, 5000);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error marking comments as read:', error);
+                });
+        }
+
+        function observeCommentsSection() {
+            const commentsSection = document.querySelector('#commentsContainer');
+
+            if (commentsSection) {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            markCommentsAsReadOnLoad();
+                            observer.unobserve(entry.target); // Only mark once
+                        }
+                    });
+                }, {
+                    threshold: 0.9 // Trigger when 90% of comments section is visible
+                });
+
+                observer.observe(commentsSection);
+            }
+        }
+
+        function updateCommentsUI() {
+            // Remove "NEW" badges from admin comments with fade effect
+            const unreadBadges = document.querySelectorAll('.writer-comment .unread-badge');
+            unreadBadges.forEach(badge => {
+                // Add fade out animation
+                badge.style.transition = 'opacity 0.5s ease-out';
+                badge.style.opacity = '0';
+
+                // Remove the element after animation completes
+                setTimeout(() => {
+                    if (badge.parentNode) {
+                        badge.remove();
+                    }
+                }, 500);
+            });
+        }
+        // Call the function when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            observeCommentsSection();
         });
     </script>
 

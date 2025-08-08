@@ -104,9 +104,9 @@ if (isset($_GET['del'])) {
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
-                                                <a class="btn btn-falcon-info btn-sm mx-2" href="create-task" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Task</span></a>
+                                                <a class="btn btn-falcon-info btn-sm mx-2" href="create-task" data-bs-toggle="tooltip" data-bs-placement="top" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Task</span></a>
 <!--                                                <button class="btn btn-falcon-default btn-sm mx-2" type="button"><span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Filter</span></button>-->
-                                                <button class="btn btn-falcon-primary btn-sm" onclick="confirmExport()" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
+                                                <button class="btn btn-falcon-primary btn-sm" onclick="confirmExport()" data-bs-toggle="tooltip" data-bs-placement="top" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
                                                 <!--<div class="dropdown font-sans-serif ms-2">
                                                     <button class="btn btn-falcon-default text-600 btn-sm dropdown-toggle dropdown-caret-none" type="button" id="preview-dropdown" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-ellipsis-h fs-11"></span></button>
                                                     <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="preview-dropdown"><a class="dropdown-item" href="#!">View</a><a class="dropdown-item" href="#!">Export</a>
@@ -225,7 +225,7 @@ if (isset($_GET['del'])) {
                                             <td>
                                                 <div class="d-flex align-items-center position-relative">
                                                     <div class="flex-1">
-                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
+                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link"  href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
                                                         <p class="fw-semi-bold mb-0 text-500"><?php echo $row["subject"];?> |<?php echo $row["pages"];?> | <?php echo $row["cpp"];?></p>
                                                     </div>
                                                 </div>
@@ -248,11 +248,11 @@ if (isset($_GET['del'])) {
                                                 <p class="fs-11 mb-0"><?php echo $statusBadgePay;?></p>
                                             </td>
                                             <td class="align-middle white-space-nowrap text-end position-relative">
-                                                <div class="hover-actions bg-100">
-                                                    <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>" title="View task"><span class="far fa-eye"></span></a>
-                                                    <!-- <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="edit-task?task_id=<?php //echo $encodedId; ?>" title="Edit Task"><span class="far fa-edit"></span></a> -->
-                                                    <a class="btn bg-warning-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" target="_blank" href="duplicate-task?task_id=<?php echo $encodedId; ?>" title="Duplicate Task" onclick="return confirmDuplicateTask('<?php echo $row["id"];?>');"><span class="fas fa-copy"></span></a>
-                                                    <!-- <a class="btn bg-danger-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="all-tasks?del=<?php //echo $encodedId; ?>" title="Cancel Task" onclick="return confirm('Do you really want to cancel task?');"><span class="fas fa-trash"></span></a> -->
+                                                <div class="btn-group btn-group hover-actions end-0 me-4">
+                                                    <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm"  href="view-task?task_id=<?php echo $encodedId; ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="View task"><span class="far fa-eye"></span></a>
+                                                    <!-- <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="edit-task?task_id=<?php //echo $encodedId; ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Task"><span class="far fa-edit"></span></a> -->
+                                                    <a class="btn bg-warning-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm"  href="duplicate-task?task_id=<?php echo $encodedId; ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Duplicate Task" onclick="return confirmDuplicateTask('<?php echo $row["id"];?>');"><span class="fas fa-copy"></span></a>
+                                                    <!-- <a class="btn bg-danger-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="all-tasks?del=<?php //echo $encodedId; ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Cancel Task" onclick="return confirm('Do you really want to cancel task?');"><span class="fas fa-trash"></span></a> -->
                                                 </div>
                                                 <div class="dropdown font-sans-serif btn-reveal-trigger">
                                                     <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal-sm transition-none" type="button" id="crm-recent-leads-4" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-chevron-left fs-11"></span></button>

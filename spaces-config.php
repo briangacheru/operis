@@ -7,5 +7,5 @@ return [
     'bucket' => 'monkbrian',
     'access_key' => 'DO00KEGZR7YPLBVBJ8RF',
     'secret_key' => 'w9T7c4mW5abgIv9znj6vGJxKcmbptnSH6kipS6a2xCc',
-    'cdn_endpoint' => 'https://monkbrian.sfo3.cdn.digitaloceanspaces.com', // If you enabled CDN
+    //'cdn_endpoint' => 'https://monkbrian.sfo3.cdn.digitaloceanspaces.com', // If you enabled CDN
 ];

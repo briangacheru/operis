@@ -222,8 +222,8 @@ if (isset($_SESSION['alert'])) {
                                                 </div>
                                                 <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
                                                     <form method="post" action="">
-                                                        <button type="submit" name="export_csv" title="Export all transactions as CSV" class="btn btn-falcon-default btn-sm"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export</span></button>
-                                                        <a class="btn btn-falcon-info btn-sm mx-2" data-bs-toggle="modal" data-bs-target="#addTransactionModal" title="Add a new transaction" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Add Transaction</span></a>
+                                                        <button type="submit" name="export_csv" data-bs-toggle="tooltip" data-bs-placement="top" title="Export all transactions as CSV" class="btn btn-falcon-default btn-sm"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export</span></button>
+                                                        <a class="btn btn-falcon-info btn-sm mx-2" data-bs-toggle="modal" data-bs-target="#addTransactionModal" data-bs-toggle="tooltip" data-bs-placement="top" title="Add a new transaction" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Add Transaction</span></a>
                                                     </form>
                                                 </div>
                                             </div>
@@ -340,11 +340,11 @@ if (isset($_SESSION['alert'])) {
                                                     </td>
                                                     <td class="align-middle white-space-nowrap text-end position-relative">
                                                         <div class="hover-actions bg-100">
-                                                            <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"  data-bs-target="#viewTransactionModal" title="View Transaction"
+                                                            <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"  data-bs-target="#viewTransactionModal" data-bs-toggle="tooltip" data-bs-placement="top" title="View Transaction"
                                                                onclick="loadViewModal('<?php echo $row['id']; ?>', '<?php echo addslashes($row['category']); ?>', '<?php echo addslashes($row['subcategory']); ?>', '<?php echo addslashes($row['tag']); ?>', '<?php echo addslashes($row['description']); ?>', '<?php echo $row['amount']; ?>', '<?php echo date('M j, Y \a\\t H:i', strtotime($row['date'])); ?>')"><span class="far fa-eye"></span></a>
-                                                            <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"  data-bs-target="#editTransactionModal" title="Edit Transaction"
+                                                            <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"  data-bs-target="#editTransactionModal" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Transaction"
                                                                onclick="loadEditModal('<?php echo $row['id']; ?>', '<?php echo addslashes($row['category']); ?>', '<?php echo addslashes($row['subcategory']); ?>', '<?php echo addslashes($row['tag']); ?>', '<?php echo addslashes($row['description']); ?>', '<?php echo $row['amount']; ?>', '<?php echo date('Y-m-d\TH:i', strtotime($row['date'])); ?>')"><span class="far fa-edit"></span></a>
-                                                            <a class="btn bg-danger-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"   data-bs-target="#deleteTransactionModal" title="Delete Transaction"
+                                                            <a class="btn bg-danger-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"   data-bs-target="#deleteTransactionModal" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Transaction"
                                                                onclick="loadDeleteModal('<?php echo $row['id']; ?>')"><span class="fas fa-trash"></span></a>
                                                         </div>
                                                         <div class="dropdown font-sans-serif btn-reveal-trigger">

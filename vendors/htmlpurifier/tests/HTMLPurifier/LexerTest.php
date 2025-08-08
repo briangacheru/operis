@@ -334,7 +334,7 @@ class HTMLPurifier_LexerTest extends HTMLPurifier_Harness
     public function test_tokenizeHTML_whitespaceInTag()
     {
         $this->assertTokenization(
-            '<a'."\t".'href="foobar.php"'."\n".'title="foo!">Link to <b id="asdf">foobar</b></a>',
+            '<a'."\t".'href="foobar.php"'."\n".'data-bs-toggle="tooltip" data-bs-placement="top" title="foo!">Link to <b id="asdf">foobar</b></a>',
             array(
                 new HTMLPurifier_Token_Start('a',array('href'=>'foobar.php','title'=>'foo!')),
                 new HTMLPurifier_Token_Text('Link to '),

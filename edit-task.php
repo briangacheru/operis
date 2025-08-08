@@ -203,8 +203,8 @@ if ($row = mysqli_fetch_array($result)) {
                                                         <input type="hidden" name="existingFiles[]" value="<?php echo htmlspecialchars($filePath); ?>">
                                                         <!-- Add or adjust action buttons as necessary -->
                                                         <div class="hover-actions end-0 top-50 translate-middle-y">
-                                                            <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
-                                                            <button class="btn btn-tertiary border-300 btn-sm me-1 text-600 shadow-none delete-btn" type="button" data-file-path="<?php echo htmlspecialchars($filePath); ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Remove"><img src="assets/img/icons/delete.svg" alt="" width="15" /></button>
+                                                            <a class="btn btn-tertiary border-300 btn-sm me-1 text-600"  data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
+                                                            <button class="btn btn-tertiary border-300 btn-sm me-1 text-600 shadow-none delete-btn" type="button" data-file-path="<?php echo htmlspecialchars($filePath); ?>"  data-bs-toggle="tooltip" data-bs-placement="top" title="Remove"><img src="assets/img/icons/delete.svg" alt="" width="15" /></button>
                                                         </div>
                                                     </div>
                                                 </div>

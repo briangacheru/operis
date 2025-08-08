@@ -53,7 +53,7 @@ if ($writerID) {
                     <div class="col-lg-6">
                         <h4 class="mb-1 text-info">
                             <?php echo htmlspecialchars($rowWriter['FirstName']) . ' ' . htmlspecialchars($rowWriter['LastName']); ?>
-                            <span data-bs-toggle="tooltip" data-bs-placement="right" title="<?php echo $rowWriter['is_verified'] ? 'Verified' : 'Unverified'; ?>">
+                            <span data-bs-toggle="tooltip" data-bs-placement="right" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo $rowWriter['is_verified'] ? 'Verified' : 'Unverified'; ?>">
                                 <small class="fa fa-<?php echo $rowWriter['is_verified'] ? 'check-circle text-primary' : 'times-circle text-secondary'; ?>" data-fa-transform="shrink-4 down-2"></small>
                             </span>
                         </h4>
@@ -64,7 +64,7 @@ if ($writerID) {
                     </div>
                     <div class="col ps-2 ps-lg-5">
                         <div class="d-flex align-items-center mb-2">
-                            <span class="fas fa-user-secret fs-8 me-2 text-info" title="Member Since" data-fa-transform="grow-2"></span>
+                            <span class="fas fa-user-secret fs-8 me-2 text-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Member Since" data-fa-transform="grow-2"></span>
                             <div class="flex-1">
                                 <h6 class="mb-0 text-primary">
                                     <?php echo date("jS F, Y", strtotime($rowWriter['created_at'])); ?>
@@ -72,19 +72,19 @@ if ($writerID) {
                             </div>
                         </div>
                         <div class="d-flex align-items-center mb-2">
-                            <span class="fas fa-archive fs-8 me-2 text-info" title="Completed Tasks" data-fa-transform="grow-2"></span>
+                            <span class="fas fa-archive fs-8 me-2 text-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Completed Tasks" data-fa-transform="grow-2"></span>
                             <div class="flex-1">
                                 <h6 class="mb-0 text-primary"><?php echo $allCompleted; ?> Completed tasks</h6>
                             </div>
                         </div>
                         <div class="d-flex align-items-center mb-2">
-                            <span class="fas fa-spinner fs-8 me-2 text-info" title="Tasks Pending" data-fa-transform="grow-2"></span>
+                            <span class="fas fa-spinner fs-8 me-2 text-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Tasks Pending" data-fa-transform="grow-2"></span>
                             <div class="flex-1">
                                 <h6 class="mb-0 text-primary"><?php echo $allProgress; ?> Task(s) pending</h6>
                             </div>
                         </div>
                         <div class="d-flex align-items-center mb-2">
-                            <span class="fas fa-wallet fs-8 me-2 text-info" title="Total Disbursed" data-fa-transform="grow-2"></span>
+                            <span class="fas fa-wallet fs-8 me-2 text-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Total Disbursed" data-fa-transform="grow-2"></span>
                             <div class="flex-1">
                                 <h6 class="mb-0 text-primary"><?php echo $totalPaidFormatted; ?></h6>
                             </div>

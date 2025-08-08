@@ -10,7 +10,7 @@ $msg = "";
             <div>
                 <button class="btn btn-outline-success btn-sm me-2" type="button" data-bs-toggle="modal" data-bs-target="#addGoalModal">
                     <span class="fas fa-plus fs-11"></span>
-                    <span class="d-none d-sm-inline-block ms-1 align-middle" title="Add a new savings goal">Add Goal</span>
+                    <span class="d-none d-sm-inline-block ms-1 align-middle" data-bs-toggle="tooltip" data-bs-placement="top" title="Add a new savings goal">Add Goal</span>
                 </button>
             </div>
         </div>
@@ -230,11 +230,11 @@ if (isset($_SESSION['alert'])) {
                                 </td>
                                 <td class="align-middle white-space-nowrap text-end position-relative">
                                     <div class="hover-actions bg-100">
-                                        <button class="btn btn-outline-danger icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" data-bs-target="#editGoalModal" title="Edit this goal"
+                                        <button class="btn btn-outline-danger icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" data-bs-target="#editGoalModal" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit this goal"
                                                 onclick="populateEditModal(<?php echo $row['goalID']; ?>, '<?php echo $row['goalName']; ?>', '<?php echo $row['goalDescription']; ?>', <?php echo $row['goalAmount']; ?>, <?php echo $row['goalStatus']; ?>, '<?php echo $row['goalPeriod']; ?>', '<?php echo $row['achieved_on']; ?>')">
                                             <span class="fas fa-edit"></span>
                                         </button>
-                                        <button class="btn icon-item rounded-3 me-2 fs-11 icon-item-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteGoalModal" title="Delete this goal"
+                                        <button class="btn icon-item rounded-3 me-2 fs-11 icon-item-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteGoalModal" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete this goal"
                                                 onclick="populateDeleteModal(<?php echo $row['goalID']; ?>)">
                                             <span class="fas fa-trash"></span>
                                         </button>

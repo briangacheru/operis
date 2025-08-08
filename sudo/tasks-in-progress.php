@@ -128,6 +128,8 @@ if (isset($_GET['del'])) {
         <p class="mb-0 flex-1">A simple success alert—check it out!</p>
         <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>-->
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
 
     <?php
     if (isset($_SESSION['alert'])) {
@@ -171,7 +173,7 @@ if (isset($_GET['del'])) {
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
-                                                <a class="btn btn-falcon-info btn-sm mx-2" href="create-task" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Task</span></a>
+                                                <a class="btn btn-falcon-info btn-sm mx-2" href="create-task" data-bs-toggle="tooltip" data-bs-placement="top" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Task</span></a>
                                             </div>
                                         </div>
                                     </div>
@@ -266,7 +268,7 @@ if (isset($_GET['del'])) {
                                                 $confirmationText = ($is_confirmed == 0) ? 'Confirmed' : 'Unconfirmed';
                                                 $confirmation = "<span class='badge badge rounded-pill $confirmationClass'>$confirmationText</span>";
                                     ?>
-                                        <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100">
+                                        <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100 <?php echo ($row['acknowledged'] == 0) ? 'unviewed-task' : ''; ?>">
                                             <td class="align-middle" style="width: 28px;">
                                                 <div class="form-check mb-0">
                                                     <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
@@ -276,15 +278,19 @@ if (isset($_GET['del'])) {
                                             <td>
                                                 <div class="d-flex align-items-center position-relative">
                                                     <div class="flex-1">
-                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
+                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link"  href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
                                                         <p class="fw-semi-bold mb-0 text-500"><?php echo $row["pages"];?> Page(s) | CPP: <?php echo $row["cpp"];?></p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td class="align-middle white-space-nowrap product"><?php echo $statusBadge;?>
-                                            <?php if ($is_confirmed != 0): ?>
-                                                <?php echo $confirmation;?>
-                                            <?php endif; ?>
+                                            <td class='align-middle white-space-nowrap product'>
+                                                <?php echo $statusBadge; ?>
+                                                <?php if ($row['acknowledged'] == 0): ?>
+                                                    <span class="badge badge rounded-pill badge-subtle-secondary"><span class='ms-1 fas fa-eye-slash' data-fa-transform='shrink-2'></span></span>
+                                                <?php endif; ?>
+                                                <?php if ($is_confirmed != 0): ?>
+                                                    <?php echo $confirmation; ?>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="align-middle white-space-nowrap text-900">
                                                 <h6 class="mb-1 fw-semi-bold text-nowrap"><?php echo $row["account"];?></h6>
@@ -300,10 +306,10 @@ if (isset($_GET['del'])) {
                                             </td>
                                             <td class="align-middle white-space-nowrap text-end position-relative">
                                                 <div class="hover-actions bg-100">
-                                                    <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>" title="View task" ><span class="far fa-eye"></span></a>
-                                                    <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" target="_blank" href="edit-task?task_id=<?php echo $encodedId; ?>" title="Edit Task"><span class="far fa-edit"></span></a>
-                                                    <a class="btn bg-warning-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" target="_blank" href="duplicate-task?task_id=<?php echo $encodedId; ?>" title="Duplicate Task"><span class="fas fa-copy"></span></a>
-                                                    <a class="btn bg-danger-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" target="_blank" href="tasks-in-progress?del=<?php echo $encodedId; ?>" title="Cancel Task" onclick="return confirm('Do you really want to cancel task?');"><span class="fas fa-trash"></span></a>
+                                                    <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm"  href="view-task?task_id=<?php echo $encodedId; ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="View task" ><span class="far fa-eye"></span></a>
+                                                    <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm"  href="edit-task?task_id=<?php echo $encodedId; ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Task"><span class="far fa-edit"></span></a>
+                                                    <a class="btn bg-warning-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm"  href="duplicate-task?task_id=<?php echo $encodedId; ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Duplicate Task"><span class="fas fa-copy"></span></a>
+                                                    <a class="btn bg-danger-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm"  href="tasks-in-progress?del=<?php echo $encodedId; ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Cancel Task" onclick="return confirm('Do you really want to cancel task?');"><span class="fas fa-trash"></span></a>
                                                 </div>
                                                 <div class="dropdown font-sans-serif btn-reveal-trigger">
                                                     <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal-sm transition-none" type="button" id="crm-recent-leads-4" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-chevron-left fs-11"></span></button>
@@ -334,9 +340,9 @@ if (isset($_GET['del'])) {
                                                 <div class="dropstart font-sans-serif position-static d-inline-block">
                                                     <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal float-end" type="button" id="dropdown-simple-pagination-table-item-0" data-bs-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false" data-bs-reference="parent"><span class="fas fa-ellipsis-h fs-10"></span></button>
                                                     <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="dropdown-simple-pagination-table-item-0">
-                                                        <a class="dropdown-item text-info" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><span class="fas fa-eye" data-fa-transform="shrink-2"></span> View</a>
-                                                        <a class="dropdown-item text-success" target="_blank" href="edit-task?task_id=<?php echo $encodedId; ?>"><span class="bi bi-pen" data-fa-transform="shrink-2"></span> Edit</a>
-                                                        <a class="dropdown-item text-warning" target="_blank" href="duplicate-task?task_id=<?php echo $encodedId; ?>" ><span class="fas fa-copy" data-fa-transform="shrink-2"></span> Duplicate</a>
+                                                        <a class="dropdown-item text-info"  href="view-task?task_id=<?php echo $encodedId; ?>"><span class="fas fa-eye" data-fa-transform="shrink-2"></span> View</a>
+                                                        <a class="dropdown-item text-success"  href="edit-task?task_id=<?php echo $encodedId; ?>"><span class="bi bi-pen" data-fa-transform="shrink-2"></span> Edit</a>
+                                                        <a class="dropdown-item text-warning"  href="duplicate-task?task_id=<?php echo $encodedId; ?>" ><span class="fas fa-copy" data-fa-transform="shrink-2"></span> Duplicate</a>
                                                         <div class="dropdown-divider"></div>
                                                         <a class="dropdown-item text-danger" href="all-tasks?del=<?php echo $encodedId; ?>" onclick="return confirm('Do you really want to cancel task?');"><span class="fas fa-trash" data-fa-transform="shrink-2"></span> Cancel</>
                                                     </div>

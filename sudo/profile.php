@@ -116,7 +116,7 @@ if($query->rowCount() > 0)
                   <a class="btn btn-outline-primary btn-sm px-3" type="button" href="settings">Edit Profile</a>
                   <div class="border-bottom border-dashed my-4 d-lg-none"></div>
                 </div>
-                <div class="col ps-2 ps-lg-5"><div class="d-flex align-items-center mb-2" href="#"><span class="fas fa-user-secret fs-8 me-2 text-info" title="Member Since" data-fa-transform="grow-2"></span>
+                <div class="col ps-2 ps-lg-5"><div class="d-flex align-items-center mb-2" href="#"><span class="fas fa-user-secret fs-8 me-2 text-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Member Since" data-fa-transform="grow-2"></span>
                     <div class="flex-1">
                       <h6 class="mb-0 text-primary"><?php
                           $adminRegDate = $row->AdminRegdate;
@@ -125,15 +125,15 @@ if($query->rowCount() > 0)
                               ?>
                       </h6>
                     </div>
-                  </div><div class="d-flex align-items-center mb-2" href="#"><span class="fas fa-archive fs-8 me-2 text-info" title="Completed Tasks" data-fa-transform="grow-2"></span>
+                  </div><div class="d-flex align-items-center mb-2" href="#"><span class="fas fa-archive fs-8 me-2 text-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Completed Tasks" data-fa-transform="grow-2"></span>
                     <div class="flex-1">
                         <h6 class="mb-0 text-primary"><?php echo $allCompleted ?> Completed tasks</h6>
                     </div>
-                  </div><div class="d-flex align-items-center mb-2" href="#"><span class="fas fa-spinner fs-8 me-2 text-info" title="Tasks Pending" data-fa-transform="grow-2"></span>
+                  </div><div class="d-flex align-items-center mb-2" href="#"><span class="fas fa-spinner fs-8 me-2 text-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Tasks Pending" data-fa-transform="grow-2"></span>
                     <div class="flex-1">
                         <h6 class="mb-0 text-primary"><?php echo $allProgress ?> Task(s) pending</h6>
                     </div>
-                  </div><div class="d-flex align-items-center mb-2" href="#"><span class="fas fa-wallet fs-8 me-2 text-info" title="Total Disbursed" data-fa-transform="grow-2"></span>
+                  </div><div class="d-flex align-items-center mb-2" href="#"><span class="fas fa-wallet fs-8 me-2 text-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Total Disbursed" data-fa-transform="grow-2"></span>
                     <div class="flex-1">
                         <h6 class="mb-0 text-primary"><?php echo $totalPaidFormatted ?></h6>
                     </div>

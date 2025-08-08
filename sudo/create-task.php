@@ -78,7 +78,7 @@
                                     </div>
                                     <div class="col-sm-6 mb-3">
                                         <label class="form-label" for="basic-form-due">Deadline:</label>
-                                        <input class="form-control" name="due_date" required="required" id="due_date" type="datetime-local" />
+                                        <input class="form-control" name="due_date" required="required" id="due_date" type="datetime-local" min="<?php echo date('Y-m-d\T00:00'); ?>" />
                                         <div class="invalid-feedback">This field is required</div>
                                     </div>
                                     <div class="col-sm-6 mb-3">
@@ -90,7 +90,7 @@
                                     </div>
                                     <div class="col-sm-6 mb-3">
                                         <label class="form-label" for="cpp">Select writer: </label>
-                                        <select class="form-select" name="writer" id="writerSelect" required="required">
+                                        <select class="form-select js-choice" name="writer" id="writerSelect" required="required" data-options='{"removeItemButton":true,"placeholder":true}' >
                                             <option selected disabled value="">Select Writer</option>
                                             <?php
                                             // Assuming $con is your database connection
@@ -118,7 +118,7 @@
                                 <div class="row gx-2">
                                     <div class="col-12 mb-3">
                                         <label class="form-label" for="task-description">Task description:</label>
-                                        <div class="min-vh-25" id="description"></div>
+                                        <div  id="description"></div>
                                         <input type="hidden" name="description" id="description-input">
                                         <script>
                                             const quill = new Quill('#description', {

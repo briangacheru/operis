@@ -224,4 +224,65 @@ function logout() {
     setcookie('PHPSESSID', '', time() - 3600, '/'); // Destroy session data in the cookie
 }
 
+
+function timeAgo($datetime)
+{
+    $commentTime = new DateTime($datetime);
+    $now = new DateTime();
+    $interval = $now->diff($commentTime);
+
+    if ($interval->y > 0) {
+        return $interval->y . ' year' . ($interval->y > 1 ? 's' : '') . ' ago';
+    } elseif ($interval->m > 0) {
+        return $interval->m . ' month' . ($interval->m > 1 ? 's' : '') . ' ago';
+    } elseif ($interval->d > 0) {
+        return $interval->d . ' day' . ($interval->d > 1 ? 's' : '') . ' ago';
+    } elseif ($interval->h > 0) {
+        return $interval->h . ' hour' . ($interval->h > 1 ? 's' : '') . ' ago';
+    } elseif ($interval->i > 0) {
+        return $interval->i . ' minute' . ($interval->i > 1 ? 's' : '') . ' ago';
+    } else {
+        return 'Just now';
+    }
+}
+
+function timeDueIn($datetime, $showFullDateAfter = 31, $returnArray = false) {
+    $currentTime = time();
+    $dueTime = strtotime($datetime);
+    $timeDiff = $dueTime - $currentTime;
+
+    $absDays = abs(floor($timeDiff / 86400));
+    $cssClass = '';
+
+    if ($absDays > $showFullDateAfter) {
+        $text = date('M j, Y g:i A', $dueTime);
+        $cssClass = 'text-muted';
+    } elseif ($timeDiff < 0) {
+        // Overdue
+        $absTime = abs($timeDiff);
+        if ($absTime < 3600) $text = floor($absTime/60) . 'mins overdue';
+        elseif ($absTime < 86400) $text = floor($absTime/3600) . 'hrs overdue';
+        else $text = $absDays . 'days overdue';
+        $cssClass = 'text-danger';
+    } else {
+        // Due in future
+        if ($timeDiff < 3600) {
+            $text = floor($timeDiff/60) . 'mins left';
+            $cssClass = 'text-danger'; // Very urgent
+        } elseif ($timeDiff < 86400) {
+            $text = floor($timeDiff/3600) . 'hrs left';
+            $cssClass = 'text-warning'; // Urgent
+        } elseif ($absDays <= 3) {
+            $text = $absDays . 'days left';
+            $cssClass = 'text-warning'; // Soon
+        } else {
+            $text = $absDays . 'days left';
+            $cssClass = 'text-success'; // Plenty of time
+        }
+    }
+
+    return $returnArray ? ['text' => $text, 'class' => $cssClass] : $text;
+}
+
+
 ?>
