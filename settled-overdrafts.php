@@ -65,12 +65,12 @@
                                     <table class="table table-sm mb-0 overflow-hidden data-table fs-10"  data-datatables="data-datatables">
                                         <thead class="bg-200">
                                         <tr>
-                                            <th class="text-900 no-sort white-space-nowrap">
+                                            <th class="text-900 no-sort white-space-nowrap d-none">
                                                 <div class="form-check mb-0 d-flex align-items-center">
                                                     <input class="form-check-input" id="checkbox-select-all" type="checkbox" onclick="selectAllTasks(this)" data-bulk-select='{"body":"table-simple-pagination-body","actions":"table-simple-pagination-actions","replacedElement":"table-simple-pagination-replace-element"}' />
                                                 </div>
                                             </th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Amount</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap"><span class='ms-3'>Amount (Ksh)</span></th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Date</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Settled On</th>
 <!--                                            <th class="text-900 no-sort pe-1 align-middle data-table-row-action"></th>-->
@@ -85,12 +85,12 @@
                                                 $encodedId = base64_encode($row["id"]); // Encode the id
                                     ?>
                                         <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100">
-                                            <td class="align-middle" style="width: 28px;">
+                                            <td class="align-middle d-none" style="width: 28px;">
                                                 <div class="form-check mb-0">
                                                     <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
                                                 </div>
                                             </td>
-                                            <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["amount"];?></td>
+                                            <td class="align-middle white-space-nowrap fw-semi-bold text-900"><span class='ms-3'><?php echo $row['amount']; ?></span></td>
                                             <td class="align-middle white-space-nowrap text-900"><?php echo date("jS M, Y h:i A", strtotime($row['od_date'])); ?></td>
                                             <td class="align-middle white-space-nowrap text-900"><?php echo date("jS M, Y h:i A", strtotime($row['date_settled'])); ?></td>
                                         </tr>

@@ -144,7 +144,7 @@ class SessionManager {
         }
 
         // Redirect to logout
-        window.location.href = 'logout.php';
+        window.location.href = 'logout';
     }
 
     showNotification(message, type = 'info') {

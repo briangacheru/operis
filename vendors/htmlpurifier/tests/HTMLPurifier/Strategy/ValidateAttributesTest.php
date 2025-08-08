@@ -48,7 +48,7 @@ class HTMLPurifier_Strategy_ValidateAttributesTest extends
     public function testPreserveTitle()
     {
         $this->assertResult(
-            '<acronym title="PHP: Hypertext Preprocessor">PHP</acronym>'
+            '<acronym data-bs-toggle="tooltip" data-bs-placement="top" title="PHP: Hypertext Preprocessor">PHP</acronym>'
         );
     }
 

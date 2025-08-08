@@ -51,6 +51,16 @@
         border: 2px dashed #ff9900; /* Dashed border in warning color */
     }
 
+    .highlighted-link {
+        color: #007bff;
+        text-decoration: underline;
+        font-weight: bold;
+    }
+
+    .highlighted-link:hover {
+        color: #0056b3;
+    }
+
     .file-list ul {
         list-style-type: none;
         padding: 0;
@@ -137,6 +147,10 @@
             opacity: 1;
         }
     }
+
+    .table-active {
+        border-left: 4px solid #28a745 !important; /* Yellow left border */
+    }
 </style>
 
 <script>
@@ -180,7 +194,7 @@
             <div class="d-flex align-items-center">
                 <div class="toggle-icon-wrapper">
 
-                    <button class="btn navbar-toggler-humburger-icon navbar-vertical-toggle" data-bs-toggle="tooltip" data-bs-placement="left" title="Toggle Navigation"><span class="navbar-toggle-icon"><span class="toggle-line"></span></span></button>
+                    <button class="btn navbar-toggler-humburger-icon navbar-vertical-toggle" data-bs-toggle="tooltip" data-bs-placement="left" data-bs-toggle="tooltip" data-bs-placement="top" title="Toggle Navigation"><span class="navbar-toggle-icon"><span class="toggle-line"></span></span></button>
 
                 </div><a class="navbar-brand" href="index">
                     <div class="d-flex align-items-center py-3"><img class="me-2" src="assets/img/icons/spot-illustrations/itasker.png" alt="" width="40" /><span class="font-sans-serif text-primary">i<span class="text-info">Tasker</span></span>
@@ -478,7 +492,7 @@
                         </div>
                     </li>
 
-                    <li class="nav-item dropdown">
+                    <li class='nav-item dropdown'>
                         <?php
                         $aid = $_SESSION['sessionWriter'];
 
@@ -487,62 +501,135 @@
                         $newTasksCountResult = mysqli_fetch_assoc($newTasksCountQuery);
                         $newTasksCount = $newTasksCountResult['new_task_count'];
 
+                        // Query to count late tasks
+                        $lateTasksCountQuery = mysqli_query($con, "SELECT COUNT(*) AS late_task_count FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND due_date < NOW() AND email = '$aid'");
+                        $lateTasksCountResult = mysqli_fetch_assoc($lateTasksCountQuery);
+                        $lateTasksCount = $lateTasksCountResult['late_task_count'];
+
+                        // Total task notifications
+                        $totalTaskNotifications = $newTasksCount + $lateTasksCount;
+
                         // Query to fetch new tasks details
-                        $newTasksQuery = mysqli_query($con, "SELECT * FROM tbltasks WHERE is_deleted = 0 AND (status = 'In Progress' OR is_confirmed = 1) AND email = '$aid' AND acknowledged = 0 ORDER BY create_date DESC");
+                        $newTasksQuery = mysqli_query($con, "SELECT *, 'new' as notification_type FROM tbltasks WHERE is_deleted = 0 AND (status = 'In Progress' OR is_confirmed = 1) AND email = '$aid' AND acknowledged = 0 ORDER BY create_date DESC LIMIT 3");
                         $newTasks = [];
                         while ($task = mysqli_fetch_assoc($newTasksQuery)) {
                             $newTasks[] = $task;
                         }
+
+                        // Query to fetch late tasks details
+                        $lateTasksQuery = mysqli_query($con, "SELECT *, 'late' as notification_type FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND due_date < NOW() AND email = '$aid' ORDER BY due_date ASC LIMIT 3");
+                        $lateTasks = [];
+                        while ($task = mysqli_fetch_assoc($lateTasksQuery)) {
+                            // Calculate overdue time
+                            $dueDate = new DateTime($task['due_date']);
+                            $now = new DateTime();
+                            $interval = $now->diff($dueDate);
+                            $task['time_overdue'] = $interval->format('%a days %h hours');
+                            $lateTasks[] = $task;
+                        }
+
+                        // Combine and sort all tasks by priority (late tasks first, then new tasks)
+                        $allTaskNotifications = array_merge($lateTasks, $newTasks);
                         ?>
 
-                        <a class="nav-link notification-indicator notification-indicator-success px-0 fa-icon-wait" id="navbarDropdownNewTasks" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <a class="nav-link notification-indicator notification-indicator-warning px-0 fa-icon-wait"
+                           id="navbarDropdownTasks" role="button" data-bs-toggle="dropdown" aria-haspopup="true"
+                           aria-expanded="false">
                             <span class="fas fa-tasks" data-fa-transform="shrink-6" style="font-size: 33px;"></span>
-                            <?php if($newTasksCount > 0): ?>
-                                <span class="notification-indicator-number"><?php echo $newTasksCount; ?></span>
+                            <?php if ($totalTaskNotifications > 0): ?>
+                                <span class="notification-indicator-number"><?php echo $totalTaskNotifications; ?></span>
                             <?php endif; ?>
                         </a>
 
-                        <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end dropdown-menu-card dropdown-menu-notification dropdown-caret-bg" aria-labelledby="navbarDropdownNewTasks">
+                        <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end dropdown-menu-card dropdown-menu-notification dropdown-caret-bg"
+                             aria-labelledby="navbarDropdownTasks">
                             <div class="card card-notification shadow-none">
                                 <div class="card-header">
                                     <div class="row justify-content-between align-items-center">
                                         <div class="col-auto">
-                                            <h6 class="card-header-title mb-0 text-success">New Assigned Tasks</h6>
-                                        </div>
-                                        <div class="col-auto ps-0 ps-sm-3">
-                                            <a class="card-link fw-normal" href="#" onclick="markAllAsRead()">Mark all as read</a>
+                                            <h6 class="card-header-title mb-0 text-warning">Task Notifications</h6>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="scrollbar-overlay" style="max-height:19rem">
                                     <div class="list-group list-group-flush fw-normal fs-10">
-                                        <div class="list-group-title border-bottom text-success">You have <?php echo $newTasksCount; ?> new tasks.</div>
 
-                                        <?php foreach ($newTasks as $key => $task): ?>
-                                            <div class="list-group-item">
-                                                <?php $encodedId = base64_encode($task['id']); ?>
-                                                <a class="notification notification-flush notification-unread" href="view-task?task_id=<?php echo htmlspecialchars($encodedId); ?>" onclick="markTaskAsRead(<?php echo $task['id']; ?>)">
-                                                    <div class="notification-avatar">
-                                                        <div class="avatar avatar-2xl me-3">
-                                                            <span class="material-icons text-success fs-3">assignment</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="notification-body">
-                                                        <p class="mb-1 text-success"><strong>New Task:</strong> <?php echo $task['topic']; ?></p>
-                                                        <span class="notification-time text-muted">
-                                                            <span class="me-2" role="img" aria-label="Time">Due: </span>
-                                                            <?php echo date('M j, Y g:i A', strtotime($task['due_date'])); ?>
-                                                        </span>
-                                                    </div>
-                                                </a>
+                                        <?php if ($lateTasksCount > 0): ?>
+                                            <div class="list-group-title border-bottom text-danger">
+                                                <span class="fas fa-exclamation-triangle me-2"></span>You
+                                                have <?php echo $lateTasksCount; ?> overdue tasks.
                                             </div>
-                                            <?php if ($key >= 2) break; ?>
-                                        <?php endforeach; ?>
+                                            <?php foreach ($lateTasks as $key => $task): ?>
+                                                <div class="list-group-item">
+                                                    <?php $encodedId = base64_encode($task['id']); ?>
+                                                    <a class="notification notification-flush notification-unread"
+                                                       href="view-task?task_id=<?php echo htmlspecialchars($encodedId); ?>">
+                                                        <div class="notification-avatar">
+                                                            <div class="avatar avatar-2xl me-3">
+                                                                <span class="material-icons text-danger fs-3">dangerous</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="notification-body">
+                                                            <p class="mb-1 text-danger">
+                                                                <strong>Task <?php echo $task['id']; ?>:</strong>
+                                                                <?php echo htmlspecialchars(substr($task['topic'], 0, 35)) . (strlen($task['topic']) > 35 ? '...' : ''); ?>
+                                                            </p>
+                                                            <span class="notification-time text-danger">
+                                            <span class="me-2" role="img" aria-label="Time">⏰</span>
+                                            Overdue by <?php echo $task['time_overdue']; ?>
+                                        </span>
+                                                        </div>
+                                                    </a>
+                                                </div>
+                                                <?php if ($key >= 2) break; ?>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+
+                                        <?php if ($newTasksCount > 0): ?>
+                                            <div class="list-group-title border-bottom text-success">
+                                                <span class="fas fa-plus-circle me-2"></span>You
+                                                have <?php echo $newTasksCount; ?> new assigned tasks.
+                                            </div>
+                                            <?php foreach ($newTasks as $key => $task): ?>
+                                                <div class="list-group-item">
+                                                    <?php $encodedId = base64_encode($task['id']); ?>
+                                                    <a class="notification notification-flush notification-unread"
+                                                       href="view-task?task_id=<?php echo htmlspecialchars($encodedId); ?>"
+                                                       onclick="markTaskAsRead(<?php echo $task['id']; ?>)">
+                                                        <div class="notification-avatar">
+                                                            <div class="avatar avatar-2xl me-3">
+                                                                <span class="material-icons text-success fs-3">assignment</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="notification-body">
+                                                            <p class="mb-1 text-success">
+                                                                <strong>Task <?php echo $task['id']; ?>:</strong>
+                                                                <?php echo htmlspecialchars(substr($task['topic'], 0, 35)) . (strlen($task['topic']) > 35 ? '...' : ''); ?>
+                                                            </p>
+                                                            <?php $dueInfo = timeDueIn($task['due_date'], 31, true); ?>
+                                                            <span class='notification-time <?php echo $dueInfo['class']; ?>'
+                                                                  title="<?php echo date('M j, Y g:i A', strtotime($task['due_date'])); ?>">
+                                                                <span class='me-2' role='img' aria-label='Time'>📅</span>
+                                                                <?php echo $dueInfo['text']; ?>
+                                                            </span>
+                                                        </div>
+                                                    </a>
+                                                </div>
+                                                <?php if ($key >= 2) break; ?>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+
+                                        <?php if ($totalTaskNotifications == 0): ?>
+                                            <div class="list-group-item text-center text-muted py-4">
+                                                <span class="fas fa-check-circle me-2 text-success"></span>
+                                                <p class="mb-0">All tasks are up to date!</p>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="card-footer text-center border-top">
-                                    <a class="card-link d-block" href="tasks-in-progress">View all</a>
+                                    <a class="card-link d-block" href="tasks-in-progress">View all tasks</a>
                                 </div>
                             </div>
                         </div>
@@ -623,86 +710,112 @@
                     }
                     } ?>
 
-                    <li class="nav-item dropdown">
+                    <li class='nav-item dropdown'>
                         <?php
                         $aid = $_SESSION['sessionWriter'];
-                        // Query to count late tasks
-                        $lateTasksCountQuery = mysqli_query($con, "SELECT COUNT(*) AS late_task_count FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND due_date < NOW() AND email = '$aid'");
-                        $lateTasksCountResult = mysqli_fetch_assoc($lateTasksCountQuery);
-                        $lateTasksCount = $lateTasksCountResult['late_task_count'];
 
-                        // Query to fetch late tasks details
-                        $lateTasksQuery = mysqli_query($con, "SELECT * FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND due_date < NOW() AND email = '$aid' ORDER BY due_date ASC");
+                        // Query to count unread admin comments for this writer's tasks
+                        $unreadCommentsCountQuery = mysqli_query($con, "
+                        SELECT COUNT(*) AS unread_comments_count 
+                        FROM tbl_task_comments tc 
+                        JOIN tbltasks t ON tc.task_id = t.id 
+                        WHERE t.email = '$aid' 
+                        AND tc.user_type = 'admin' 
+                        AND tc.is_read = 0
+                    ");
+                        $unreadCommentsCountResult = mysqli_fetch_assoc($unreadCommentsCountQuery);
+                        $unreadCommentsCount = $unreadCommentsCountResult['unread_comments_count'];
 
-                        $lateTasks = []; // Initialize array to hold late tasks data
-                        while ($task = mysqli_fetch_assoc($lateTasksQuery)) {
-                            $lateTasks[] = $task; // Add each late task to the array
+                        // Query to fetch unread comments details (limit to recent ones)
+                        $unreadCommentsQuery = mysqli_query($con, "
+                        SELECT tc.*, t.topic, t.id as task_id
+                        FROM tbl_task_comments tc 
+                        JOIN tbltasks t ON tc.task_id = t.id 
+                        WHERE t.email = '$aid' 
+                        AND tc.user_type = 'admin' 
+                        AND tc.is_read = 0 
+                        ORDER BY tc.created_at DESC 
+                        LIMIT 5
+                    ");
+
+                        $unreadComments = [];
+                        while ($comment = mysqli_fetch_assoc($unreadCommentsQuery)) {
+                            $unreadComments[] = $comment;
                         }
-                        $sql = "SELECT * FROM tblwriters WHERE email=:aid";
-                        $query = $dbh->prepare($sql);
-                        $query->bindParam(':aid', $aid, PDO::PARAM_STR);
-                        $query->execute();
-                        $results = $query->fetchAll(PDO::FETCH_OBJ);
-                        $cnt = 1;
-
-                        if ($query->rowCount() > 0) {
-                        foreach ($results as $row) {
-                        if ($row->is_verified == 1) {
                         ?>
-                        <a class="nav-link notification-indicator notification-indicator-primary px-0 fa-icon-wait" id="navbarDropdownNotification" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" data-hide-on-body-scroll="data-hide-on-body-scroll"><span class="fas fa-bell" data-fa-transform="shrink-6" style="font-size: 33px;"></span><span class="notification-indicator-number"><?php echo $lateTasksCount; ?></span></a>
-                        <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end dropdown-menu-card dropdown-menu-notification dropdown-caret-bg" aria-labelledby="navbarDropdownNotification">
+
+                        <a class="nav-link notification-indicator notification-indicator-info px-0 fa-icon-wait"
+                           id="navbarDropdownComments" role="button" data-bs-toggle="dropdown" aria-haspopup="true"
+                           aria-expanded="false">
+                            <span class="fas fa-bell" data-fa-transform="shrink-6" style="font-size: 33px;"></span>
+                            <?php if ($unreadCommentsCount > 0): ?>
+                                <span class="notification-indicator-number"><?php echo $unreadCommentsCount; ?></span>
+                            <?php endif; ?>
+                        </a>
+
+                        <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end dropdown-menu-card dropdown-menu-notification dropdown-caret-bg"
+                             aria-labelledby="navbarDropdownComments">
                             <div class="card card-notification shadow-none">
                                 <div class="card-header">
                                     <div class="row justify-content-between align-items-center">
                                         <div class="col-auto">
-                                            <h6 class="card-header-title mb-0 text-primary">Notifications</h6>
+                                            <h6 class="card-header-title mb-0 text-info">New Comments</h6>
                                         </div>
-                                        <!--                                        <div class="col-auto ps-0 ps-sm-3"><a class="card-link fw-normal" href="#">Mark all as read</a></div>-->
                                     </div>
                                 </div>
 
                                 <div class="scrollbar-overlay" style="max-height:19rem">
                                     <div class="list-group list-group-flush fw-normal fs-10">
-
-                                        <div class="list-group-title border-bottom text-info">You have <?php echo $lateTasksCount; ?> late tasks.</div>
-                                        <?php
-                                        // Calculate time remaining for each late task
-                                        foreach ($lateTasks as $key => $task) {
-                                            $dueDate = new DateTime($task['due_date']);
-                                            $now = new DateTime();
-                                            $interval = $now->diff($dueDate);
-                                            $lateTasks[$key]['time_remaining'] = $interval->format('%a days %h hours %i minutes');
-                                            if ($key >= 2) break; // Limit to only 3 tasks
-                                        }
-                                        ?>
-                                        <?php foreach ($lateTasks as $key => $task): ?>
-                                            <div class="list-group-item"><?php
-                                                $encodedId = base64_encode($task['id']);
-                                                ?>
-                                                <a class="notification notification-flush notification-unread" href="view-task?task_id=<?php echo htmlspecialchars($encodedId); ?>">
-                                                    <div class="notification-avatar">
-                                                        <div class="avatar avatar-2xl me-3">
-                                                            <span class="material-icons text-secondary fs-3 text-info">dangerous</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="notification-body">
-                                                        <p class="mb-1 text-primary"><strong>Task <?php echo $task['id']; ?>:</strong> <?php echo $task['topic']; ?></p>
-                                                        <span class="notification-time text-danger"><span class="me-2" role="img" aria-label="Time">⏰</span><?php echo $task['time_remaining']; ?></span>
-                                                    </div>
-                                                </a>
+                                        <?php if ($unreadCommentsCount > 0): ?>
+                                            <div class="list-group-title border-bottom text-info">
+                                                You have <?php echo $unreadCommentsCount; ?> unread comments.
                                             </div>
-                                            <?php if ($key >= 2) break; // Display only up to 3 tasks ?>
-                                        <?php endforeach; ?>
+                                            <?php foreach ($unreadComments as $key => $comment): ?>
+                                                <div class="list-group-item">
+                                                    <?php $encodedTaskId = base64_encode($comment['task_id']); ?>
+                                                    <a class="notification notification-flush notification-unread"
+                                                       href="view-task?task_id=<?php echo htmlspecialchars($encodedTaskId); ?>">
+                                                        <div class="notification-avatar">
+                                                            <div class="avatar avatar-2xl me-3">
+                                                                <span class="material-icons text-info fs-3">chat_bubble</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="notification-body">
+                                                            <p class="mb-1 text-info">
+                                                                <strong>Task <?php echo $comment['task_id']; ?>
+                                                                    :</strong>
+                                                                <?php echo htmlspecialchars(substr($comment['topic'], 0, 30)) . (strlen($comment['topic']) > 30 ? '...' : ''); ?>
+                                                            </p>
+                                                            <p class="mb-1 fs-11">
+                                                                Admin: <?php
+                                                                $unescaped_comment = stripcslashes($comment['comment']);
+                                                                echo htmlspecialchars(substr($unescaped_comment, 0, 45)) . (strlen($unescaped_comment) > 45 ? '...' : '');
+                                                                ?>
+                                                            </p>
+                                                            <span class='notification-time text-muted'>
+                                                                <span class='me-2' role='img' aria-label='Time'>💬</span>
+                                                                <?php echo timeAgo($comment['created_at']); ?>
+                                                            </span>
+                                                        </div>
+                                                    </a>
+                                                </div>
+                                                <?php if ($key >= 5) break; ?>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <div class="list-group-item text-center text-muted py-4">
+                                                <span class="fas fa-check-circle me-2 text-info"></span>
+                                                <p class="mb-0">No new comments</p>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
-                                <div class="card-footer text-center border-top"><a class="card-link d-block" href="tasks-in-progress">View all</a></div>
+                                <div class="card-footer text-center border-top">
+                                    <a class="card-link d-block" href="all-comments">View all comments</a>
+                                </div>
                             </div>
                         </div>
                     </li>
-                <?php
-                }
-                }
-                } ?>
+
                     <li class="nav-item dropdown"><a class="nav-link pe-0 ps-2" id="navbarDropdownUser" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <?php
                             $aid=$_SESSION['sessionWriter'];

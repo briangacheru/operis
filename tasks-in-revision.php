@@ -49,12 +49,12 @@
                                     <table class="table table-sm mb-0 overflow-hidden data-table fs-10"  data-datatables="data-datatables">
                                         <thead class="bg-200">
                                         <tr>
-                                            <th class="text-900 no-sort white-space-nowrap">
+                                            <th class="text-900 no-sort white-space-nowrap d-none">
                                                 <div class="form-check mb-0 d-flex align-items-center">
                                                     <input class="form-check-input" id="checkbox-select-all" type="checkbox" onclick="selectAllTasks(this)" data-bulk-select='{"body":"table-simple-pagination-body","actions":"table-simple-pagination-actions","replacedElement":"table-simple-pagination-replace-element"}' />
                                                 </div>
                                             </th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task #</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap"><span class='ms-3'>Task #</span></th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Topic</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Deadline</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Status</th>
@@ -134,16 +134,16 @@
                                                 $confirmation = "<span class='badge badge rounded-pill $confirmationClass'>$confirmationText</span>";
                                     ?>
                                         <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100">
-                                            <td class="align-middle" style="width: 28px;">
+                                            <td class="align-middle d-none" style="width: 28px;">
                                                 <div class="form-check mb-0">
                                                     <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
                                                 </div>
                                             </td>
-                                            <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["id"];?></td>
+                                            <td class="align-middle white-space-nowrap fw-semi-bold text-900"><span class='ms-3'><?php echo $row['id']; ?></span></td>
                                             <td>
                                                 <div class="d-flex align-items-center position-relative">
                                                     <div class="flex-1">
-                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" target="_blank" target="_blank" href="view-task?task_id=<?php echo $encodedId; ?>"><?php echo $row["topic"];?></a></h6>
+                                                        <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link view-task-link"  href="view-task?task_id=<?php echo $encodedId; ?>" data-task-id="<?php echo $row['id']; ?>" data-acknowledged="<?php echo $row['acknowledged']; ?>"><?php echo $row["topic"];?></a></h6>
                                                         <p class="fw-semi-bold mb-0 text-500"><?php echo $row["pages"];?> Page(s) | CPP: <?php echo $row["cpp"];?></p>
                                                     </div>
                                                 </div>
@@ -173,6 +173,50 @@
                 </div>
             </div>
         </div>
+
+    <script>
+        // Function to mark task as read
+        function markAsRead(taskId, linkElement) {
+            // Send AJAX request to update acknowledged
+            fetch('update-task-acknowledgement', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'task_id=' + taskId + '&acknowledged=1'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Find the parent row and remove the table-active styling
+                        const row = linkElement.closest('tr');
+                        if (row) {
+                            row.classList.remove('table-active');
+                        }
+                    }
+                })
+                .catch(error => {
+                    // Silent error handling - you can add user notification here if needed
+                });
+        }
+
+        // Add event listeners
+        document.addEventListener('DOMContentLoaded', function () {
+            const viewTaskLinks = document.querySelectorAll('.view-task-link');
+
+            viewTaskLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    const taskId = this.getAttribute('data-task-id');
+                    const acknowledged = this.getAttribute('data-acknowledged');
+
+                    // Only mark as read if it's currently unread (acknowledged = 0)
+                    if (acknowledged === '0') {
+                        markAsRead(taskId, this);
+                    }
+                });
+            });
+        });
+    </script>
 
 <?php
 include "footer.php";

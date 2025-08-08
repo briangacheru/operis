@@ -309,7 +309,7 @@ if (isset($_GET['delete'])) {
                                                 </div>
                                             </div>
                                             <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
-                                                <button class="btn btn-falcon-primary btn-sm" onclick="exportOverdraft()" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
+                                                <button class="btn btn-falcon-primary btn-sm" onclick="exportOverdraft()" data-bs-toggle="tooltip" data-bs-placement="top" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
                                             </div>
                                         </div>
                                     </div>
@@ -353,8 +353,8 @@ if (isset($_GET['delete'])) {
                                                     <td class="align-middle text-center white-space-nowrap text-900"><?php echo date("jS M, Y h:i A", strtotime($row['od_date'])); ?></td>
                                                     <td class="align-middle white-space-nowrap text-end position-relative">
                                                         <div class="hover-actions bg-100">
-                                                            <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" href="#overdraft-view-modal" title="Edit task" data-id="<?php echo $row['id']; ?>" data-writer="<?php echo $row['writer']; ?>" data-amount="<?php echo $row['amount']; ?>" data-date="<?php echo $row['od_date']; ?>"><span class="far fa-edit"></span></a>
-                                                            <a class="btn bg-danger-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="overdraft?delete=<?php echo $encodedId; ?>" title="Cancel Overdraft" onclick="return confirm('Do you really want to cancel overdraft?');"><span class="fas fa-trash"></span></a>
+                                                            <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" href="#overdraft-view-modal" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit task" data-id="<?php echo $row['id']; ?>" data-writer="<?php echo $row['writer']; ?>" data-amount="<?php echo $row['amount']; ?>" data-date="<?php echo $row['od_date']; ?>"><span class="far fa-edit"></span></a>
+                                                            <a class="btn bg-danger-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" href="overdraft?delete=<?php echo $encodedId; ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Cancel Overdraft" onclick="return confirm('Do you really want to cancel overdraft?');"><span class="fas fa-trash"></span></a>
                                                         </div>
                                                         <div class="dropdown font-sans-serif btn-reveal-trigger">
                                                             <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal-sm transition-none" type="button" id="crm-recent-leads-4" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-chevron-left fs-11"></span></button>
@@ -443,10 +443,7 @@ if (isset($_GET['delete'])) {
                     idInput.value = id;
                     writerInput.value = writer;
                     amountInput.value = amount;
-
-                    // Format the date for datetime-local input
-                    const formattedDate = new Date(date).toISOString().slice(0, 16);
-                    dateInput.value = formattedDate;
+                    dateInput.value = date;
 
                     // Clear any previous alert message
                     modalAlert.className = 'alert d-none';

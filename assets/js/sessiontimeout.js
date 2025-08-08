@@ -6,20 +6,19 @@ class SessionTimeoutWarning {
         this.countdownInterval = null;
         this.warningShown = false;
         this.checkInterval = null;
+        this.actualCurrentPage = window.location.href;
 
         this.init();
     }
 
     init() {
-        // Check session status every 30 seconds
+        this.trackPageNavigation(); // Add this line
+
         this.checkInterval = setInterval(() => {
             this.checkSessionTimeout();
         }, 30000);
 
-        // Reset timer on user activity
         this.resetTimerOnActivity();
-
-        // Create warning modal
         this.createWarningModal();
     }
 
@@ -154,8 +153,37 @@ class SessionTimeoutWarning {
         }, 4000);
     }
 
+    // Add this method to track real page changes
+    trackPageNavigation() {
+        // Store the current page when user actually navigates
+        this.actualCurrentPage = window.location.href;
+
+        // Listen for actual page navigation (not AJAX)
+        window.addEventListener('beforeunload', () => {
+            this.actualCurrentPage = window.location.href;
+        });
+
+        // Track pushstate/popstate for SPA navigation
+        const originalPushState = history.pushState;
+        const originalReplaceState = history.replaceState;
+
+        history.pushState = function(...args) {
+            originalPushState.apply(history, args);
+            sessionWarning.actualCurrentPage = window.location.href;
+        };
+
+        history.replaceState = function(...args) {
+            originalReplaceState.apply(history, args);
+            sessionWarning.actualCurrentPage = window.location.href;
+        };
+
+        window.addEventListener('popstate', () => {
+            this.actualCurrentPage = window.location.href;
+        });
+    }
+
+    // Modify the forceLogout method
     forceLogout() {
-        // Clear all intervals
         if (this.countdownInterval) {
             clearInterval(this.countdownInterval);
         }
@@ -163,14 +191,14 @@ class SessionTimeoutWarning {
             clearInterval(this.checkInterval);
         }
 
-        // Store current page before logout
+        // Store the ACTUAL page user was on, not the AJAX endpoint
         fetch('store-last-page.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                lastPage: window.location.href
+                lastPage: this.actualCurrentPage // Use tracked page instead
             })
         }).finally(() => {
             window.location.href = 'logout.php?logout=1&timeout=1';

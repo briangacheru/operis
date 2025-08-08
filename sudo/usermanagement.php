@@ -288,7 +288,7 @@ if (isset($_SESSION['alert'])) {
                                         </div>
                                         <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                                             <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
-                                                <button class="btn btn-falcon-primary btn-sm" onclick="exportWriter()" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
+                                                <button class="btn btn-falcon-primary btn-sm" onclick="exportWriter()" data-bs-toggle="tooltip" data-bs-placement="top" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
                                             </div>
                                         </div>
                                     </div>
@@ -327,7 +327,7 @@ if (isset($_SESSION['alert'])) {
                                                 <td>
                                                     <div class="d-flex align-items-center position-relative">
                                                         <div class="flex-1">
-                                                            <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link" target="_blank" href="writer?writerID=<?php echo $encodedId;?>"><?php echo $row["username"];?></a></h6>
+                                                            <h6 class="mb-1 fw-semi-bold text-nowrap"><a class="text-900 stretched-link"  href="writer?writerID=<?php echo $encodedId;?>"><?php echo $row["username"];?></a></h6>
                                                             <p class="fw-semi-bold mb-0 text-500">
                                                                 <?php
                                                                 if (isset($row["last_seen"]) && !empty($row["last_seen"])) {
@@ -372,14 +372,14 @@ if (isset($_SESSION['alert'])) {
                                                 </td>
                                                 <td class="align-middle white-space-nowrap text-end position-relative">
                                                     <div class="hover-actions bg-100">
-                                                        <a class="btn btn-outline-info bg-info icon-item rounded-3 me-2 fs-11 icon-item-sm" href="writer?writerID=<?php echo $encodedId;?>" title="View Writer"><span class="fas fa-eye"></span></a>
-                                                        <a class="btn btn-outline-primary bg-primary icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" href="#user-edit-modal" title="Edit Writer" data-writer-id="<?php echo $row['id']; ?>" data-writer="<?php echo $row['username']; ?>" data-email="<?php echo $row['email']; ?>" data-phone="<?php echo $row['phone']; ?>"><span class="far fa-edit"></span></a>
-                                                        <a href="usermanagement?verifyid=<?php echo $row['id'];?>" class="btn btn-outline-danger bg-<?php echo $row['is_verified'] ? 'danger' : 'success'; ?> icon-item rounded-3 me-2 fs-11 icon-item-sm" onclick="return confirm('Do you want to <?php echo $row['is_verified'] ? 'unverify' : 'verify'; ?> this writer?');" title="<?php echo $row['is_verified'] ? 'Unverify' : 'Verify'; ?> Writer"><i class="bi bi-<?php echo $row['is_verified'] ? 'x-circle-fill' : 'check-circle-fill'; ?>"></i></a>
+                                                        <a class="btn btn-outline-info bg-info icon-item rounded-3 me-2 fs-11 icon-item-sm" href="writer?writerID=<?php echo $encodedId;?>" data-bs-toggle="tooltip" data-bs-placement="top" title="View Writer"><span class="fas fa-eye"></span></a>
+                                                        <a class="btn btn-outline-primary bg-primary icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" href="#user-edit-modal" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Writer" data-writer-id="<?php echo $row['id']; ?>" data-writer="<?php echo $row['username']; ?>" data-email="<?php echo $row['email']; ?>" data-phone="<?php echo $row['phone']; ?>"><span class="far fa-edit"></span></a>
+                                                        <a href="usermanagement?verifyid=<?php echo $row['id'];?>" class="btn btn-outline-danger bg-<?php echo $row['is_verified'] ? 'danger' : 'success'; ?> icon-item rounded-3 me-2 fs-11 icon-item-sm" onclick="return confirm('Do you want to <?php echo $row['is_verified'] ? 'unverify' : 'verify'; ?> this writer?');" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo $row['is_verified'] ? 'Unverify' : 'Verify'; ?> Writer"><i class="bi bi-<?php echo $row['is_verified'] ? 'x-circle-fill' : 'check-circle-fill'; ?>"></i></a>
                                                         <?php if ($row['is_verified'] == 0) { ?>
                                                             <button type="button" class="btn btn-outline-danger bg-danger icon-item rounded-3 me-2 fs-11 icon-item-sm delete-writer-btn"
                                                                     data-writer-id="<?php echo $row['id']; ?>"
                                                                     data-writer-username="<?php echo htmlspecialchars($row['username']); ?>"
-                                                                    title="Delete Writer">
+                                                                    data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Writer">
                                                                 <span class="fas fa-trash"></span>
                                                             </button>
                                                         <?php } ?>
@@ -449,7 +449,7 @@ if (isset($_SESSION['alert'])) {
                         <label for="username-input" class="form-label">Enter Username:</label>
                         <div class="input-group">
                             <input type="text" class="form-control" id="username-input" placeholder="Click copy button then paste here">
-                            <button class="btn btn-outline-secondary" type="button" id="copy-username-btn" title="Auto-fill Username">
+                            <button class="btn btn-outline-secondary" type="button" id="copy-username-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="Auto-fill Username">
                                 <i class="fas fa-magic"></i> Auto-fill
                             </button>
                         </div>

@@ -65,8 +65,23 @@ function logout() {
 $self = $_SERVER["PHP_SELF"];
 $allowed_pages = ['login.php', 'reset-password.php', 'forgot-password.php'];
 
-// Store current page for redirect (but not for login pages)
-if (!in_array(basename($_SERVER['PHP_SELF']), $allowed_pages)) {
+// Get current script name
+$currentScript = basename($_SERVER['PHP_SELF']);
+
+// List of AJAX endpoints that shouldn't update last page tracking
+$ajaxEndpoints = [
+    'check_new_tasks.php',
+    'get_notification_counts.php',
+    'extend-session.php',
+    'mark_task_read.php',
+    'mark_all_tasks_read.php',
+    'get-task-details.php',
+    'update-task-acknowledgment.php',
+    'mark-writer-comments-read.php'
+];
+
+// Store current page for redirect (but not for login pages or AJAX endpoints)
+if (!in_array(basename($_SERVER['PHP_SELF']), $allowed_pages) && !in_array($currentScript, $ajaxEndpoints)) {
     $_SESSION['last_page'] = $_SERVER['REQUEST_URI'];
 }
 
@@ -94,7 +109,7 @@ if (isset($_SESSION['last_activity'])) {
         $last_page = $_SESSION['last_page'] ?? 'index';
 
         // Add session timeout logging
-        error_log("Session timeout - Last activity: " . (time() - $_SESSION['last_activity']) . " seconds ago. Redirecting to: " . $last_page);
+       // error_log("Session timeout - Last activity: " . (time() - $_SESSION['last_activity']) . " seconds ago. Redirecting to: " . $last_page);
 
         // Store the redirect URL before destroying session
         $redirect_url = urlencode($last_page);

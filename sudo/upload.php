@@ -2,6 +2,19 @@
 include "check-login.php";
 require_once 'spaces-helper.php';
 
+// Sanitize filename to remove problematic characters
+function sanitizeFileName($fileName) {
+    // Replace problematic characters with underscores (excluding space)
+    $fileName = str_replace(['#', '?', '&', '%', '+', '='], '_', $fileName);
+    // Remove any remaining special characters except dots, hyphens, underscores, and spaces
+    $fileName = preg_replace('/[^a-zA-Z0-9._\s-]/', '_', $fileName);
+    // Remove multiple consecutive underscores
+    $fileName = preg_replace('/_+/', '_', $fileName);
+    // Remove leading/trailing underscores
+    $fileName = trim($fileName, '_');
+    return $fileName;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'upload') {
     if (isset($_FILES['file'])) {
         $file = $_FILES['file'];
@@ -17,16 +30,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $originalFileName = $file['name'];
         $fileSize = $file['size'];
 
+        // Sanitize the filename
+        $sanitizedFileName = sanitizeFileName($originalFileName);
+
         // Upload to Digital Ocean Spaces in the taskfiles folder
         $spacesHelper = new SpacesHelper();
-        $result = $spacesHelper->uploadFile($tempFilePath, $originalFileName, 'taskfiles');
+        $result = $spacesHelper->uploadFile($tempFilePath, $sanitizedFileName, 'taskfiles');
 
         if ($result['success']) {
+            // Extract just the filename from the full key path
+            $actualFileName = basename($result['key']);
+
             echo json_encode([
                 'status' => 'success',
-                'filePath' => $result['key'],
+                'filePath' => $actualFileName, // Just the filename, not the full path
                 'fileUrl' => $result['url'],
-                'fileName' => $originalFileName,
+                'fileName' => $originalFileName, // Keep original for display
+                'actualFileName' => $actualFileName, // Just the sanitized filename
                 'fileSize' => $fileSize
             ]);
         } else {
@@ -38,3 +58,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 } else {
     echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
 }
+?>

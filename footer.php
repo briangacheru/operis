@@ -10,6 +10,8 @@
     </div>
 </footer>
 </div>
+
+<!--View Overdraft Modal-->
 <div class="modal fade" id="overdraft-view-modal" tabindex="-1" role="dialog" aria-labelledby="authentication-modal-label" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content border-0">

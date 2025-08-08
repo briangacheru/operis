@@ -133,11 +133,11 @@
     </div>
 </div>
 
-
 <!-- ===============================================-->
 <!--    JavaScripts-->
 <!-- ===============================================-->
 
+<script src="../assets/js/urgent_reminders.js"></script>
 <script src="../vendors/select2/select2.min.js"></script>
 <script src="../vendors/select2/select2.full.min.js"></script>
 <script src="../vendors/datatables.net/jquery.dataTables.min.js"></script>
@@ -154,30 +154,31 @@
 <script src="../vendors/countup/countUp.umd.js"></script>
 <script src="../vendors/echarts/echarts.min.js"></script>
 <script src="../vendors/dayjs/dayjs.min.js"></script>
-<script src="../vendors/flatpickr/flatpickr.min.js"></script>
 <script src="../vendors/fontawesome/all.min.js"></script>
 <script src="../vendors/lodash/lodash.min.js"></script>
 <script src="https://polyfill.io/v3/polyfill.min.js?features=window.scroll"></script>
 <script src="../vendors/list.js/list.min.js"></script>
 <script src="../assets/js/theme.js"></script>
 <script src="../assets/js/myjs.js"></script>
+<script src='../assets/js/pdf-viewer.js'></script>
 <script src="../vendors/dropzone/dropzone-min.js"></script>
 <script src="../vendors/inputmask/inputmask.min.js"></script>
 <script src="../vendors/textarea/textarea.js"></script>
-<script src="../assets/js/adminsessiontimeout.js"></script>
-<script src="../assets/js/admin-task-notification.js"></script>
 <script>
     function updatetheTime() {
-        var now = new Date();
-        var hours = now.getHours();
-        var minutes = now.getMinutes();
-        var seconds = now.getSeconds();
+        var timeElement = document.getElementById("timeDisplay");
+        if (timeElement) {
+            var now = new Date();
+            var hours = now.getHours();
+            var minutes = now.getMinutes();
+            var seconds = now.getSeconds();
 
-        minutes = minutes < 10 ? "0" + minutes : minutes;
-        seconds = seconds < 10 ? "0" + seconds : seconds;
+            minutes = minutes < 10 ? "0" + minutes : minutes;
+            seconds = seconds < 10 ? "0" + seconds : seconds;
 
-        var timeString = hours + ":" + minutes + ":" + seconds;
-        document.getElementById("timeDisplay").textContent = timeString;
+            var timeString = hours + ":" + minutes + ":" + seconds;
+            timeElement.textContent = timeString;
+        }
     }
 
     setInterval(updatetheTime, 1000);

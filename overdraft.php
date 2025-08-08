@@ -104,11 +104,12 @@
                                 <div class="card-header">
                                     <div class="row flex-between-center">
                                         <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
+                                            <h5>Overdraft History</h5>
                                         </div>
                                         <div class="col-6 col-sm-auto ms-auto text-end ps-0">
                                             <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
 <!--                                                <button class="btn btn-falcon-default btn-sm mx-2" type="button"><span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Filter</span></button>-->
-                                                <button class="btn btn-falcon-primary btn-sm" onclick="exportTableToCSVWithConfirmation('overdrafts.csv')"  title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
+                                                <button class="btn btn-falcon-primary btn-sm" onclick="exportTableToCSVWithConfirmation('overdrafts.csv')"  data-bs-toggle="tooltip" data-bs-placement="top" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
                                             </div>
                                         </div>
                                     </div>
@@ -117,12 +118,14 @@
                                         <table class="table table-sm mb-0 overflow-hidden data-table fs-10" data-datatables="data-datatables">
                                             <thead class="bg-200">
                                             <tr>
-                                                <th class="text-900 no-sort white-space-nowrap">
-                                                    <div class="form-check mb-0 d-flex align-items-center">
-                                                        <input class="form-check-input" id="checkbox-select-all" type="checkbox" onclick="selectAllTasks(this)" data-bulk-select='{"body":"table-simple-pagination-body","actions":"table-simple-pagination-actions","replacedElement":"table-simple-pagination-replace-element"}' />
+                                                <th class='text-900 no-sort white-space-nowrap d-none'>
+                                                    <div class='form-check mb-0 d-flex align-items-center'>
+                                                        <input class='form-check-input' id='checkbox-select-all'
+                                                               type='checkbox' onclick='selectAllTasks(this)'
+                                                               data-bulk-select='{"body":"table-simple-pagination-body","actions":"table-simple-pagination-actions","replacedElement":"table-simple-pagination-replace-element"}'/>
                                                     </div>
                                                 </th>
-                                                <th class="text-900 sort pe-1 align-middle white-space-nowrap">Amount (Ksh)</th>
+                                                <th class="text-900 sort pe-1 align-middle white-space-nowrap"><span class="ms-3">Amount (Ksh)</span></th>
                                                 <th class="text-900 sort pe-1 align-middle white-space-nowrap">Date</th>
                                                 <th class="text-900 no-sort pe-1 align-middle data-table-row-action"></th>
                                             </tr>
@@ -135,16 +138,19 @@
                                                 $encodedId = base64_encode($row["id"]); // Encode the id
                                                 ?>
                                                 <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100">
-                                                    <td class="align-middle" style="width: 28px;">
-                                                        <div class="form-check mb-0">
-                                                            <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]" />
+                                                    <td class='align-middle d-none' style='width: 28px;'>
+                                                        <div class='form-check mb-0'>
+                                                            <input class='form-check-input' type='checkbox'
+                                                                   id="simple-pagination-item-<?php echo $cnt; ?>"
+                                                                   data-bulk-select-row='data-bulk-select-row'
+                                                                   value="<?php echo $row['id']; ?>" name='taskIds[]'/>
                                                         </div>
                                                     </td>
-                                                    <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo $row["amount"]; ?></td>
+                                                    <td class="align-middle white-space-nowrap fw-semi-bold text-900"><span class="ms-3"><?php echo $row['amount']; ?></span></td>
                                                     <td class="align-middle white-space-nowrap payment text-900"><?php echo date("jS M, Y h:i A", strtotime($row['od_date'])); ?></td>
                                                     <td class="align-middle white-space-nowrap text-end position-relative">
                                                         <div class="hover-actions bg-100">
-                                                            <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" href="#overdraft-view-modal" title="View Overdraft" data-id="<?php echo $row['id']; ?>" data-writer="<?php echo $row['writer']; ?>" data-amount="<?php echo $row['amount']; ?>" data-date="<?php echo $row['od_date']; ?>"><span class="far fa-eye"></span></a>
+                                                            <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" data-bs-target="#overdraft-view-modal" data-bs-toggle="tooltip" data-bs-placement="top" title="View Overdraft" data-id="<?php echo $row['id']; ?>" data-writer="<?php echo $row['writer']; ?>" data-amount="<?php echo $row['amount']; ?>" data-date="<?php echo $row['od_date']; ?>"><span class="far fa-eye"></span></a>
                                                         </div>
                                                         <div class="dropdown font-sans-serif btn-reveal-trigger">
                                                             <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal-sm transition-none" type="button" id="crm-recent-leads-4" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-chevron-left fs-11"></span></button>
@@ -165,6 +171,7 @@
                 </div>
             </div>
         </div>
+    </div>
 
     <script>
         function clearForm() {
@@ -213,6 +220,27 @@
 
             downloadLink.click();
         }
+
+        // View Overdraft Modal data population
+        document.addEventListener('DOMContentLoaded', function() {
+            const overdraftModal = document.getElementById('overdraft-view-modal');
+
+            overdraftModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget; // Button that triggered the modal
+
+                // Extract data from data-* attributes
+                const id = button.getAttribute('data-id');
+                const writer = button.getAttribute('data-writer');
+                const amount = button.getAttribute('data-amount');
+                const date = button.getAttribute('data-date');
+
+                // Update modal form fields
+                document.getElementById('overdraft-id').value = id;
+                document.getElementById('modal-auth-name').value = writer;
+                document.getElementById('modal-auth-amount').value = amount;
+                document.getElementById('modal-auth-date').value = date;
+            });
+        });
     </script>
 <?php
 include "footer.php";

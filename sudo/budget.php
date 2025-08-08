@@ -82,8 +82,8 @@ if (isset($_SESSION['alert'])) {
                                 <button class="btn btn-link btn-sm position-absolute top-0 end-0 text-secondary" onclick="toggleAmountVisibility('incomeAmount', this)">
                                     <span class="fas fa-eye"></span>
                                 </button>
-                            <p class="fs-11 mb-0 text-nowrap" title="Previous month">vs Ksh. <?php echo number_format($previousMonthIncome); ?></p>
-                            <span class="badge <?php echo $badgeClass; ?> rounded-pill fs-11" title="Percentage change">
+                            <p class="fs-11 mb-0 text-nowrap" data-bs-toggle="tooltip" data-bs-placement="top" title="Previous month">vs Ksh. <?php echo number_format($previousMonthIncome); ?></p>
+                            <span class="badge <?php echo $badgeClass; ?> rounded-pill fs-11" data-bs-toggle="tooltip" data-bs-placement="top" title="Percentage change">
                                 <?php
                                 if ($percentageChange > 0) {
                                     echo "+" . $percentageChange . "%";
@@ -446,7 +446,7 @@ if (isset($_SESSION['alert'])) {
                         </div>
                         <div class="col-auto text-center pe-x1">
                             <span class="badge rounded-pill badge-subtle-danger">Ksh. <?php echo number_format($totalTransactionCostCurrentMonth, 2); ?></span>
-                            <span class="fs-11 mb-0 text-nowrap" title="Previous month">vs Ksh. <?php echo number_format($totalTransactionCostPreviousMonth, 2); ?></span>
+                            <span class="fs-11 mb-0 text-nowrap" data-bs-toggle="tooltip" data-bs-placement="top" title="Previous month">vs Ksh. <?php echo number_format($totalTransactionCostPreviousMonth, 2); ?></span>
                         </div>
                     </div>
                 </div>
@@ -481,7 +481,7 @@ if (isset($_SESSION['alert'])) {
                         ?>
                         <div class="col-auto text-center pe-x1">
                             <span class="badge rounded-pill badge-subtle-danger">Ksh. <?php echo number_format($currentMonthWOWP, 2); ?></span>
-                            <span class="fs-11 mb-0 text-nowrap" title="Previous year">vs Ksh. <?php echo number_format($previousMonthWOWP, 2); ?></span>
+                            <span class="fs-11 mb-0 text-nowrap" data-bs-toggle="tooltip" data-bs-placement="top" title="Previous year">vs Ksh. <?php echo number_format($previousMonthWOWP, 2); ?></span>
                         </div>
                     </div>
                 </div>
@@ -512,7 +512,7 @@ if (isset($_SESSION['alert'])) {
                                             </div>
                                             <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
                                                 <form method="post" action="">
-                                                    <a class="btn btn-falcon-info btn-sm mx-2" data-bs-toggle="modal" data-bs-target="#addTransactionModal" title="Add a new transaction" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Add Transaction</span></a>
+                                                    <a class="btn btn-falcon-info btn-sm mx-2" data-bs-toggle="modal" data-bs-target="#addTransactionModal" data-bs-toggle="tooltip" data-bs-placement="top" title="Add a new transaction" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Add Transaction</span></a>
                                                 </form>
                                             </div>
                                         </div>
@@ -629,11 +629,11 @@ if (isset($_SESSION['alert'])) {
                                                 </td>
                                                 <td class="align-middle white-space-nowrap text-end position-relative">
                                                     <div class="hover-actions bg-100">
-                                                        <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"  data-bs-target="#viewTransactionModal" title="View Transaction"
+                                                        <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"  data-bs-target="#viewTransactionModal" data-bs-toggle="tooltip" data-bs-placement="top" title="View Transaction"
                                                            onclick="loadViewModal('<?php echo $row['id']; ?>', '<?php echo addslashes($row['category']); ?>', '<?php echo addslashes($row['subcategory']); ?>', '<?php echo addslashes($row['tag']); ?>', '<?php echo addslashes($row['description']); ?>', '<?php echo $row['amount']; ?>', '<?php echo date('M j, Y \a\\t H:i', strtotime($row['date'])); ?>')"><span class="far fa-eye"></span></a>
-                                                        <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"  data-bs-target="#editTransactionModal" title="Edit Transaction"
+                                                        <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"  data-bs-target="#editTransactionModal" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Transaction"
                                                            onclick="loadEditModal('<?php echo $row['id']; ?>', '<?php echo addslashes($row['category']); ?>', '<?php echo addslashes($row['subcategory']); ?>', '<?php echo addslashes($row['tag']); ?>', '<?php echo addslashes($row['description']); ?>', '<?php echo $row['amount']; ?>', '<?php echo date('Y-m-d\TH:i', strtotime($row['date'])); ?>')"><span class="far fa-edit"></span></a>
-                                                        <a class="btn bg-danger-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"   data-bs-target="#deleteTransactionModal" title="Delete Transaction"
+                                                        <a class="btn bg-danger-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"   data-bs-target="#deleteTransactionModal" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Transaction"
                                                            onclick="loadDeleteModal('<?php echo $row['id']; ?>')"><span class="fas fa-trash"></span></a>
                                                     </div>
                                                     <div class="dropdown font-sans-serif btn-reveal-trigger">

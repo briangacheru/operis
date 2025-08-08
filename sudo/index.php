@@ -128,7 +128,7 @@ if ($query->rowCount() > 0) {
                                                     echo $interval->s . " second" . ($interval->s > 1 ? "s" : "") . " ago";
                                                 }
                                             } else {
-                                                echo "No invoice found";
+                                                echo "All invoices settled.";
                                             }
                                         } else {
                                             echo "Error fetching invoice information";
@@ -594,21 +594,35 @@ if ($query->rowCount() > 0) {
                 <?php
                 $totalPaidFormatted = "No data"; // Default message if the query fails
                 $totalPaidRaw = 0; // Raw total for JavaScript
+                $totalPaidShortened = "0"; // Shortened version
                 $query = mysqli_query($con, "SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE is_deleted = 0 AND is_paid = 1");
                 if ($query) {
                     $rowAdmin = mysqli_fetch_array($query);
                     if ($rowAdmin && $rowAdmin['total'] !== null) {
                         $totalPaidRaw = $rowAdmin['total']; // Keep the raw total
                         $totalPaidFormatted = 'Ksh. ' . number_format($rowAdmin['total'], 2);
+                        // Create shortened version
+                        if ($totalPaidRaw >= 1000000) {
+                            $totalPaidShortened = 'Ksh. ' . number_format($totalPaidRaw / 1000000, 2) . 'M';
+                        } elseif ($totalPaidRaw >= 1000) {
+                            $totalPaidShortened = 'Ksh. ' . number_format($totalPaidRaw / 1000, 2) . 'K';
+                        } else {
+                            $totalPaidShortened = 'Ksh. ' . number_format($totalPaidRaw, 2);
+                        }
                     } else {
                         $totalPaidFormatted = 'Ksh. 0.00';
+                        $totalPaidShortened = 'Ksh. 0.00';
                     }
                 } else {
                     $totalPaidFormatted = "Error: " . mysqli_error($con);
+                    $totalPaidShortened = "Error";
                 }
                 ?>
                 <h6>Total Paid Amount</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-warning" data-countup='{"endValue":<?php echo $totalPaidRaw; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div>
+                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary"
+                     data-bs-toggle="tooltip" data-bs-placement="right" title="<?php echo $totalPaidFormatted; ?>">
+                    <?php echo $totalPaidShortened; ?>
+                </div>
                 <a class="fw-semi-bold fs-10 text-nowrap text-warning" href="paid-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>

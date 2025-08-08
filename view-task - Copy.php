@@ -311,7 +311,7 @@ if (isset($_SESSION['alert'])) {
                                                 <div class="fs-10"><span class="fw-semi-bold"><?php echo $taskfileSize; ?></span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                                 <!-- Add or adjust action buttons as necessary -->
                                                 <div class="hover-actions end-0 top-50 translate-middle-y">
-                                                    <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
+                                                    <a class="btn btn-tertiary border-300 btn-sm me-1 text-600"  data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
                                                     <!-- Edit button or other actions -->
                                                 </div>
                                             </div>
@@ -361,7 +361,7 @@ if (isset($_SESSION['alert'])) {
                                         <div class="fs-10"><span class="fw-semi-bold"><?php echo $fileSize; ?></span><span class="fw-medium text-600 ms-2"><?php echo $formattedDate; ?></span></div>
                                         <!-- Add or adjust action buttons as necessary -->
                                         <div class="hover-actions end-0 top-50 translate-middle-y">
-                                            <a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
+                                            <a class="btn btn-tertiary border-300 btn-sm me-1 text-600"  data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="<?php echo $fileUrl; ?>" download="<?php echo $fileName; ?>"><img src="assets/img/icons/cloud-download.svg" alt="" width="15" /></a>
                                             <!-- Edit button or other actions -->
                                         </div>
                                     </div>

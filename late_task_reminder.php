@@ -14,7 +14,7 @@ $config = [
     'from_email' => 'support@monkbrian.com',
     'from_name' => 'itasker',
     'company_logo' => 'https://web.monkbrian.com/assets/img/team/itasker-email-header2.png',
-    'base_url' => 'https://web.monkbrian.com/',
+    'base_url' => 'https://web.monkbrian.com/sudo/',
     'alert_levels' => [
         'warning' => ['hours' => 3, 'color' => '#ff9800', 'priority' => 'Low'],
         'urgent' => ['hours' => 6, 'color' => '#f44336', 'priority' => 'Medium'],
@@ -82,16 +82,16 @@ function sendLateTaskEmail($lateTasksData, $config) {
     try {
         // SMTP configuration
         $mail->isSMTP();
-        $mail->Host       = 'mail.monkbrian.com';
+        $mail->Host       = 'vin101.truehost.cloud';
         $mail->SMTPAuth   = true;
         $mail->Username   = 'support@monkbrian.com';
         $mail->Password   = 'EDU+pass.';
-        $mail->SMTPSecure = 'ssl';
-        $mail->Port       = 465;
+        $mail->SMTPSecure = 'tls';
+        $mail->Port       = 587;
 
         // Recipients
         $mail->setFrom($config['from_email'], $config['from_name']);
-        $mail->addReplyTo($config['admin_email'], 'iTasker Admin');
+        $mail->addReplyTo($config['admin_email'], 'itasker Admin');
         $mail->addAddress($config['admin_email']);
 
         // Content
@@ -105,7 +105,7 @@ function sendLateTaskEmail($lateTasksData, $config) {
         }
 
         $mail->isHTML(true);
-        $mail->Subject = "Late Tasks Alert - {$totalTasks} Overdue Tasks (Ksh. " . number_format($totalValue) . ")";
+        $mail->Subject = "Late Tasks Alert - {$totalTasks} Overdue Tasks";
 
         // Enhanced email body
         $mail->Body = generateEmailBody($lateTasksData, $config, $totalTasks, $totalValue, $priorityCounts);
@@ -122,6 +122,7 @@ function sendLateTaskEmail($lateTasksData, $config) {
 
 // Function to generate HTML email body
 function generateEmailBody($lateTasksData, $config, $totalTasks, $totalValue, $priorityCounts) {
+    date_default_timezone_set('Africa/Nairobi');
     $currentDate = date('l, F j, Y \a\t g:i A');
 
     $body = "
@@ -282,63 +283,23 @@ function generateEmailBody($lateTasksData, $config, $totalTasks, $totalValue, $p
     <body>
         <div class='email-container'>
             <div class='email-head'>
-                <img src='{$config['company_logo']}' alt='iTasker Logo'>
+                <img src='{$config['company_logo']}' alt='itasker Logo'>
             </div>
             <div class='email-header'>
                         <h1>🚨 Late Tasks Alert</h1>
                         <p style='margin: 5px 0 0 0; opacity: 0.9;'>{$currentDate}</p>
             </div>
-            <div class='summary-section'>
-                <div class='summary-cards'>
-                    <div class='summary-card'>
-                        <h3 style='color: #d32f2f;'>{$totalTasks}</h3>
-                        <p>Total Late Tasks</p>
-                    </div>
-                    <div class='summary-card'>
-                        <h3 style='color: #0073e6;'>Ksh. " . number_format($totalValue) . "</h3>
-                        <p>Total Value</p>
-                    </div>
-                    <div class='summary-card'>
-                        <h3 style='color: #ff9800;'>{$priorityCounts['warning']}</h3>
-                        <p>Low Priority<br><small>(≤3 hrs late)</small></p>
-                    </div>
-                    <div class='summary-card'>
-                        <h3 style='color: #f44336;'>{$priorityCounts['urgent']}</h3>
-                        <p>Medium Priority<br><small>(3-6 hrs late)</small></p>
-                    </div>
-                    <div class='summary-card'>
-                        <h3 style='color: #d32f2f;'>{$priorityCounts['critical']}</h3>
-                        <p>High Priority<br><small>(>6 hrs late)</small></p>
-                    </div>
-                </div>
-            </div>
 
             <div class='email-content'>
-                <div class='alert-section'>
-                    <h3 style='margin: 0 0 10px 0; color: #856404;'>⚠️ Action Required</h3>
-                    <p style='margin: 0; color: #856404;'>The following tasks are past their due dates and require immediate attention. Please review and take appropriate action.</p>
-                </div>
                 
-                <div class='time-breakdown'>
-                    <h4 style='margin: 0 0 10px 0; color: #1976d2;'>📊 Priority Breakdown:</h4>
-                    <ul style='margin: 0; color: #1976d2;'>
-                        <li><strong>Low Priority (Warning):</strong> Tasks late by 3 hours or less</li>
-                        <li><strong>Medium Priority (Urgent):</strong> Tasks late by more than 3 hours but within 6 hours</li>
-                        <li><strong>High Priority (Critical):</strong> Tasks late by more than 6 hours</li>
-                    </ul>
-                </div>
-
                 <table class='task-table'>
                     <thead>
                         <tr>
                             <th>Task ID</th>
                             <th>Topic</th>
-                            <th>Writer</th>
-                            <th>Due Date</th>
-                            <th>Days Late</th>
+                            <th>Account</th>
+                            <th>Late By</th>
                             <th>Priority</th>
-                            <th>Status</th>
-                            <th>Value</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -361,12 +322,9 @@ function generateEmailBody($lateTasksData, $config, $totalTasks, $totalValue, $p
         <tr>
             <td><strong>#{$task['id']}</strong></td>
             <td style='max-width: 200px;'>" . htmlspecialchars(substr($task['topic'], 0, 50)) . (strlen($task['topic']) > 50 ? '...' : '') . "</td>
-            <td>" . htmlspecialchars($task['writer']) . "</td>
-            <td>" . date('M j, Y g:i A', strtotime($task['due_date'])) . "</td>
+            <td>" . htmlspecialchars($task['account']) . "</td>
             <td class='hours-late'>{$hoursLateDisplay}</td>
             <td><span class='priority-badge' style='background-color: {$priorityColor};'>{$priorityText}</span></td>
-            <td><span class='status-badge' style='background-color: {$statusColor}; color: white;'>{$task['status']}</span></td>
-            <td><strong>Ksh. " . number_format($task['total_value']) . "</strong></td>
             <td><a href='{$taskUrl}' class='btn' style='font-size: 11px; padding: 6px 12px;'>View Task</a></td>
         </tr>";
     }
@@ -379,22 +337,13 @@ function generateEmailBody($lateTasksData, $config, $totalTasks, $totalValue, $p
                     <a href='{$config['base_url']}index' class='btn' style='font-size: 16px; padding: 12px 24px;'>📊 View Dashboard</a>
                     <a href='{$config['base_url']}all-tasks' class='btn' style='font-size: 16px; padding: 12px 24px;'>📋 Manage All Tasks</a>
                 </div>
-
-                <div style='background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0;'>
-                    <h4 style='margin: 0 0 10px 0; color: #1976d2;'>💡 Recommended Actions:</h4>
-                    <ul style='margin: 0; color: #1976d2;'>
-                        <li>Contact writers for immediate status updates</li>
-                        <li>Consider reassigning critical tasks if necessary</li>
-                        <li>Review and adjust future deadlines</li>
-                        <li>Update clients on any potential delays</li>
-                    </ul>
-                </div>
+              
             </div>
 
             <div class='footer'>
-                <p><strong>iTasker Automated Reminder System</strong></p>
+                <p><strong>itasker Automated Reminder System</strong></p>
                 <p>This is an automated message. For support, contact <a href='mailto:{$config['admin_email']}'>{$config['admin_email']}</a></p>
-                <p>&copy; " . date('Y') . " iTasker. All rights reserved.</p>
+                <p>&copy; " . date('Y') . " itasker. All rights reserved.</p>
             </div>
         </div>
     </body>
