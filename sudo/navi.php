@@ -59,6 +59,67 @@
         border: 2px dashed #ff9900; /* Dashed border in warning color */
     }
 
+    .grain-overlay {
+        background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><pattern id='grain' width='10' height='10' patternUnits='userSpaceOnUse'><circle cx='5' cy='5' r='1' fill='white' opacity='0.05'/></pattern></defs><rect width='100' height='100' fill='url(%23grain)'/></svg>");
+        opacity: 1;
+    }
+
+    @keyframes onlinePulse {
+        0% {
+            transform: scale(1);
+            opacity: 1;
+        }
+        50% {
+            transform: scale(1.2);
+            opacity: 0.7;
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+    /* Fix for message hover actions visibility */
+    .comment-bubble:hover .hover-actions {
+        opacity: 1 !important;
+        transition: opacity 0.3s ease;
+    }
+
+    .hover-actions {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    /* Alternative: Make actions always visible on mobile/touch devices */
+    @media (hover: none) and (pointer: coarse) {
+        .hover-actions {
+            opacity: 0.7 !important;
+        }
+    }
+
+    /* Ensure the hover works on the entire message bubble */
+    .comment-bubble {
+        transition: all 0.3s ease;
+    }
+
+    .comment-bubble:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+    }
+
+    /* Tooltip styling */
+    .tooltip-inner {
+        background-color: rgba(0, 0, 0, 0.9) !important;
+        color: white !important;
+        padding: 8px 12px !important;
+        border-radius: 6px !important;
+        font-size: 12px !important;
+        max-width: 200px !important;
+    }
+
+    .tooltip .tooltip-arrow {
+        border-top-color: rgba(0, 0, 0, 0.9) !important;
+    }
+
     .file-list ul {
         list-style-type: none;
         padding: 0;

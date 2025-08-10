@@ -10,6 +10,23 @@
     <option name="highlightLevel" value="WARNING" />
     <option name="transferred" value="true" />
   </component>
+  <component name="PhpIncludePathManager">
+    <include_path>
+      <path value="$PROJECT_DIR$/sudo/vendor/composer" />
+      <path value="$PROJECT_DIR$/sudo/vendor/ralouphie/getallheaders" />
+      <path value="$PROJECT_DIR$/sudo/vendor/guzzlehttp/promises" />
+      <path value="$PROJECT_DIR$/sudo/vendor/aws/aws-crt-php" />
+      <path value="$PROJECT_DIR$/sudo/vendor/psr/http-message" />
+      <path value="$PROJECT_DIR$/sudo/vendor/guzzlehttp/psr7" />
+      <path value="$PROJECT_DIR$/sudo/vendor/aws/aws-sdk-php" />
+      <path value="$PROJECT_DIR$/sudo/vendor/psr/http-factory" />
+      <path value="$PROJECT_DIR$/sudo/vendor/guzzlehttp/guzzle" />
+      <path value="$PROJECT_DIR$/sudo/vendor/psr/http-client" />
+      <path value="$PROJECT_DIR$/sudo/vendor/mtdowling/jmespath.php" />
+      <path value="$PROJECT_DIR$/sudo/vendor/symfony/polyfill-mbstring" />
+      <path value="$PROJECT_DIR$/sudo/vendor/symfony/deprecation-contracts" />
+    </include_path>
+  </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="8.0">
     <option name="suggestChangeDefaultLanguageLevel" value="false" />
   </component>
