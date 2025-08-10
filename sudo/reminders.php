@@ -1,39 +1,45 @@
 <?php
 include('check-login.php');
-function testEmailConfiguration() {
-    // Check the file content without including it
-    $reminderFunctionsPath = __DIR__ . '/reminder_functions.php';
-    if (!file_exists($reminderFunctionsPath)) {
-        return [
-            'configured' => false,
-            'message' => 'Email configuration file not found'
-        ];
+function formatSnoozeDuration($minutes) {
+    if ($minutes < 60) {
+        return $minutes . ' minutes';
+    } elseif ($minutes < 1440) {
+        $hours = floor($minutes / 60);
+        $remainingMinutes = $minutes % 60;
+        $text = $hours . ' hour' . ($hours > 1 ? 's' : '');
+        if ($remainingMinutes > 0) {
+            $text .= ' ' . $remainingMinutes . ' min';
+        }
+        return $text;
+    } else {
+        $days = floor($minutes / 1440);
+        $remainingHours = floor(($minutes % 1440) / 60);
+        $text = $days . ' day' . ($days > 1 ? 's' : '');
+        if ($remainingHours > 0) {
+            $text .= ' ' . $remainingHours . ' hour' . ($remainingHours > 1 ? 's' : '');
+        }
+        return $text;
     }
+}
 
-    // Read file content to check for email configuration
-    $content = file_get_contents($reminderFunctionsPath);
+function getSnoozeDurationIcon($minutes) {
+    if ($minutes <= 30) return 'fas fa-clock';
+    if ($minutes <= 120) return 'fas fa-hourglass-half';
+    if ($minutes <= 480) return 'fas fa-sun';
+    return 'fas fa-calendar-day';
+}
 
-    // Look for the email_config array and its required keys
-    $hasEmailConfig = preg_match('/\$email_config\s*=\s*\[/', $content);
-    $hasSmtpHost = preg_match('/[\'"]smtp_host[\'"][^,]*=>[^,]*[\'"][^\'",]+[\'"]/', $content);
-    $hasSmtpUser = preg_match('/[\'"]smtp_username[\'"][^,]*=>[^,]*[\'"][^\'",]+[\'"]/', $content);
-    $hasSmtpPass = preg_match('/[\'"]smtp_password[\'"][^,]*=>[^,]*[\'"][^\'",]+[\'"]/', $content);
-
-    if ($hasEmailConfig && $hasSmtpHost && $hasSmtpUser && $hasSmtpPass) {
-        // Extract the SMTP host for display
-        preg_match('/[\'"]smtp_host[\'"][^,]*=>[^,]*[\'"]([^\'",]+)[\'"]/', $content, $matches);
-        $smtpHost = isset($matches[1]) ? $matches[1] : 'configured';
-
-        return [
-            'configured' => true,
-            'message' => 'Configured ' . $smtpHost
-        ];
+// Update the getSetting function to include in reminder_functions.php if not already there
+function getSetting($key, $default = '') {
+    global $dbh;
+    try {
+        $stmt = $dbh->prepare('SELECT setting_value FROM reminder_settings WHERE setting_key = ?');
+        $stmt->execute([$key]);
+        $result = $stmt->fetch();
+        return $result ? $result['setting_value'] : $default;
+    } catch (Exception $e) {
+        return $default;
     }
-
-    return [
-        'configured' => false,
-        'message' => 'Email configuration incomplete - missing required SMTP settings'
-    ];
 }
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -686,112 +692,376 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
                 }
                 exit;
 
-            case 'get_system_status':
-                try {
-                    $status = [];
+            case 'snooze_reminder':
+                $id = (int)$_POST['id'];
+                $minutes = (int)$_POST['minutes'];
+                $source_type = $_POST['source_type'] ?? 'reminder';
+                $instance_id = isset($_POST['instance_id']) ? (int)$_POST['instance_id'] : null;
 
-                    // Check database connection
-                    $status['database'] = [
-                        'status' => 'online',
-                        'message' => 'Active',
-                        'last_check' => date('Y-m-d H:i:s')
-                    ];
-
-                    // Check email service configuration without including the file
-                    $emailTest = testEmailConfiguration();
-                    $status['email_service'] = [
-                        'status' => $emailTest['configured'] ? 'configured' : 'warning',
-                        'message' => $emailTest['message'],
-                        'last_check' => date('Y-m-d H:i:s')
-                    ];
-
-                    // Get last email sent information from reminders table
-                    $stmt = $dbh->prepare("
-            SELECT last_email_sent, title
-            FROM reminders
-            WHERE last_email_sent IS NOT NULL
-            ORDER BY last_email_sent DESC
-            LIMIT 1
-        ");
-                    $stmt->execute();
-                    $lastEmail = $stmt->fetch();
-
-                    if ($lastEmail) {
-                        $status['last_email'] = [
-                            'status' => 'success',
-                            'message' => 'Last email sent for: ' . htmlspecialchars($lastEmail['title']),
-                            'timestamp' => $lastEmail['last_email_sent']
-                        ];
-                    } else {
-                        $status['last_email'] = [
-                            'status' => 'warning',
-                            'message' => 'No emails sent yet',
-                            'timestamp' => null
-                        ];
-                    }
-
-                    // Get active reminders count
-                    $stmt = $dbh->prepare("
-            SELECT COUNT(*) as count FROM (
-                SELECT id FROM reminders
-                WHERE is_recurring = 0 AND is_completed = 0 AND is_dismissed = 0
-                UNION ALL
-                SELECT ri.id FROM reminder_instances ri
-                JOIN reminders r ON ri.reminder_id = r.id
-                WHERE ri.is_completed = 0 AND ri.is_dismissed = 0
-            ) as active_count
-        ");
-                    $stmt->execute();
-                    $activeCount = $stmt->fetchColumn();
-
-                    $status['active_reminders'] = [
-                        'count' => $activeCount,
-                        'message' => $activeCount > 0 ? "$activeCount active reminders" : "No active reminders"
-                    ];
-
-                    // Calculate system health score
-                    $healthScore = 100;
-                    $healthMessage = 'System running optimally';
-
-                    if (!$emailTest['configured']) {
-                        $healthScore -= 20;
-                        $healthMessage = 'Email configuration needs attention';
-                    }
-
-                    if ($activeCount === 0) {
-                        $healthScore -= 10;
-                    }
-
-                    if (!$lastEmail) {
-                        $healthScore -= 15;
-                    }
-
-                    $status['system_health'] = [
-                        'score' => $healthScore,
-                        'status' => $healthScore >= 75 ? 'good' : ($healthScore >= 50 ? 'warning' : 'critical'),
-                        'message' => $healthMessage
-                    ];
-
-                    echo json_encode(['success' => true, 'status' => $status]);
-                } catch (Exception $e) {
-                    echo json_encode(['success' => false, 'message' => 'Error getting system status: ' . $e->getMessage()]);
+                // Validate snooze duration
+                $allowedSnoozeOptions = explode(',', getSetting('snooze_options', '15,30,60,120,480,1440'));
+                if (!in_array($minutes, $allowedSnoozeOptions)) {
+                    echo json_encode(['success' => false, 'message' => 'Invalid snooze duration']);
+                    exit;
                 }
-                exit;
 
-            case 'test_email_service':
+                // Check max snooze count
+                $maxSnoozeCount = (int)getSetting('max_snooze_count', '5');
+
                 try {
-                    $emailTest = testEmailConfiguration();
+                    $dbh->beginTransaction();
+
+                    if ($source_type === 'instance' && $instance_id) {
+                        // Handle recurring reminder instance
+                        $stmt = $dbh->prepare('SELECT snooze_count FROM reminder_instances WHERE id = ?');
+                        $stmt->execute([$instance_id]);
+                        $current = $stmt->fetch();
+
+                        if ($current && $current['snooze_count'] >= $maxSnoozeCount) {
+                            throw new Exception('Maximum snooze limit reached for this reminder');
+                        }
+
+                        $snoozeUntil = date('Y-m-d H:i:s', strtotime("+{$minutes} minutes"));
+
+                        $stmt = $dbh->prepare('
+                UPDATE reminder_instances 
+                SET is_snoozed = 1, snooze_until = ?, snooze_count = snooze_count + 1, last_snooze_time = NOW()
+                WHERE id = ?
+            ');
+                        $stmt->execute([$snoozeUntil, $instance_id]);
+
+                        // Log snooze history
+                        $stmt = $dbh->prepare('
+                INSERT INTO snooze_history (reminder_id, instance_id, snooze_duration_minutes, snooze_time, snooze_until) 
+                VALUES (?, ?, ?, NOW(), ?)
+            ');
+                        $stmt->execute([$id, $instance_id, $minutes, $snoozeUntil]);
+
+                    } else {
+                        // Handle regular reminder
+                        $stmt = $dbh->prepare('SELECT snooze_count FROM reminders WHERE id = ?');
+                        $stmt->execute([$id]);
+                        $current = $stmt->fetch();
+
+                        if ($current && $current['snooze_count'] >= $maxSnoozeCount) {
+                            throw new Exception('Maximum snooze limit reached for this reminder');
+                        }
+
+                        $snoozeUntil = date('Y-m-d H:i:s', strtotime("+{$minutes} minutes"));
+
+                        $stmt = $dbh->prepare('
+                UPDATE reminders 
+                SET is_snoozed = 1, snooze_until = ?, snooze_count = snooze_count + 1, last_snooze_time = NOW()
+                WHERE id = ?
+            ');
+                        $stmt->execute([$snoozeUntil, $id]);
+
+                        // Log snooze history
+                        $stmt = $dbh->prepare('
+                INSERT INTO snooze_history (reminder_id, snooze_duration_minutes, snooze_time, snooze_until) 
+                VALUES (?, ?, NOW(), ?)
+            ');
+                        $stmt->execute([$id, $minutes, $snoozeUntil]);
+                    }
+
+                    $dbh->commit();
+
+                    // Format the snooze duration for display
+                    $snoozeText = formatSnoozeDuration($minutes);
 
                     echo json_encode([
                         'success' => true,
-                        'status' => $emailTest['configured'] ? 'working' : 'failed',
-                        'message' => $emailTest['message']
+                        'message' => "Reminder snoozed for {$snoozeText}",
+                        'snooze_until' => $snoozeUntil,
+                        'snooze_count' => ($current['snooze_count'] ?? 0) + 1,
+                        'max_snoozes' => $maxSnoozeCount
+                    ]);
+
+                } catch (Exception $e) {
+                    $dbh->rollBack();
+                    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                }
+                exit;
+
+            case 'get_snooze_options':
+                $snoozeOptions = getSetting('snooze_options', '15,30,60,120,480,1440');
+                $maxSnoozeCount = (int)getSetting('max_snooze_count', '5');
+
+                $options = [];
+                foreach (explode(',', $snoozeOptions) as $minutes) {
+                    $minutes = (int)$minutes;
+                    $options[] = [
+                        'minutes' => $minutes,
+                        'label' => formatSnoozeDuration($minutes),
+                        'icon' => getSnoozeDurationIcon($minutes)
+                    ];
+                }
+
+                echo json_encode([
+                    'success' => true,
+                    'options' => $options,
+                    'max_snooze_count' => $maxSnoozeCount
+                ]);
+                exit;
+
+            case 'unsnooze_reminder':
+                $id = (int)$_POST['id'];
+                $source_type = $_POST['source_type'] ?? 'reminder';
+                $instance_id = isset($_POST['instance_id']) ? (int)$_POST['instance_id'] : null;
+
+                try {
+                    if ($source_type === 'instance' && $instance_id) {
+                        $stmt = $dbh->prepare('
+                UPDATE reminder_instances 
+                SET is_snoozed = 0, snooze_until = NULL 
+                WHERE id = ?
+            ');
+                        $stmt->execute([$instance_id]);
+                    } else {
+                        $stmt = $dbh->prepare('
+                UPDATE reminders 
+                SET is_snoozed = 0, snooze_until = NULL 
+                WHERE id = ?
+            ');
+                        $stmt->execute([$id]);
+                    }
+
+                    echo json_encode(['success' => true, 'message' => 'Reminder unnoozed successfully']);
+
+                } catch (Exception $e) {
+                    echo json_encode(['success' => false, 'message' => 'Error unsnoozing reminder']);
+                }
+                exit;
+
+            case 'get_snooze_stats':
+                $id = (int)$_POST['id'];
+                $instance_id = isset($_POST['instance_id']) ? (int)$_POST['instance_id'] : null;
+
+                try {
+                    // Get snooze history
+                    $query = "
+            SELECT snooze_duration_minutes, snooze_time, snooze_until 
+            FROM snooze_history 
+            WHERE reminder_id = ?
+        ";
+                    $params = [$id];
+
+                    if ($instance_id) {
+                        $query .= " AND instance_id = ?";
+                        $params[] = $instance_id;
+                    }
+
+                    $query .= " ORDER BY snooze_time DESC LIMIT 5";
+
+                    $stmt = $dbh->prepare($query);
+                    $stmt->execute($params);
+                    $history = $stmt->fetchAll();
+
+                    // Get current snooze status
+                    if ($instance_id) {
+                        $stmt = $dbh->prepare('SELECT is_snoozed, snooze_until, snooze_count FROM reminder_instances WHERE id = ?');
+                        $stmt->execute([$instance_id]);
+                    } else {
+                        $stmt = $dbh->prepare('SELECT is_snoozed, snooze_until, snooze_count FROM reminders WHERE id = ?');
+                        $stmt->execute([$id]);
+                    }
+                    $current = $stmt->fetch();
+
+                    echo json_encode([
+                        'success' => true,
+                        'current_status' => $current,
+                        'history' => $history,
+                        'max_snooze_count' => (int)getSetting('max_snooze_count', '5')
+                    ]);
+
+                } catch (Exception $e) {
+                    echo json_encode(['success' => false, 'message' => 'Error getting snooze stats']);
+                }
+                exit;
+
+            case 'reset_snooze_count':
+                $id = (int)$_POST['id'];
+                $source_type = $_POST['source_type'] ?? 'reminder';
+                $instance_id = isset($_POST['instance_id']) ? (int)$_POST['instance_id'] : null;
+
+                try {
+                    if ($source_type === 'instance' && $instance_id) {
+                        $stmt = $dbh->prepare('
+                UPDATE reminder_instances 
+                SET snooze_count = 0, is_snoozed = 0, snooze_until = NULL 
+                WHERE id = ?
+            ');
+                        $stmt->execute([$instance_id]);
+                    } else {
+                        $stmt = $dbh->prepare('
+                UPDATE reminders 
+                SET snooze_count = 0, is_snoozed = 0, snooze_until = NULL 
+                WHERE id = ?
+            ');
+                        $stmt->execute([$id]);
+                    }
+
+                    echo json_encode(['success' => true, 'message' => 'Snooze count reset successfully']);
+
+                } catch (Exception $e) {
+                    echo json_encode(['success' => false, 'message' => 'Error resetting snooze count']);
+                }
+                exit;
+
+            case 'get_snooze_analytics':
+                $days = (int)($_POST['days'] ?? 30);
+
+                try {
+                    $since = date('Y-m-d', strtotime("-{$days} days"));
+
+                    // Get overall snooze statistics
+                    $statsQuery = "
+            SELECT 
+                COUNT(*) as total_snoozes,
+                AVG(snooze_duration_minutes) as avg_duration,
+                COUNT(DISTINCT reminder_id) as unique_reminders_snoozed,
+                DATE(snooze_time) as snooze_date,
+                COUNT(*) as daily_count
+            FROM snooze_history 
+            WHERE snooze_time >= ?
+            GROUP BY DATE(snooze_time)
+            ORDER BY snooze_date DESC
+        ";
+
+                    $stmt = $dbh->prepare($statsQuery);
+                    $stmt->execute([$since]);
+                    $dailyStats = $stmt->fetchAll();
+
+                    // Get most snoozed reminders
+                    $topSnoozeQuery = "
+            SELECT 
+                r.title,
+                r.category,
+                COUNT(sh.id) as snooze_count,
+                AVG(sh.snooze_duration_minutes) as avg_duration
+            FROM snooze_history sh
+            JOIN reminders r ON sh.reminder_id = r.id
+            WHERE sh.snooze_time >= ?
+            GROUP BY sh.reminder_id
+            ORDER BY snooze_count DESC
+            LIMIT 5
+        ";
+
+                    $stmt = $dbh->prepare($topSnoozeQuery);
+                    $stmt->execute([$since]);
+                    $topSnoozed = $stmt->fetchAll();
+
+                    // Get snooze duration preferences
+                    $durationQuery = "
+            SELECT 
+                snooze_duration_minutes,
+                COUNT(*) as usage_count
+            FROM snooze_history 
+            WHERE snooze_time >= ?
+            GROUP BY snooze_duration_minutes 
+            ORDER BY usage_count DESC
+        ";
+
+                    $stmt = $dbh->prepare($durationQuery);
+                    $stmt->execute([$since]);
+                    $durationPrefs = $stmt->fetchAll();
+
+                    echo json_encode([
+                        'success' => true,
+                        'period_days' => $days,
+                        'daily_stats' => $dailyStats,
+                        'top_snoozed' => $topSnoozed,
+                        'duration_preferences' => $durationPrefs
+                    ]);
+
+                } catch (Exception $e) {
+                    echo json_encode(['success' => false, 'message' => 'Error getting snooze analytics']);
+                }
+                exit;
+
+            case 'update_snooze_settings':
+                try {
+                    $maxSnoozeCount = (int)$_POST['max_snooze_count'];
+                    $snoozeOptions = $_POST['snooze_options']; // Comma-separated values
+
+                    // Validate inputs
+                    if ($maxSnoozeCount < 1 || $maxSnoozeCount > 20) {
+                        throw new Exception('Max snooze count must be between 1 and 20');
+                    }
+
+                    // Validate snooze options
+                    $options = explode(',', $snoozeOptions);
+                    foreach ($options as $option) {
+                        $minutes = (int)trim($option);
+                        if ($minutes < 1 || $minutes > 1440) {
+                            throw new Exception('Snooze options must be between 1 and 1440 minutes');
+                        }
+                    }
+
+                    // Update settings
+                    $stmt = $dbh->prepare('INSERT INTO reminder_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?');
+
+                    $stmt->execute(['max_snooze_count', $maxSnoozeCount, $maxSnoozeCount]);
+                    $stmt->execute(['snooze_options', $snoozeOptions, $snoozeOptions]);
+
+                    echo json_encode(['success' => true, 'message' => 'Snooze settings updated successfully']);
+
+                } catch (Exception $e) {
+                    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                }
+                exit;
+
+// Also update your existing queries to include snooze information
+// Update the main reminders query to exclude currently snoozed reminders
+
+// In your main query section, modify the where conditions:
+                $where_conditions[] = '(is_snoozed = 0 OR is_snoozed IS NULL OR snooze_until <= NOW())';
+                $instance_where_conditions[] = '(ri.is_snoozed = 0 OR ri.is_snoozed IS NULL OR ri.snooze_until <= NOW())';
+
+// Also add snooze information to your calendar reminders query
+            case 'get_calendar_reminders':
+                try {
+                    // Updated query to include snooze information
+                    $sql = "
+            SELECT 
+                r.id,
+                r.title,
+                r.description,
+                r.reminder_date,
+                r.reminder_time,
+                r.priority,
+                r.category,
+                r.advance_notification,
+                r.email_frequency,
+                r.is_recurring,
+                r.is_completed,
+                r.is_dismissed,
+                r.is_snoozed,
+                r.snooze_until,
+                r.snooze_count,
+                'reminder' as source_type,
+                NULL as instance_id,
+                NULL as reminder_id,
+                rc.icon as category_icon,
+                rc.color as category_color
+            FROM reminders r
+            LEFT JOIN reminder_categories rc ON r.category = rc.name
+            
+            ORDER BY reminder_date ASC, reminder_time ASC
+        ";
+
+                    $stmt = $dbh->prepare($sql);
+                    $stmt->execute();
+                    $reminders = $stmt->fetchAll();
+
+                    echo json_encode([
+                        'success' => true,
+                        'reminders' => $reminders
                     ]);
                 } catch (Exception $e) {
                     echo json_encode([
                         'success' => false,
-                        'status' => 'failed',
-                        'message' => 'Email service test failed: ' . $e->getMessage()
+                        'message' => 'Error fetching calendar reminders: ' . $e->getMessage()
                     ]);
                 }
                 exit;
@@ -1248,8 +1518,8 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                 <a class="nav-link px-4 py-3" id="settings-tab" data-bs-toggle="tab" href="#settings-view" role="tab" aria-controls="settings-view" aria-selected="false">
                     <i class="fas fa-cog me-2"></i>Settings
                 </a>
-                <a class="nav-link px-4 py-3" id="status-tab" data-bs-toggle="tab" href="#status-view" role="tab" aria-controls="status-view" aria-selected="false" onclick="isStatusTabActive = true; loadSystemStatus();">
-                    <i class="fas fa-server me-2"></i>System Status
+                <a class="nav-link px-4 py-3" id="snooze-tab" data-bs-toggle="tab" href="#snooze-view" role="tab" aria-controls="snooze-view" aria-selected="false">
+                    <i class="fas fa-cog me-2"></i>Snooze
                 </a>
             </nav>
         </div>
@@ -1920,103 +2190,140 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                 </div>
             </div>
         </div>
-        <!-- System Status Tab -->
-        <div class="tab-pane fade" id="status-view" role="tabpanel" aria-labelledby="status-tab">
-            <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-server text-primary me-2" id="systemStatusIcon"></i>
-                        System Status Dashboard
+
+        <!-- Settings View Tab -->
+        <div class="tab-pane fade" id="snooze-view" role="tabpanel" aria-labelledby="snooze-tab">
+        <div class="col-12">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0 d-flex align-items-center">
+                        <i class="fas fa-clock text-warning me-2"></i>
+                        Snooze Settings
                     </h5>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-outline-primary btn-sm" onclick="refreshSystemStatus()" title="Refresh Status">
-                            <i class="fas fa-sync-alt me-1"></i>Refresh
-                        </button>
-                        <button class="btn btn-outline-info btn-sm" onclick="testEmailService()" title="Test Email Service">
-                            <i class="fas fa-envelope me-1"></i>Test Email
-                        </button>
-                    </div>
+                    <small class="text-muted">Configure snooze behavior and limits</small>
                 </div>
                 <div class="card-body">
-                    <!-- System Health Overview -->
-                    <div class="row mb-4">
+                    <div class="row g-4">
+                        <!-- Max Snooze Count -->
+                        <div class="col-md-6">
+                            <div class="setting-item p-3 border rounded">
+                                <div class="mb-3">
+                                    <h6 class="mb-2 fw-semibold">
+                                        <i class="fas fa-hashtag text-warning me-2"></i>
+                                        Maximum Snooze Count
+                                    </h6>
+                                    <p class="text-muted small mb-3">
+                                        How many times a reminder can be snoozed before requiring action
+                                    </p>
+                                    <div class="row align-items-center">
+                                        <div class="col-8">
+                                            <input type="range" class="form-range" id="maxSnoozeCount"
+                                                   min="1" max="10" value="5" step="1">
+                                        </div>
+                                        <div class="col-4">
+                                            <input type="number" class="form-control form-control-sm"
+                                                   id="maxSnoozeCountInput" min="1" max="20" value="5">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between text-muted small mt-1">
+                                        <span>1 (Strict)</span>
+                                        <span id="snoozeCountLabel">5 times</span>
+                                        <span>10+ (Flexible)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Snooze Options -->
+                        <div class="col-md-6">
+                            <div class="setting-item p-3 border rounded">
+                                <div class="mb-3">
+                                    <h6 class="mb-2 fw-semibold">
+                                        <i class="fas fa-list text-info me-2"></i>
+                                        Available Snooze Options
+                                    </h6>
+                                    <p class="text-muted small mb-3">
+                                        Customize the quick snooze duration options (in minutes)
+                                    </p>
+                                    <div class="snooze-options-container">
+                                        <div class="row g-2" id="snoozeOptionsInputs">
+                                            <!-- Dynamic inputs will be generated here -->
+                                        </div>
+                                        <div class="mt-2">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addSnoozeOption()">
+                                                <i class="fas fa-plus me-1"></i>Add Option
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetSnoozeOptionsToDefault()">
+                                                <i class="fas fa-undo me-1"></i>Reset to Default
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Snooze Analytics Preview -->
                         <div class="col-12">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <h6 class="mb-0">Overall System Health</h6>
-                                        <span class="badge" id="healthBadge">Loading...</span>
+                            <div class="setting-item p-3 border rounded">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h6 class="mb-2 fw-semibold">
+                                            <i class="fas fa-chart-bar text-success me-2"></i>
+                                            Snooze Usage Analytics
+                                        </h6>
+                                        <p class="text-muted small mb-0">
+                                            View your snooze patterns and productivity insights
+                                        </p>
                                     </div>
-                                    <div class="progress mb-2" style="height: 8px;">
-                                        <div class="progress-bar" id="healthProgressBar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                    <button class="btn btn-outline-success btn-sm" onclick="showSnoozeAnalytics()">
+                                        <i class="fas fa-chart-line me-1"></i>View Full Analytics
+                                    </button>
+                                </div>
+
+                                <div class="row g-3" id="snoozeAnalyticsPreview">
+                                    <div class="col-md-3">
+                                        <div class="text-center p-2 bg-light rounded">
+                                            <div class="h5 mb-0 text-warning" id="totalSnoozes">-</div>
+                                            <small class="text-muted">Total Snoozes (30d)</small>
+                                        </div>
                                     </div>
-                                    <small class="text-muted" id="lastSystemUpdate">Last updated: Never</small>
+                                    <div class="col-md-3">
+                                        <div class="text-center p-2 bg-light rounded">
+                                            <div class="h5 mb-0 text-info" id="avgSnoozeDuration">-</div>
+                                            <small class="text-muted">Avg Duration</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center p-2 bg-light rounded">
+                                            <div class="h5 mb-0 text-primary" id="uniqueReminders">-</div>
+                                            <small class="text-muted">Unique Reminders</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center p-2 bg-light rounded">
+                                            <div class="h5 mb-0 text-success" id="mostUsedDuration">-</div>
+                                            <small class="text-muted">Preferred Duration</small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Status Components -->
-                    <div class="row g-3">
-                        <!-- Database Status -->
-                        <div class="col-md-6">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center mb-2">
-                                        <i class="fas fa-circle text-success me-2" id="dbStatusIcon"></i>
-                                        <h6 class="mb-0">Database Connection</h6>
-                                    </div>
-                                    <p class="mb-1 fs-10 text-success" id="dbStatusText">Checking...</p>
-                                    <small class="text-muted" id="dbLastCheck">Last check: Never</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Email Service Status -->
-                        <div class="col-md-6">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center mb-2">
-                                        <i class="fas fa-circle text-success me-2" id="emailStatusIcon"></i>
-                                        <h6 class="mb-0">Email Service</h6>
-                                    </div>
-                                    <p class="mb-1 fs-10 text-success" id="emailStatusText">Checking...</p>
-                                    <small class="text-muted" id="emailLastCheck">Last check: Never</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Last Email Sent -->
-                        <div class="col-md-6">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center mb-2">
-                                        <i class="fas fa-circle text-success me-2" id="lastEmailIcon"></i>
-                                        <h6 class="mb-0">Last Email Sent</h6>
-                                    </div>
-                                    <p class="mb-1 fs-10 text-success" id="lastEmailText">Checking...</p>
-                                    <small class="text-muted" id="lastEmailTime">Never</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Active Reminders -->
-                        <div class="col-md-6">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center mb-2">
-                                        <i class="fas fa-circle text-success me-2" id="activeRemindersIcon"></i>
-                                        <h6 class="mb-0">Active Reminders</h6>
-                                    </div>
-                                    <p class="mb-1 fs-10 text-success" id="activeRemindersText">Checking...</p>
-                                    <small class="text-muted" id="activeRemindersCount">0 total</small>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- Save Snooze Settings Button -->
+                    <div class="mt-4 pt-3 border-top text-end">
+                        <button type="button" class="btn btn-outline-secondary me-2" id="resetSnoozeSettingsBtn">
+                            <i class="fas fa-undo me-1"></i>Reset Snooze Settings
+                        </button>
+                        <button type="button" class="btn btn-warning" id="saveSnoozeSettingsBtn">
+                            <i class="fas fa-save me-1"></i>Save Snooze Settings
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
+        </div>
+
     </div>
     </div>
 
@@ -2491,6 +2798,80 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                             <button type="submit" class="btn btn-primary">Save Changes</button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Snooze Analytics Modal -->
+    <div class="modal fade" id="snoozeAnalyticsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-chart-line text-success me-2"></i>
+                        Snooze Analytics Dashboard
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Time Period Selector -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h6 class="mb-0">Analytics Period</h6>
+                        <div class="btn-group" role="group">
+                            <input type="radio" class="btn-check" name="analyticsPeriod" id="period7" value="7">
+                            <label class="btn btn-outline-primary btn-sm" for="period7">7 Days</label>
+
+                            <input type="radio" class="btn-check" name="analyticsPeriod" id="period30" value="30" checked>
+                            <label class="btn btn-outline-primary btn-sm" for="period30">30 Days</label>
+
+                            <input type="radio" class="btn-check" name="analyticsPeriod" id="period90" value="90">
+                            <label class="btn btn-outline-primary btn-sm" for="period90">90 Days</label>
+                        </div>
+                    </div>
+
+                    <!-- Summary Stats -->
+                    <div class="row g-3 mb-4" id="detailedAnalyticsStats">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+
+                    <!-- Charts Section -->
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Daily Snooze Activity</h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="dailySnoozeChart" width="400" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Duration Preferences</h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="durationChart" width="400" height="200"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Snoozed Reminders -->
+                    <div class="mt-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Most Snoozed Reminders</h6>
+                            </div>
+                            <div class="card-body">
+                                <div id="topSnoozedList">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -4357,7 +4738,7 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        showToast('Success!', 'Settings saved successfully!', 'success');
+                        showToast('Success!', 'Settings saved!', 'success');
                     } else {
                         showToast('Error!', data.message || 'Failed to save settings', 'danger');
                     }
@@ -4422,202 +4803,6 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
         });
     </script>
     <script>
-        // System status variables
-        let statusUpdateInterval;
-        let isStatusTabActive = false;
-
-        // Initialize system status when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            loadSystemStatus();
-
-            // Auto-refresh every 30 seconds
-            statusUpdateInterval = setInterval(function() {
-                if (isStatusTabActive) {
-                    loadSystemStatus();
-                }
-            }, 30000);
-        });
-
-        // Load system status
-        function loadSystemStatus() {
-            const formData = new FormData();
-            formData.append('action', 'get_system_status');
-
-            fetch('', {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        updateStatusDisplay(data.status);
-                    } else {
-                        console.error('Failed to load system status:', data.message);
-                        showErrorStatus();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading system status:', error);
-                    showErrorStatus();
-                });
-        }
-
-        // Update status display
-        function updateStatusDisplay(status) {
-            // Update email service status
-            updateStatusComponent('email', status.email_service);
-
-            // Update database status
-            updateStatusComponent('db', status.database);
-
-            // Update last email status
-            const lastEmailIcon = document.getElementById('lastEmailIcon');
-            const lastEmailText = document.getElementById('lastEmailText');
-            const lastEmailTime = document.getElementById('lastEmailTime');
-
-            lastEmailIcon.className = `fas fa-circle text-${getStatusColor(status.last_email.status)}`;
-            lastEmailText.textContent = status.last_email.message;
-            lastEmailTime.textContent = status.last_email.timestamp ?
-                new Date(status.last_email.timestamp).toLocaleString() : 'Never';
-
-            // Update active reminders
-            const activeRemindersIcon = document.getElementById('activeRemindersIcon');
-            const activeRemindersText = document.getElementById('activeRemindersText');
-            const activeRemindersCount = document.getElementById('activeRemindersCount');
-
-            activeRemindersIcon.className = `fas fa-circle text-${status.active_reminders.count > 0 ? 'info' : 'secondary'}`;
-            activeRemindersText.textContent = status.active_reminders.message;
-            activeRemindersCount.textContent = status.active_reminders.count + ' total';
-
-            // Update system health
-            const healthBadge = document.getElementById('healthBadge');
-            const healthProgressBar = document.getElementById('healthProgressBar');
-            const lastSystemUpdate = document.getElementById('lastSystemUpdate');
-            const systemStatusIcon = document.getElementById('systemStatusIcon');
-
-            const healthScore = status.system_health.score;
-            const healthStatus = status.system_health.status;
-
-            healthProgressBar.style.width = healthScore + '%';
-            healthProgressBar.setAttribute('aria-valuenow', healthScore);
-
-            // Set progress bar color
-            healthProgressBar.className = 'progress-bar';
-            if (healthScore >= 75) {
-                healthProgressBar.classList.add('bg-success');
-                healthBadge.className = 'badge bg-success';
-                systemStatusIcon.className = 'fas fa-server text-success me-2';
-            } else if (healthScore >= 50) {
-                healthProgressBar.classList.add('bg-warning');
-                healthBadge.className = 'badge bg-warning';
-                systemStatusIcon.className = 'fas fa-server text-warning me-2';
-            } else {
-                healthProgressBar.classList.add('bg-danger');
-                healthBadge.className = 'badge bg-danger';
-                systemStatusIcon.className = 'fas fa-server text-danger me-2';
-            }
-
-            healthBadge.textContent = Math.round(healthScore) + '% - ' + status.system_health.message;
-            lastSystemUpdate.textContent = 'Last updated: ' + new Date().toLocaleString();
-        }
-
-        // Update individual status component
-        function updateStatusComponent(component, statusData) {
-            const icon = document.getElementById(component + 'StatusIcon');
-            const text = document.getElementById(component + 'StatusText');
-            const lastCheck = document.getElementById(component + 'LastCheck');
-
-            if (icon && text && lastCheck) {
-                icon.className = `fas fa-circle text-${getStatusColor(statusData.status)}`;
-                text.textContent = statusData.message;
-                lastCheck.textContent = 'Last check: ' + new Date(statusData.last_check).toLocaleString();
-            }
-        }
-
-        // Get status color based on status
-        function getStatusColor(status) {
-            switch (status) {
-                case 'online':
-                case 'configured':
-                case 'working':
-                case 'success':
-                    return 'success';
-                case 'warning':
-                    return 'warning';
-                case 'offline':
-                case 'failed':
-                case 'critical':
-                    return 'danger';
-                case 'active':
-                    return 'info';
-                default:
-                    return 'secondary';
-            }
-        }
-
-        // Show error status when loading fails
-        function showErrorStatus() {
-            const components = ['email', 'db', 'lastEmail', 'activeReminders'];
-
-            components.forEach(component => {
-                const icon = document.getElementById(component + 'StatusIcon') || document.getElementById(component + 'Icon');
-                const text = document.getElementById(component + 'StatusText') || document.getElementById(component + 'Text');
-
-                if (icon && text) {
-                    icon.className = 'fas fa-circle text-secondary';
-                    text.textContent = 'Error loading';
-                }
-            });
-
-            const healthBadge = document.getElementById('healthBadge');
-            const systemStatusIcon = document.getElementById('systemStatusIcon');
-
-            if (healthBadge) healthBadge.textContent = 'Error loading status';
-            if (systemStatusIcon) systemStatusIcon.className = 'fas fa-server text-secondary me-2';
-        }
-
-        // Refresh system status manually
-        function refreshSystemStatus() {
-            // Show loading state
-            const refreshBtn = event.target.closest('button');
-            const originalContent = refreshBtn.innerHTML;
-            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Refreshing...';
-            refreshBtn.disabled = true;
-
-            loadSystemStatus();
-
-            // Reset button after 2 seconds
-            setTimeout(() => {
-                refreshBtn.innerHTML = originalContent;
-                refreshBtn.disabled = false;
-            }, 2000);
-        }
-
-        // Test email service
-        function testEmailService() {
-            const formData = new FormData();
-            formData.append('action', 'test_email_service');
-
-            fetch('', {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast('Email Test', data.message, data.status === 'working' ? 'success' : 'warning');
-                        // Refresh status after test
-                        setTimeout(loadSystemStatus, 1000);
-                    } else {
-                        showToast('Email Test Failed', data.message, 'danger');
-                    }
-                })
-                .catch(error => {
-                    showToast('Error', 'Failed to test email service', 'danger');
-                });
-        }
-    </script>
-    <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Activate tab based on URL hash on page load
             const hash = window.location.hash;
@@ -4637,6 +4822,917 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                 });
             });
         });
+    </script>
+    <script>
+        // Enhanced JavaScript functions for snooze functionality
+        // Add these to your existing JavaScript in reminders.php
+
+        // Global variables for snooze
+        let snoozeOptions = [];
+        let maxSnoozeCount = 5;
+
+        // Load snooze options on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSnoozeOptions();
+        });
+
+        // Load snooze options from server
+        function loadSnoozeOptions() {
+            fetch('', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=get_snooze_options'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        snoozeOptions = data.options;
+                        maxSnoozeCount = data.max_snooze_count;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading snooze options:', error);
+                });
+        }
+
+        // Enhanced snooze reminder function
+        function snoozeReminder(id, toastId, reminderData = null) {
+            // Get reminder data from toast element if not provided
+            if (!reminderData) {
+                const toastElement = document.getElementById(toastId);
+                reminderData = {
+                    isInstance: toastElement.dataset.isInstance === 'true',
+                    instanceId: toastElement.dataset.instanceId,
+                    snoozeCount: parseInt(toastElement.dataset.snoozeCount || '0')
+                };
+            }
+
+            // Check if max snooze limit reached
+            if (reminderData.snoozeCount >= maxSnoozeCount) {
+                showAdvancedSnoozeModal(id, toastId, reminderData);
+                return;
+            }
+
+            // Show snooze options modal
+            showSnoozeModal(id, toastId, reminderData);
+        }
+
+        // Show snooze options modal
+        function showSnoozeModal(id, toastId, reminderData) {
+            // Create enhanced snooze modal
+            const snoozeModal = `
+        <div class="modal fade" id="snoozeModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title text-info">
+                            <i class="fas fa-clock me-2"></i>Snooze Reminder
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="snooze-info mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted">Snooze Count:</small>
+                                <span class="badge ${reminderData.snoozeCount >= maxSnoozeCount - 1 ? 'bg-warning' : 'bg-info'}">
+                                    ${reminderData.snoozeCount}/${maxSnoozeCount}
+                                </span>
+                            </div>
+                            ${reminderData.snoozeCount >= maxSnoozeCount - 1 ?
+                '<div class="alert alert-warning py-2"><small><i class="fas fa-exclamation-triangle me-1"></i>Last snooze available!</small></div>' : ''
+            }
+                        </div>
+
+                        <p class="mb-3">How long would you like to snooze this reminder?</p>
+
+                        <div class="row g-2" id="snoozeOptionsGrid">
+                            ${generateSnoozeOptionsHTML()}
+                        </div>
+
+                        <div class="mt-3 pt-3 border-top">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="showSnoozeStats(${id}, ${reminderData.instanceId || 'null'})">
+                                    <i class="fas fa-chart-line me-1"></i>View History
+                                </button>
+                                <button class="btn btn-outline-info btn-sm" onclick="showCustomSnoozeInput()">
+                                    <i class="fas fa-edit me-1"></i>Custom Time
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Custom snooze input (initially hidden) -->
+                        <div class="mt-3 d-none" id="customSnoozeSection">
+                            <div class="card card-body bg-light">
+                                <div class="row g-2">
+                                    <div class="col-8">
+                                        <input type="number" class="form-control form-control-sm" id="customSnoozeMinutes"
+                                               placeholder="Minutes" min="1" max="1440">
+                                    </div>
+                                    <div class="col-4">
+                                        <button class="btn btn-info btn-sm w-100" onclick="applyCustomSnooze(${id}, '${toastId}', ${JSON.stringify(reminderData).replace(/"/g, '&quot;')})">
+                                            Apply
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="text-muted mt-1">Enter 1-1440 minutes (max 24 hours)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+            // Remove existing modal if any
+            const existingModal = document.getElementById('snoozeModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            document.body.insertAdjacentHTML('beforeend', snoozeModal);
+            const modal = new bootstrap.Modal(document.getElementById('snoozeModal'));
+            modal.show();
+
+            // Add click handlers for snooze options
+            snoozeOptions.forEach(option => {
+                const button = document.getElementById(`snooze-${option.minutes}`);
+                if (button) {
+                    button.addEventListener('click', () => {
+                        modal.hide();
+                        applySnooze(id, toastId, option.minutes, reminderData);
+                    });
+                }
+            });
+
+            // Clean up modal when hidden
+            document.getElementById('snoozeModal').addEventListener('hidden.bs.modal', function() {
+                this.remove();
+            });
+        }
+
+        // Generate snooze options HTML
+        function generateSnoozeOptionsHTML() {
+            return snoozeOptions.map(option => `
+        <div class="col-6">
+            <button type="button" class="btn btn-outline-primary w-100 py-2" id="snooze-${option.minutes}">
+                <i class="${option.icon} mb-1 d-block"></i>
+                <small>${option.label}</small>
+            </button>
+        </div>
+    `).join('');
+        }
+
+        // Show custom snooze input
+        function showCustomSnoozeInput() {
+            const section = document.getElementById('customSnoozeSection');
+            section.classList.toggle('d-none');
+            if (!section.classList.contains('d-none')) {
+                document.getElementById('customSnoozeMinutes').focus();
+            }
+        }
+
+        // Apply custom snooze
+        function applyCustomSnooze(id, toastId, reminderData) {
+            const minutes = parseInt(document.getElementById('customSnoozeMinutes').value);
+
+            if (!minutes || minutes < 1 || minutes > 1440) {
+                showToast('Invalid Input', 'Please enter a value between 1 and 1440 minutes', 'warning');
+                return;
+            }
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('snoozeModal'));
+            modal.hide();
+
+            applySnooze(id, toastId, minutes, reminderData);
+        }
+
+        // Enhanced apply snooze function
+        function applySnooze(id, toastId, minutes, reminderData) {
+            const formData = new FormData();
+            formData.append('action', 'snooze_reminder');
+            formData.append('id', id);
+            formData.append('minutes', minutes);
+            formData.append('source_type', reminderData.isInstance ? 'instance' : 'reminder');
+
+            if (reminderData.instanceId) {
+                formData.append('instance_id', reminderData.instanceId);
+            }
+
+            // Show loading state
+            showToast('Snoozing...', 'Processing your snooze request', 'info');
+
+            fetch('', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Hide the urgent toast
+                        const toast = document.getElementById(toastId);
+                        if (toast) {
+                            const toastInstance = bootstrap.Toast.getInstance(toast);
+                            if (toastInstance) {
+                                toastInstance.hide();
+                            }
+                            setTimeout(() => toast.remove(), 300);
+                        }
+
+                        // Show success message with snooze details
+                        const snoozeUntil = new Date(data.snooze_until).toLocaleString();
+                        showSnoozeSuccessToast(data.message, snoozeUntil, data.snooze_count, data.max_snoozes);
+
+                        // Schedule re-check when snooze expires
+                        const snoozeEndTime = new Date(data.snooze_until).getTime();
+                        const now = new Date().getTime();
+                        const timeUntilUnsnooze = snoozeEndTime - now;
+
+                        if (timeUntilUnsnooze > 0) {
+                            setTimeout(() => {
+                                checkDueReminders(); // Re-check for due reminders when snooze expires
+                            }, timeUntilUnsnooze + 5000); // Add 5 seconds buffer
+                        }
+
+                    } else {
+                        showToast('Snooze Failed', data.message, 'danger');
+                    }
+                })
+                .catch(error => {
+                    showToast('Error', 'Failed to snooze reminder', 'danger');
+                    console.error('Snooze error:', error);
+                });
+        }
+
+        // Show enhanced success toast for snooze
+        function showSnoozeSuccessToast(message, snoozeUntil, snoozeCount, maxSnoozes) {
+            const toastId = 'snooze-success-' + Date.now();
+            const progressPercent = (snoozeCount / maxSnoozes) * 100;
+
+            const toast = `
+        <div class="toast" id="${toastId}" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="8000">
+            <div class="toast-body bg-success text-white d-flex flex-column p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Reminder Snoozed!</strong>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white ms-3" data-bs-dismiss="toast"></button>
+                </div>
+
+                <div class="mb-2">
+                    <small>${message}</small>
+                    <br>
+                    <small><i class="fas fa-clock me-1"></i>Will remind again: ${snoozeUntil}</small>
+                </div>
+
+                <div class="snooze-progress mb-2">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small>Snooze Usage</small>
+                        <small>${snoozeCount}/${maxSnoozes}</small>
+                    </div>
+                    <div class="progress" style="height: 4px;">
+                        <div class="progress-bar bg-light" role="progressbar" style="width: ${progressPercent}%"
+                             aria-valuenow="${progressPercent}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    ${snoozeCount >= maxSnoozes - 1 ? '<small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Approaching snooze limit!</small>' : ''}
+                </div>
+            </div>
+        </div>
+    `;
+
+            document.getElementById('toast-container').insertAdjacentHTML('beforeend', toast);
+            const toastElement = new bootstrap.Toast(document.getElementById(toastId));
+            toastElement.show();
+        }
+
+        // Show advanced snooze modal when limit is reached
+        function showAdvancedSnoozeModal(id, toastId, reminderData) {
+            const advancedModal = `
+        <div class="modal fade" id="advancedSnoozeModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title text-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Snooze Limit Reached
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-warning d-flex align-items-center mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <small>This reminder has been snoozed ${maxSnoozeCount} times. Consider taking action!</small>
+                        </div>
+
+                        <p class="mb-3">What would you like to do with this reminder?</p>
+
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-success" onclick="completeReminderFromAdvanced(${id}, '${toastId}', ${JSON.stringify(reminderData).replace(/"/g, '&quot;')})">
+                                <i class="fas fa-check me-2"></i>Mark as Complete
+                            </button>
+
+                            <button class="btn btn-warning" onclick="dismissReminderFromAdvanced(${id}, '${toastId}', ${JSON.stringify(reminderData).replace(/"/g, '&quot;')})">
+                                <i class="fas fa-eye-slash me-2"></i>Dismiss Reminder
+                            </button>
+
+                            <button class="btn btn-primary" onclick="editReminderFromAdvanced(${id})">
+                                <i class="fas fa-edit me-2"></i>Edit Reminder
+                            </button>
+
+                            <button class="btn btn-outline-secondary" onclick="resetSnoozeCount(${id}, '${toastId}', ${JSON.stringify(reminderData).replace(/"/g, '&quot;')})">
+                                <i class="fas fa-undo me-2"></i>Reset Snooze Count
+                            </button>
+                        </div>
+
+                        <div class="mt-3 pt-3 border-top">
+                            <button class="btn btn-link btn-sm w-100" onclick="showSnoozeStats(${id}, ${reminderData.instanceId || 'null'})">
+                                <i class="fas fa-chart-line me-1"></i>View Snooze History
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+            document.body.insertAdjacentHTML('beforeend', advancedModal);
+            const modal = new bootstrap.Modal(document.getElementById('advancedSnoozeModal'));
+            modal.show();
+
+            document.getElementById('advancedSnoozeModal').addEventListener('hidden.bs.modal', function() {
+                this.remove();
+            });
+        }
+
+        // Complete reminder from advanced modal
+        function completeReminderFromAdvanced(id, toastId, reminderData) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('advancedSnoozeModal'));
+            modal.hide();
+
+            if (reminderData.isInstance) {
+                completeReminderInstance(reminderData.instanceId);
+            } else {
+                completeReminder(id);
+            }
+
+            // Remove the urgent toast
+            const toast = document.getElementById(toastId);
+            if (toast) {
+                bootstrap.Toast.getInstance(toast)?.hide();
+                setTimeout(() => toast.remove(), 300);
+            }
+        }
+
+        // Dismiss reminder from advanced modal
+        function dismissReminderFromAdvanced(id, toastId, reminderData) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('advancedSnoozeModal'));
+            modal.hide();
+
+            if (reminderData.isInstance) {
+                dismissReminderInstance(reminderData.instanceId);
+            } else {
+                dismissReminder(id);
+            }
+
+            // Remove the urgent toast
+            const toast = document.getElementById(toastId);
+            if (toast) {
+                bootstrap.Toast.getInstance(toast)?.hide();
+                setTimeout(() => toast.remove(), 300);
+            }
+        }
+
+        // Edit reminder from advanced modal
+        function editReminderFromAdvanced(id) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('advancedSnoozeModal'));
+            modal.hide();
+            editReminder(id);
+        }
+
+        // Reset snooze count (admin function)
+        function resetSnoozeCount(id, toastId, reminderData) {
+            if (!confirm('Are you sure you want to reset the snooze count? This will allow snoozing again.')) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'reset_snooze_count');
+            formData.append('id', id);
+            formData.append('source_type', reminderData.isInstance ? 'instance' : 'reminder');
+
+            if (reminderData.instanceId) {
+                formData.append('instance_id', reminderData.instanceId);
+            }
+
+            fetch('', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('advancedSnoozeModal'));
+                        modal.hide();
+                        showToast('Reset Successful', 'Snooze count has been reset', 'success');
+
+                        // Update reminder data and show snooze modal
+                        reminderData.snoozeCount = 0;
+                        snoozeReminder(id, toastId, reminderData);
+                    } else {
+                        showToast('Reset Failed', data.message, 'danger');
+                    }
+                })
+                .catch(error => {
+                    showToast('Error', 'Failed to reset snooze count', 'danger');
+                });
+        }
+
+        // Show snooze statistics modal
+        function showSnoozeStats(id, instanceId) {
+            const formData = new FormData();
+            formData.append('action', 'get_snooze_stats');
+            formData.append('id', id);
+
+            if (instanceId) {
+                formData.append('instance_id', instanceId);
+            }
+
+            fetch('', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displaySnoozeStatsModal(data);
+                    } else {
+                        showToast('Error', 'Failed to load snooze statistics', 'danger');
+                    }
+                })
+                .catch(error => {
+                    showToast('Error', 'Failed to load snooze statistics', 'danger');
+                });
+        }
+
+        // Display snooze statistics modal
+        function displaySnoozeStatsModal(data) {
+            const current = data.current_status;
+            const history = data.history;
+
+            let historyHTML = '';
+            if (history.length > 0) {
+                historyHTML = history.map(item => {
+                    const snoozeTime = new Date(item.snooze_time).toLocaleString();
+                    const snoozeUntil = new Date(item.snooze_until).toLocaleString();
+                    const duration = formatSnoozeDuration(item.snooze_duration_minutes);
+
+                    return `
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <div>
+                        <small class="text-muted">${snoozeTime}</small>
+                        <br>
+                        <span class="badge bg-info">${duration}</span>
+                    </div>
+                    <small class="text-muted">Until: ${snoozeUntil}</small>
+                </div>
+            `;
+                }).join('');
+            } else {
+                historyHTML = '<div class="text-center text-muted py-3">No snooze history found</div>';
+            }
+
+            const statsModal = `
+        <div class="modal fade" id="snoozeStatsModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title text-info">
+                            <i class="fas fa-chart-line me-2"></i>Snooze History
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Current Status -->
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title">Current Status</h6>
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <div class="h5 mb-0 ${current.is_snoozed ? 'text-warning' : 'text-success'}">${current.is_snoozed ? 'Snoozed' : 'Active'}</div>
+                                        <small class="text-muted">Status</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="h5 mb-0 text-info">${current.snooze_count || 0}</div>
+                                        <small class="text-muted">Total Snoozes</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="h5 mb-0 text-primary">${data.max_snooze_count - (current.snooze_count || 0)}</div>
+                                        <small class="text-muted">Remaining</small>
+                                    </div>
+                                </div>
+                                ${current.is_snoozed && current.snooze_until ? `
+                                    <div class="mt-2 pt-2 border-top">
+                                        <small class="text-muted">Snoozed until: <strong>${new Date(current.snooze_until).toLocaleString()}</strong></small>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- History -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Recent Snooze History</h6>
+                            </div>
+                            <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                                ${historyHTML}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+            document.body.insertAdjacentHTML('beforeend', statsModal);
+            const modal = new bootstrap.Modal(document.getElementById('snoozeStatsModal'));
+            modal.show();
+
+            document.getElementById('snoozeStatsModal').addEventListener('hidden.bs.modal', function() {
+                this.remove();
+            });
+        }
+
+        // Helper function to format snooze duration for display
+        function formatSnoozeDuration(minutes) {
+            if (minutes < 60) {
+                return minutes + ' min';
+            } else if (minutes < 1440) {
+                const hours = Math.floor(minutes / 60);
+                const remainingMinutes = minutes % 60;
+                return hours + 'h' + (remainingMinutes > 0 ? ' ' + remainingMinutes + 'm' : '');
+            } else {
+                const days = Math.floor(minutes / 1440);
+                const remainingHours = Math.floor((minutes % 1440) / 60);
+                return days + 'd' + (remainingHours > 0 ? ' ' + remainingHours + 'h' : '');
+            }
+        }
+
+        // Enhanced showUrgentReminderToast with snooze count and improved UI
+        function showUrgentReminderToast(reminder, hoursRemaining) {
+            const toastId = 'urgent-toast-' + reminder.id + (reminder.is_instance ? '-instance-' + reminder.instance_id : '');
+
+            // Check if toast already exists for this reminder
+            if (document.getElementById(toastId)) {
+                return; // Don't create duplicate toasts
+            }
+
+            // Skip if snoozed
+            if (reminder.is_snoozed && reminder.snooze_until && new Date(reminder.snooze_until) > new Date()) {
+                return;
+            }
+
+            // Format time remaining
+            let timeText = '';
+            if (hoursRemaining < 1) {
+                const minutesRemaining = Math.floor((hoursRemaining * 60));
+                timeText = minutesRemaining > 0 ? `${minutesRemaining} minutes` : 'Less than a minute';
+            } else {
+                const hours = Math.floor(hoursRemaining);
+                const minutes = Math.floor((hoursRemaining - hours) * 60);
+                timeText = minutes > 0 ? `${hours}h ${minutes}m` : `${hours} hours`;
+            }
+
+            const priorityClass = reminder.priority === 'high' ? 'danger' :
+                reminder.priority === 'medium' ? 'warning' : 'info';
+
+            const recurringBadge = reminder.is_recurring ?
+                `<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">
+            <i class="fas fa-redo me-1"></i>${reminder.is_instance ? 'Recurring Instance' : 'Recurring'}
+        </span>` : '';
+
+            // Snooze information
+            const snoozeCount = reminder.snooze_count || 0;
+            const snoozeBadge = snoozeCount > 0 ?
+                `<span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">
+            <i class="fas fa-clock me-1"></i>Snoozed ${snoozeCount}x
+        </span>` : '';
+
+            const toast = `
+        <div class="toast urgent-reminder-toast" id="${toastId}" role="alert" aria-live="assertive" aria-atomic="true"
+             data-bs-autohide="false" data-is-instance="${reminder.is_instance || false}"
+             data-instance-id="${reminder.instance_id || ''}" data-snooze-count="${snoozeCount}">
+            <div class="toast-header bg-${priorityClass} text-white">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong class="me-auto">Urgent Reminder</strong>
+                <small class="text-white-50">${timeText} remaining</small>
+                <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                <div class="d-flex align-items-start">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1 fw-bold">${reminder.title}</h6>
+                        ${reminder.description ? `<p class="mb-2 text-muted small">${reminder.description}</p>` : ''}
+                        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                            <span class="badge bg-${priorityClass} bg-opacity-10 text-${priorityClass} border border-${priorityClass} border-opacity-25">
+                                <i class="fas fa-flag me-1"></i>${reminder.priority.charAt(0).toUpperCase() + reminder.priority.slice(1)}
+                            </span>
+                            <span class="badge bg-light text-dark border">
+                                <i class="fas fa-tag me-1"></i>${reminder.category.charAt(0).toUpperCase() + reminder.category.slice(1)}
+                            </span>
+                            ${recurringBadge}
+                            ${snoozeBadge}
+                        </div>
+                        <div class="d-flex align-items-center text-muted small mb-2">
+                            <i class="fas fa-calendar me-1"></i>
+                            <span>${new Date(reminder.reminder_date + ' ' + reminder.reminder_time).toLocaleString()}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-3 flex-wrap">
+                    <button class="btn btn-success btn-sm flex-fill" onclick="completeReminderFromToast(${reminder.id}, '${toastId}')">
+                        <i class="fas fa-check me-1"></i>Complete
+                    </button>
+                    <button class="btn btn-warning btn-sm flex-fill" onclick="dismissReminderFromToast(${reminder.id}, '${toastId}')">
+                        <i class="fas fa-eye-slash me-1"></i>Dismiss
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="snoozeReminder(${reminder.id}, '${toastId}', {isInstance: ${reminder.is_instance || false}, instanceId: ${reminder.instance_id || 'null'}, snoozeCount: ${snoozeCount}})"
+                            ${snoozeCount >= maxSnoozeCount ? 'title="Snooze limit reached - click for options"' : ''}>
+                        <i class="fas fa-clock me-1"></i>${snoozeCount >= maxSnoozeCount ? 'Options' : 'Snooze'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+            document.getElementById('toast-container').insertAdjacentHTML('beforeend', toast);
+            const toastElement = new bootstrap.Toast(document.getElementById(toastId));
+            toastElement.show();
+        }
+    </script>
+    <script>
+        // Snooze Settings JavaScript
+        let currentSnoozeOptions = ['15', '30', '60', '120', '480', '1440'];
+
+        // Initialize snooze settings
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSnoozeSettings();
+            loadSnoozeAnalyticsPreview();
+
+            // Sync range and number inputs
+            const rangeInput = document.getElementById('maxSnoozeCount');
+            const numberInput = document.getElementById('maxSnoozeCountInput');
+            const label = document.getElementById('snoozeCountLabel');
+
+            rangeInput.addEventListener('input', function() {
+                numberInput.value = this.value;
+                label.textContent = this.value + ' time' + (this.value != 1 ? 's' : '');
+            });
+
+            numberInput.addEventListener('input', function() {
+                rangeInput.value = Math.min(10, Math.max(1, this.value));
+                label.textContent = this.value + ' time' + (this.value != 1 ? 's' : '');
+            });
+        });
+
+        // Load current snooze settings
+        function loadSnoozeSettings() {
+            // Load from existing getSetting calls or make AJAX request
+            const maxSnoozeCount = <?= getSetting('max_snooze_count', '5') ?>;
+            const snoozeOptions = '<?= getSetting('snooze_options', '15,30,60,120,480,1440') ?>';
+
+            document.getElementById('maxSnoozeCount').value = maxSnoozeCount;
+            document.getElementById('maxSnoozeCountInput').value = maxSnoozeCount;
+            document.getElementById('snoozeCountLabel').textContent = maxSnoozeCount + ' time' + (maxSnoozeCount != 1 ? 's' : '');
+
+            currentSnoozeOptions = snoozeOptions.split(',');
+            renderSnoozeOptionsInputs();
+        }
+
+        // Render snooze options inputs
+        function renderSnoozeOptionsInputs() {
+            const container = document.getElementById('snoozeOptionsInputs');
+            container.innerHTML = '';
+
+            currentSnoozeOptions.forEach((option, index) => {
+                const minutes = parseInt(option);
+                const formattedDuration = formatSnoozeDuration(minutes);
+
+                container.innerHTML += `
+            <div class="col-lg-4 col-md-6">
+                <div class="input-group input-group-sm">
+                    <input type="number" class="form-control" value="${minutes}"
+                           min="1" max="1440" onchange="updateSnoozeOption(${index}, this.value)">
+                    <span class="input-group-text">${formattedDuration}</span>
+                    <button class="btn btn-outline-danger" type="button" onclick="removeSnoozeOption(${index})"
+                            ${currentSnoozeOptions.length <= 3 ? 'disabled title="Minimum 3 options required"' : ''}>
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+            });
+        }
+
+        // Update snooze option value
+        function updateSnoozeOption(index, value) {
+            const minutes = parseInt(value);
+            if (minutes >= 1 && minutes <= 1440) {
+                currentSnoozeOptions[index] = minutes.toString();
+                renderSnoozeOptionsInputs();
+            }
+        }
+
+        // Add new snooze option
+        function addSnoozeOption() {
+            if (currentSnoozeOptions.length < 8) {
+                currentSnoozeOptions.push('60'); // Default to 1 hour
+                renderSnoozeOptionsInputs();
+            } else {
+                showToast('Limit Reached', 'Maximum 8 snooze options allowed', 'warning');
+            }
+        }
+
+        // Remove snooze option
+        function removeSnoozeOption(index) {
+            if (currentSnoozeOptions.length > 3) {
+                currentSnoozeOptions.splice(index, 1);
+                renderSnoozeOptionsInputs();
+            }
+        }
+
+        // Reset to default snooze options
+        function resetSnoozeOptionsToDefault() {
+            currentSnoozeOptions = ['15', '30', '60', '120', '480', '1440'];
+            renderSnoozeOptionsInputs();
+        }
+
+        // Save snooze settings
+        document.getElementById('saveSnoozeSettingsBtn').addEventListener('click', function() {
+            const maxSnoozeCount = document.getElementById('maxSnoozeCountInput').value;
+            const snoozeOptions = currentSnoozeOptions.join(',');
+
+            const formData = new FormData();
+            formData.append('action', 'update_snooze_settings');
+            formData.append('max_snooze_count', maxSnoozeCount);
+            formData.append('snooze_options', snoozeOptions);
+
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+
+            fetch('', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Success!', 'Snooze settings saved!', 'success');
+                        // Reload snooze options for the toast system
+                        loadSnoozeOptions();
+                    } else {
+                        showToast('Error!', data.message, 'danger');
+                    }
+                })
+                .catch(error => {
+                    showToast('Error!', 'Failed to save snooze settings', 'danger');
+                })
+                .finally(() => {
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-save me-1"></i>Save Snooze Settings';
+                });
+        });
+
+        // Load snooze analytics preview
+        function loadSnoozeAnalyticsPreview() {
+            const formData = new FormData();
+            formData.append('action', 'get_snooze_analytics');
+            formData.append('days', '30');
+
+            fetch('', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateAnalyticsPreview(data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading snooze analytics:', error);
+                });
+        }
+
+        // Update analytics preview
+        function updateAnalyticsPreview(data) {
+            const totalSnoozes = data.daily_stats.reduce((sum, day) => sum + parseInt(day.daily_count), 0);
+            const avgDuration = data.duration_preferences.length > 0 ?
+                Math.round(data.duration_preferences.reduce((sum, pref) => sum + (pref.snooze_duration_minutes * pref.usage_count), 0) / totalSnoozes) : 0;
+            const uniqueReminders = data.top_snoozed.length;
+            const mostUsedDuration = data.duration_preferences.length > 0 ?
+                formatSnoozeDuration(data.duration_preferences[0].snooze_duration_minutes) : 'N/A';
+
+            document.getElementById('totalSnoozes').textContent = totalSnoozes;
+            document.getElementById('avgSnoozeDuration').textContent = avgDuration > 0 ? formatSnoozeDuration(avgDuration) : 'N/A';
+            document.getElementById('uniqueReminders').textContent = uniqueReminders;
+            document.getElementById('mostUsedDuration').textContent = mostUsedDuration;
+        }
+
+        // Show full snooze analytics modal
+        function showSnoozeAnalytics() {
+            const modal = new bootstrap.Modal(document.getElementById('snoozeAnalyticsModal'));
+            modal.show();
+            loadFullAnalytics(30); // Default to 30 days
+
+            // Add event listeners for period selection
+            document.querySelectorAll('input[name="analyticsPeriod"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.checked) {
+                        loadFullAnalytics(parseInt(this.value));
+                    }
+                });
+            });
+        }
+
+        // Load full analytics data
+        function loadFullAnalytics(days) {
+            const formData = new FormData();
+            formData.append('action', 'get_snooze_analytics');
+            formData.append('days', days);
+
+            fetch('', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderFullAnalytics(data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading full analytics:', error);
+                });
+        }
+
+        // Render full analytics (you'll need Chart.js for the charts)
+        function renderFullAnalytics(data) {
+            // Update detailed stats
+            const totalSnoozes = data.daily_stats.reduce((sum, day) => sum + parseInt(day.daily_count), 0);
+            const avgDuration = totalSnoozes > 0 ?
+                Math.round(data.duration_preferences.reduce((sum, pref) => sum + (pref.snooze_duration_minutes * pref.usage_count), 0) / totalSnoozes) : 0;
+
+            document.getElementById('detailedAnalyticsStats').innerHTML = `
+        <div class="col-md-3">
+            <div class="text-center p-3 bg-primary bg-opacity-10 rounded">
+                <div class="h4 mb-0 text-primary">${totalSnoozes}</div>
+                <small class="text-muted">Total Snoozes</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="text-center p-3 bg-info bg-opacity-10 rounded">
+                <div class="h4 mb-0 text-info">${avgDuration > 0 ? formatSnoozeDuration(avgDuration) : 'N/A'}</div>
+                <small class="text-muted">Average Duration</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="text-center p-3 bg-success bg-opacity-10 rounded">
+                <div class="h4 mb-0 text-success">${data.top_snoozed.length}</div>
+                <small class="text-muted">Unique Reminders</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="text-center p-3 bg-warning bg-opacity-10 rounded">
+                <div class="h4 mb-0 text-warning">${data.period_days}</div>
+                <small class="text-muted">Days Analyzed</small>
+            </div>
+        </div>
+    `;
+
+            // Render top snoozed reminders
+            let topSnoozedHTML = '';
+            if (data.top_snoozed.length > 0) {
+                topSnoozedHTML = data.top_snoozed.map((reminder, index) => `
+            <div class="d-flex justify-content-between align-items-center py-2 ${index < data.top_snoozed.length - 1 ? 'border-bottom' : ''}">
+                <div>
+                    <strong>${reminder.title}</strong>
+                    <br>
+                    <small class="text-muted">
+                        <i class="fas fa-tag me-1"></i>${reminder.category} •
+                        <i class="fas fa-clock me-1"></i>Avg: ${formatSnoozeDuration(Math.round(reminder.avg_duration))}
+                    </small>
+                </div>
+                <span class="badge bg-warning">${reminder.snooze_count} snoozes</span>
+            </div>
+        `).join('');
+            } else {
+                topSnoozedHTML = '<div class="text-center text-muted py-3">No snooze data available for this period</div>';
+            }
+
+            document.getElementById('topSnoozedList').innerHTML = topSnoozedHTML;
+
+            // Note: Chart rendering would require Chart.js library
+            // You can add Chart.js integration here if needed
+        }
     </script>
 
 <?php include "footer.php"; ?>

@@ -237,7 +237,7 @@ function sendMorningSummaryEmail() {
         </div>';
     }
 
-    $subject = '🌅 Morning Reminder Summary - ' . date('F j, Y');
+    $subject = 'Morning Reminder Summary - ' . date('F j, Y');
     $htmlBody = getModernEmailTemplate($subject, $content);
 
     return sendEmail($email_config['to_email'], $subject, $htmlBody);
@@ -380,13 +380,13 @@ function sendEveningProgressEmail() {
         </div>';
     }
 
-    $subject = '🌙 Evening Progress Report - ' . date('F j, Y');
+    $subject = 'Evening Progress Report - ' . date('F j, Y');
     $htmlBody = getModernEmailTemplate($subject, $content);
 
     return sendEmail($email_config['to_email'], $subject, $htmlBody);
 }
 
-// Due reminder notification
+// Updated sendDueReminderEmail to include snooze information
 function sendDueReminderEmail($reminder) {
     global $email_config;
 
@@ -394,6 +394,18 @@ function sendDueReminderEmail($reminder) {
 
     $priorityClass = $reminder['priority'];
     $priorityColor = $priorityClass === 'high' ? '#dc3545' : ($priorityClass === 'medium' ? '#ffc107' : '#28a745');
+
+    // Add snooze information if applicable
+    $snoozeInfo = '';
+    if ($reminder['snooze_count'] > 0) {
+        $snoozeInfo = '<div class="alert alert-info d-flex align-items-center mb-3" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            <small>This reminder has been snoozed ' . $reminder['snooze_count'] . ' time(s). Last snoozed: ' .
+            ($reminder['last_snooze_time'] ? date('M j, Y g:i A', strtotime($reminder['last_snooze_time'])) : 'Unknown') . '</small>
+        </div>';
+    }
+
+    $content .= $snoozeInfo;
 
     $content .= '<div class="reminder-card ' . $priorityClass . '" style="border-left-color: ' . $priorityColor . ';">
         <div class="reminder-title">' . htmlspecialchars($reminder['title']) . '</div>
@@ -411,50 +423,165 @@ function sendDueReminderEmail($reminder) {
     $content .= '</div>';
 
     $content .= '<div style="text-align: center; margin-top: 30px;">
-        <a href="https://web.monkbrian.com/sudo/reminders" class="btn">Mark as Complete</a>
+        <a href="https://web.monkbrian.com/sudo/reminders" class="btn" style="margin-right: 10px;">Mark as Complete</a>
+        <a href="https://web.monkbrian.com/sudo/reminders" class="btn" style="background-color: #ffc107; color: #212529;">Snooze Reminder</a>
     </div>';
 
     $subject = 'Reminder Due: ' . $reminder['title'];
+    if ($reminder['snooze_count'] > 0) {
+        $subject .= ' (Snoozed ' . $reminder['snooze_count'] . 'x)';
+    }
+
     $htmlBody = getModernEmailTemplate($subject, $content);
 
     return sendEmail($email_config['to_email'], $subject, $htmlBody);
+}
+
+// New function to get snooze statistics for analytics
+function getSnoozeAnalytics($days = 30) {
+    global $dbh;
+
+    $since = date('Y-m-d', strtotime("-{$days} days"));
+
+    $query = "
+        SELECT 
+            COUNT(*) as total_snoozes,
+            AVG(snooze_duration_minutes) as avg_duration,
+            MAX(snooze_duration_minutes) as max_duration,
+            MIN(snooze_duration_minutes) as min_duration,
+            COUNT(DISTINCT reminder_id) as unique_reminders_snoozed
+        FROM snooze_history 
+        WHERE snooze_time >= ?
+    ";
+
+    $stmt = $dbh->prepare($query);
+    $stmt->execute([$since]);
+    $stats = $stmt->fetch();
+
+    // Get most common snooze durations
+    $durationQuery = "
+        SELECT snooze_duration_minutes, COUNT(*) as count
+        FROM snooze_history 
+        WHERE snooze_time >= ?
+        GROUP BY snooze_duration_minutes 
+        ORDER BY count DESC 
+        LIMIT 5
+    ";
+
+    $stmt = $dbh->prepare($durationQuery);
+    $stmt->execute([$since]);
+    $commonDurations = $stmt->fetchAll();
+
+    return [
+        'stats' => $stats,
+        'common_durations' => $commonDurations,
+        'period_days' => $days
+    ];
 }
 
 // Due reminder notification - simplified without recurring reminders
 function checkAndSendDueReminders() {
     // Check if due reminders are enabled
     if (getSetting('due_reminders_enabled', '1') !== '1') {
+        echo "Due reminders are disabled.\n";
         return false;
     }
+
     global $dbh;
 
     $now = date('Y-m-d H:i:s');
+    $sentCount = 0;
+    $errorCount = 0;
+    $unsnoozedCount = 0;
 
-    // Simplified query - just check regular reminders
-    $query = "
-        SELECT * FROM reminders r
-        WHERE CONCAT(r.reminder_date, ' ', r.reminder_time) BETWEEN ? AND DATE_ADD(?, INTERVAL 5 MINUTE)
-        AND r.is_recurring = 0 AND r.is_completed = 0 AND r.is_dismissed = 0 AND (r.last_email_sent IS NULL OR r.last_email_sent < DATE_SUB(NOW(), INTERVAL 10 MINUTE))
-    ";
+    try {
+        // First, check for reminders that should be unsnoozed
+        $unsnoozeQuery = "
+            UPDATE reminders 
+            SET is_snoozed = 0, snooze_until = NULL 
+            WHERE is_snoozed = 1 AND snooze_until <= ?
+        ";
+        $stmt = $dbh->prepare($unsnoozeQuery);
+        $stmt->execute([$now]);
+        $unsnoozedCount += $stmt->rowCount();
 
-    $stmt = $dbh->prepare($query);
-    $stmt->execute([$now, $now]);
-    $dueReminders = $stmt->fetchAll();
+        // Also unsnooze reminder instances
+        $unsnoozeInstanceQuery = "
+            UPDATE reminder_instances 
+            SET is_snoozed = 0, snooze_until = NULL 
+            WHERE is_snoozed = 1 AND snooze_until <= ?
+        ";
+        $stmt = $dbh->prepare($unsnoozeInstanceQuery);
+        $stmt->execute([$now]);
+        $unsnoozedCount += $stmt->rowCount();
 
-    foreach ($dueReminders as $reminder) {
-        $result = sendDueReminderEmail($reminder);
-
-        if ($result) {
-            echo "Due reminder email sent for: " . $reminder['title'] . "\n";
-            // Update the email_last_sent timestamp
-            $updateQuery = "UPDATE reminders SET email_last_sent = NOW() WHERE id = ?";
-            $updateStmt = $dbh->prepare($updateQuery);
-            $updateStmt->execute([$reminder['id']]);
-        } else {
-            echo "Failed to send email for: " . $reminder['title'] . "\n";
+        if ($unsnoozedCount > 0) {
+            echo "Unsnoozed {$unsnoozedCount} reminders.\n";
         }
+
+        // Get reminders that are due now (within the last 5 minutes to current time)
+        // Exclude snoozed reminders and those that had emails sent recently
+        $query = "
+            SELECT * FROM reminders r
+            WHERE CONCAT(r.reminder_date, ' ', r.reminder_time) BETWEEN DATE_SUB(?, INTERVAL 5 MINUTE) AND ?
+            AND r.is_recurring = 0 
+            AND r.is_completed = 0 
+            AND r.is_dismissed = 0 
+            AND (r.is_snoozed = 0 OR r.is_snoozed IS NULL)
+            AND (r.last_email_sent IS NULL OR r.last_email_sent < DATE_SUB(NOW(), INTERVAL 30 MINUTE))
+            ORDER BY r.reminder_date ASC, r.reminder_time ASC
+        ";
+
+        $stmt = $dbh->prepare($query);
+        $stmt->execute([$now, $now]);
+        $dueReminders = $stmt->fetchAll();
+
+        echo "Found " . count($dueReminders) . " due reminders to process (excluding snoozed).\n";
+
+        foreach ($dueReminders as $reminder) {
+            try {
+                // Double-check snooze status before sending
+                if ($reminder['is_snoozed'] && $reminder['snooze_until'] && strtotime($reminder['snooze_until']) > time()) {
+                    echo "Skipping snoozed reminder: " . $reminder['title'] . " (snoozed until " . $reminder['snooze_until'] . ")\n";
+                    continue;
+                }
+
+                $result = sendDueReminderEmail($reminder);
+
+                if ($result) {
+                    echo "✓ Due reminder email sent for: " . $reminder['title'] . " (ID: " . $reminder['id'] . ")\n";
+
+                    // Update the last_email_sent timestamp
+                    $updateQuery = "UPDATE reminders SET last_email_sent = NOW() WHERE id = ?";
+                    $updateStmt = $dbh->prepare($updateQuery);
+                    $updateStmt->execute([$reminder['id']]);
+
+                    $sentCount++;
+                } else {
+                    echo "✗ Failed to send email for: " . $reminder['title'] . " (ID: " . $reminder['id'] . ")\n";
+                    $errorCount++;
+                }
+            } catch (Exception $e) {
+                echo "✗ Error sending email for reminder ID " . $reminder['id'] . ": " . $e->getMessage() . "\n";
+                error_log("Error sending due reminder email for ID " . $reminder['id'] . ": " . $e->getMessage());
+                $errorCount++;
+            }
+        }
+
+        echo "Summary: {$sentCount} emails sent, {$errorCount} errors, {$unsnoozedCount} reminders unsnoozed\n";
+
+        return $sentCount > 0;
+
+    } catch (Exception $e) {
+        echo "Database error in checkAndSendDueReminders: " . $e->getMessage() . "\n";
+        error_log("Database error in checkAndSendDueReminders: " . $e->getMessage());
+        return false;
     }
 }
+
+?>
+
+
 
 
 
