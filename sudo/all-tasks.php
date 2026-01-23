@@ -240,8 +240,12 @@ if (isset($_GET['del'])) {
                                                 <p class="fw-semi-bold mb-0 text-500"><?php echo $row["writer"];?></p>
                                                 </td>
                                             <td class="align-middle white-space-nowrap product">
-                                                <h6 class="mb-0"><?php echo $timeDiff;?></h6>
-                                                <p class="fs-11 mb-0"><?php  echo date("d M Y, g:i A", strtotime($row['create_date']));?></p>
+                                                <p class="fs-11 mb-0">
+                                                    <?php echo (!empty($row['submitted_on']) && $row['submitted_on'] !== '0000-00-00 00:00:00')
+                                                        ? date("d M Y, g:i A", strtotime($row['submitted_on']))
+                                                        : '—'; ?>
+                                                </p>
+                                                <p class="fs-11 mb-0"><?php  echo date("d M Y, g:i A", strtotime($row['due_date']));?></p>
                                             </td>
                                             <td class="align-middle amount">
                                                 <h6 class="mb-0"><?php echo number_format($totalprice,2); ?></h6>

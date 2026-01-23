@@ -85,12 +85,16 @@ if ($query->rowCount() > 0) {
                                     $totalCompletedTasks = (float) $result1['total']; // Cast to float to ensure arithmetic operation
 
                                     // Query to sum amount from tbloverdrafts
-                                    $query2 = mysqli_query($con, "SELECT SUM(amount) AS total2 FROM tbloverdrafts WHERE is_settled = 0 AND description = 'iTasker' AND is_deleted = 0");
+                                    $query2 = mysqli_query($con, "SELECT SUM(amount) AS total2 FROM tbloverdrafts WHERE is_settled = 0 AND description = 'iTasker' AND record_type = 'overdraft' AND is_deleted = 0");
                                     $result2 = mysqli_fetch_assoc($query2);
                                     $totalOverdrafts = (float) $result2['total2']; // Cast to float to ensure arithmetic operation
 
+                                    $query5 = mysqli_query($con, "SELECT SUM(amount) AS total5 FROM tbloverdrafts WHERE is_settled = 0 AND record_type = 'bonus' AND description = 'Performance Bonus' AND is_deleted = 0");
+                                    $result5 = mysqli_fetch_assoc($query5);
+                                    $totalBonus = (float) $result5['total5'];
+
                                     // Calculate amount due by subtracting total completed task costs from total overdrafts
-                                    $amount_due = $totalCompletedTasks - $totalOverdrafts;
+                                    $amount_due = $totalCompletedTasks + $totalBonus - $totalOverdrafts;
                                     ?>
                                     <h4 class="text-800 mb-0"><span class="badge rounded-pill badge-subtle-info">Ksh. <?php echo number_format($amount_due, 2, '.', ','); ?></span></h4>
                                     <div class="form-text">Invoice updated
@@ -145,12 +149,16 @@ if ($query->rowCount() > 0) {
                                     $totalSubComTasks = (float) $result3['total3']; // Cast to float to ensure arithmetic operation
 
                                     // Query to sum amount from tbloverdrafts
-                                    $query4 = mysqli_query($con, "SELECT SUM(amount) AS total4 FROM tbloverdrafts WHERE is_settled = 0 AND description = 'iTasker' AND is_deleted = 0");
+                                    $query4 = mysqli_query($con, "SELECT SUM(amount) AS total4 FROM tbloverdrafts WHERE is_settled = 0 AND record_type = 'overdraft' AND description = 'iTasker' AND is_deleted = 0");
                                     $result4 = mysqli_fetch_assoc($query4);
                                     $totalOver = (float) $result4['total4']; // Cast to float to ensure arithmetic operation
 
+                                    $query5 = mysqli_query($con, "SELECT SUM(amount) AS total5 FROM tbloverdrafts WHERE is_settled = 0 AND record_type = 'bonus' AND description = 'Performance Bonus' AND is_deleted = 0");
+                                    $result5 = mysqli_fetch_assoc($query5);
+                                    $totalBonus = (float) $result5['total5'];
+
                                     // Calculate amount due by subtracting total completed task costs from total overdrafts
-                                    $amount_due1 = $totalSubComTasks - $totalOver;
+                                    $amount_due1 = $totalSubComTasks + $totalBonus - $totalOver;
                                     ?>
                                     <h4 class="text-800 mb-0"><span class="badge rounded-pill badge-subtle-info">Ksh. <?php echo number_format($amount_due1, 2, '.', ','); ?></span></h4>
                                 </div>
@@ -159,6 +167,37 @@ if ($query->rowCount() > 0) {
                     </div>
                     <div class="card-body p-0">
                         <ul class="mb-0 list-unstyled list-group font-sans-serif">
+
+                            <?php
+                            $todoClasses = "";
+                            $query = "SELECT COUNT(*) as todoCount FROM tbltodos WHERE status = 'in_progress'";
+                            $result = mysqli_query($con, $query);
+                            if ($result) {
+                                $rowAdmin = mysqli_fetch_assoc($result);
+                                $count = $rowAdmin['todoCount'];
+                                if ($count > 0) {
+                                    $todoClasses = $count; // Set the count to output variable
+                                } else {
+                                    $todoClasses = "0"; // Set "0" if count is 0
+                                }
+                            } else {
+                                $todoClasses = "No data"; // Set "No Data" if query fails
+                            }
+                            ?>
+                            <?php if ($todoClasses >= 1): ?>
+                                <li class="list-group-item mb-0 rounded-0 py-3 px-x1 list-group-item-success text-700  border-0">
+                                    <div class="row flex-between-center">
+                                        <div class="col">
+                                            <div class="d-flex">
+                                                <div class="fas fa-circle mt-1 fs-11 text-success"></div>
+                                                <p class="fs-10 ps-2 mb-0">You have <strong><?php echo $todoClasses?> classes</strong> in progress</p>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto d-flex align-items-center"><a class="fs-10 fw-medium text-success-emphasis" href="todo">View to-do list<i class="fas fa-chevron-right ms-1 fs-11"></i></a></div>
+                                    </div>
+                                </li>
+                            <?php endif; ?>
+
                             <?php
                             $allDeclined = "";
                             $query = "SELECT COUNT(*) as taskDeclined FROM tbltasks WHERE is_deleted = 0 AND (writer = 'Draft' OR status = 'Draft') AND is_confirmed = 2";
@@ -263,6 +302,41 @@ if ($query->rowCount() > 0) {
                                     <div class="col-auto d-flex align-items-center"><a class="fs-10 fw-medium text-success-emphasis" href="submitted-tasks">View submitted tasks<i class="fas fa-chevron-right ms-1 fs-11"></i></a></div>
                                 </div>
                             </li>
+                            <?php endif; ?>
+                            <?php
+                            $pendingWriters = "";
+                            $query = "SELECT COUNT(*) as pendingCount FROM tblwriters WHERE is_verified = 0 AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+                            $result = mysqli_query($con, $query);
+                            if ($result) {
+                                $row = mysqli_fetch_assoc($result);
+                                $count = $row['pendingCount'];
+                                if ($count > 0) {
+                                    $pendingWriters = $count;
+                                } else {
+                                    $pendingWriters = "0";
+                                }
+                            } else {
+                                $pendingWriters = "No data";
+                            }
+                            ?>
+                            <?php if ($pendingWriters >= 1): ?>
+                                <li class="list-group-item mb-0 rounded-0 py-3 px-x1 list-group-item-warning text-700 border-0">
+                                    <div class="row flex-between-center">
+                                        <div class="col">
+                                            <div class="d-flex">
+                                                <div class="fas fa-circle mt-1 fs-11 text-warning"></div>
+                                                <p class="fs-10 ps-2 mb-0">
+                                                    <strong><?php echo $pendingWriters; ?> new writer<?php echo ($pendingWriters > 1) ? 's' : ''; ?></strong> awaiting verification
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto d-flex align-items-center">
+                                            <a class="fs-10 fw-medium text-warning-emphasis" href="usermanagement">
+                                                Review now<i class="fas fa-chevron-right ms-1 fs-11"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </li>
                             <?php endif; ?>
                             <?php
                             // Fetch the current registration status
@@ -663,20 +737,6 @@ if ($query->rowCount() > 0) {
             <!--/.bg-holder-->
 
             <div class="card-body position-relative">
-                <?php
-                // Query to sum CPP*pages for completed, unpaid tasks
-                $query1 = mysqli_query($con, "SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed'");
-                $result1 = mysqli_fetch_assoc($query1);
-                $totalCompletedTasks = (float) $result1['total']; // Cast to float to ensure arithmetic operation
-
-                // Query to sum amount from tbloverdrafts
-                $query2 = mysqli_query($con, "SELECT SUM(amount) AS total FROM tbloverdrafts WHERE is_settled = 0 AND description = 'iTasker' AND is_deleted = 0");
-                $result2 = mysqli_fetch_assoc($query2);
-                $totalOverdrafts = (float) $result2['total']; // Cast to float to ensure arithmetic operation
-
-                // Calculate amount due by subtracting total completed task costs from total overdrafts
-                $amount_due = $totalCompletedTasks - $totalOverdrafts;
-                ?>
                 <h6>Total Amount Due</h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $amount_due; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-primary" href="completed-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
@@ -711,24 +771,8 @@ if ($query->rowCount() > 0) {
             <!--/.bg-holder-->
 
             <div class="card-body position-relative">
-                <?php
-                $totalOverDraftsFormatted = "No data"; // Default message if the query fails
-                $totalOverDraftsRaw = 0; // Raw total for JavaScript
-                $query = mysqli_query($con, "select sum(amount) as totalDraft  from tbloverdrafts  WHERE is_settled = 0 AND description = 'iTasker' AND is_deleted = 0");
-                if ($query) {
-                    $rowAdmin = mysqli_fetch_array($query);
-                    if ($rowAdmin && $rowAdmin['totalDraft'] !== null) {
-                        $totalOverDraftsRaw = $rowAdmin['totalDraft']; // Keep the raw total
-                        $totalOverDraftsFormatted = 'Ksh. ' . number_format($rowAdmin['totalDraft'], 2);
-                    } else {
-                        $totalOverDraftsFormatted = 'Ksh. 0.00';
-                    }
-                } else {
-                    $totalOverDraftsFormatted = "Error: " . mysqli_error($con);
-                }
-                ?>
                 <h6>Total Overdraft Amount</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $totalOverDraftsRaw; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div>
+                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $totalOverdrafts; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div>
                 <a class="fw-semi-bold fs-10 text-nowrap text-info" href="overdraft">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
@@ -740,15 +784,8 @@ if ($query->rowCount() > 0) {
             <!--/.bg-holder-->
 
             <div class="card-body position-relative">
-                <?php
-                $sql ="SELECT id from tblwriters where is_deleted = 0";
-                $query = $dbh -> prepare($sql);
-                $query->execute();
-                $results=$query->fetchAll(PDO::FETCH_OBJ);
-                $totalusersquery=$query->rowCount();
-                ?>
-                <h6>Total Writers</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo htmlentities($totalusersquery);?>}'>0</div>
+                <h6>Total Bonus</h6>
+                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $totalBonus; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div>
                 <a class="fw-semi-bold fs-10 text-nowrap text-primary" href="usermanagement">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>

@@ -1,5 +1,10 @@
-<?php include "head.php";?>
 <?php
+session_start();
+include_once 'db.php';
+
+error_reporting(E_ALL);
+ini_set('log_errors', 1);
+
 if (isset($_POST['export_csv'])) {
     // Define the CSV file headers
     $filename = "transactions_" . date("Ymd_His") . ".csv";
@@ -26,10 +31,32 @@ if (isset($_POST['export_csv'])) {
 // Handle CSV Import
 if (isset($_POST['import_csv'])) {
     if (isset($_FILES['csv_file']) && $_FILES['csv_file']['error'] === UPLOAD_ERR_OK) {
-        $csvFile = fopen($_FILES['csv_file']['tmp_name'], 'r');
+        error_log("CSV Import started: " . $_FILES['csv_file']['name']);
+
+        // Read file content and remove BOM
+        $fileContent = file_get_contents($_FILES['csv_file']['tmp_name']);
+        $fileContent = str_replace("\xEF\xBB\xBF", '', $fileContent); // Remove UTF-8 BOM
+
+        // Create temporary file without BOM
+        $tempFile = tempnam(sys_get_temp_dir(), 'csv');
+        file_put_contents($tempFile, $fileContent);
+
+        $csvFile = fopen($tempFile, 'r');
 
         // Read and validate header row
         $header = fgetcsv($csvFile);
+
+        if (!$header) {
+            $_SESSION['alert'] = '
+            <div class="alert alert-danger border-0 d-flex align-items-center">
+                <p class="mb-0 flex-1"><i class="fas fa-times-circle me-2"></i>Unable to read CSV file. Please check the file format.</p>
+                <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>';
+            fclose($csvFile);
+            unlink($tempFile);
+            header("Location: transactions");
+            exit;
+        }
 
         // Normalize headers by trimming whitespace and converting to lowercase
         $normalizedHeader = array_map('trim', $header);
@@ -48,12 +75,16 @@ if (isset($_POST['import_csv'])) {
 
         // Compare normalized headers with expected headers
         if ($normalizedHeader !== $expectedHeaders) {
+            error_log("Invalid headers found: " . implode(', ', $normalizedHeader));
             $_SESSION['alert'] = '
             <div class="alert alert-danger border-0 d-flex align-items-center">
-                <p class="mb-0 flex-1">Invalid CSV headers. Please ensure the file has the correct column names: ' . implode(', ', $expectedHeaders) . '.</p>
+                <p class="mb-0 flex-1"><i class="fas fa-times-circle me-2"></i><strong>Invalid CSV headers.</strong><br>
+                <strong>Expected:</strong> ' . implode(', ', $expectedHeaders) . '<br>
+                <strong>Found:</strong> ' . implode(', ', $normalizedHeader) . '</p>
                 <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>';
             fclose($csvFile);
+            unlink($tempFile);
             header("Location: transactions");
             exit;
         }
@@ -61,37 +92,100 @@ if (isset($_POST['import_csv'])) {
         $successCount = 0;
         $duplicateCount = 0;
         $errorCount = 0;
+        $rowNumber = 1; // Track row number for debugging
+        $errorDetails = []; // Store first 5 errors to show user
 
         while (($row = fgetcsv($csvFile)) !== FALSE) {
+            $rowNumber++;
+
+            // Skip empty rows
+            if (empty(array_filter($row))) {
+                continue;
+            }
+
+            // Ensure we have exactly 7 columns
+            if (count($row) !== 7) {
+                $errorCount++;
+                if (count($errorDetails) < 5) {
+                    $errorDetails[] = "Row $rowNumber: Expected 7 columns, found " . count($row);
+                }
+                error_log("Row $rowNumber: Invalid column count - " . count($row));
+                continue;
+            }
+
             list($category, $subcategory, $description, $amount, $transactionCost, $tag, $date) = $row;
 
-            // Convert date to MySQL format
-            $dateFormatted = date("Y-m-d H:i:s", strtotime($date));
-            if ($dateFormatted === false) {
-                $dateFormatted = date("Y-m-d H:i:s"); // fallback
+            // ⚠️ BUG FIX: Correct date parsing for MM/DD/YY format
+            $dateFormatted = false;
+
+            // Try multiple date formats
+            // Format 1: MM/DD/YY HH:MM (e.g., "10/10/25 15:49")
+            if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{2})\s+(\d{1,2}):(\d{2})$/', trim($date), $matches)) {
+                $month = $matches[1];
+                $day = $matches[2];
+                $year = '20' . $matches[3]; // ⚠️ FIX: Use $matches[3] (the YY part), not $matches[2]
+                $hour = $matches[4];
+                $minute = $matches[5];
+
+                // Validate date components
+                if (checkdate($month, $day, $year)) {
+                    $dateFormatted = sprintf("%04d-%02d-%02d %02d:%02d:00", $year, $month, $day, $hour, $minute);
+                } else {
+                    $errorCount++;
+                    if (count($errorDetails) < 5) {
+                        $errorDetails[] = "Row $rowNumber: Invalid date '$date' (month=$month, day=$day, year=$year)";
+                    }
+                    error_log("Row $rowNumber: Invalid date components - $date");
+                    continue;
+                }
+            }
+            // Format 2: M/D/YY H:MM or similar variations
+            else {
+                // Fallback to strtotime
+                $timestamp = strtotime($date);
+                if ($timestamp !== false && $timestamp > 0) {
+                    $dateFormatted = date("Y-m-d H:i:s", $timestamp);
+                } else {
+                    $errorCount++;
+                    if (count($errorDetails) < 5) {
+                        $errorDetails[] = "Row $rowNumber: Cannot parse date '$date'";
+                    }
+                    error_log("Row $rowNumber: Invalid date format - $date");
+                    continue;
+                }
+            }
+
+            // Double-check date is valid
+            if (!$dateFormatted || $dateFormatted == '1970-01-01 00:00:00') {
                 $errorCount++;
+                if (count($errorDetails) < 5) {
+                    $errorDetails[] = "Row $rowNumber: Date resulted in invalid format '$date'";
+                }
+                error_log("Row $rowNumber: Date parsing resulted in invalid date - $date");
                 continue;
             }
 
             // Sanitize input
-            $category = mysqli_real_escape_string($con, htmlspecialchars($category, ENT_QUOTES, 'UTF-8'));
-            $subcategory = mysqli_real_escape_string($con, htmlspecialchars($subcategory, ENT_QUOTES, 'UTF-8'));
-            $description = mysqli_real_escape_string($con, htmlspecialchars($description, ENT_QUOTES, 'UTF-8'));
+            $category = mysqli_real_escape_string($con, htmlspecialchars(trim($category), ENT_QUOTES, 'UTF-8'));
+            $subcategory = mysqli_real_escape_string($con, htmlspecialchars(trim($subcategory), ENT_QUOTES, 'UTF-8'));
+            $description = mysqli_real_escape_string($con, htmlspecialchars(trim($description), ENT_QUOTES, 'UTF-8'));
             $amount = floatval($amount);
             $transactionCost = floatval($transactionCost);
-            $tag = mysqli_real_escape_string($con, htmlspecialchars($tag, ENT_QUOTES, 'UTF-8'));
+            $tag = mysqli_real_escape_string($con, htmlspecialchars(trim($tag), ENT_QUOTES, 'UTF-8'));
 
-            // Check for duplicate based on expenseDate
+            // Check for duplicate based on date, description, and amount
             $checkSql = "
                 SELECT * FROM tblbudget 
                 WHERE expenseDate = '$dateFormatted'
+                  AND description = '$description'
+                  AND amount = '$amount'
                   AND is_deleted = 0
             ";
             $result = mysqli_query($con, $checkSql);
 
             if (mysqli_num_rows($result) > 0) {
                 $duplicateCount++;
-                continue; // Skip inserting this record
+                continue;
             }
 
             // Insert into tblbudget
@@ -107,55 +201,130 @@ if (isset($_POST['import_csv'])) {
                 $successCount++;
             } else {
                 $errorCount++;
-                error_log("DB Error: " . mysqli_error($con));
+                if (count($errorDetails) < 5) {
+                    $errorDetails[] = "Row $rowNumber: Database error - " . mysqli_error($con);
+                }
+                error_log("Row $rowNumber DB Error: " . mysqli_error($con));
             }
         }
 
         fclose($csvFile);
+        unlink($tempFile); // Clean up temp file
 
-        // Set session alerts
+        // Set session alerts with detailed feedback
         $alerts = [];
 
         if ($successCount > 0) {
             $alerts[] = '
-            <div class="alert alert-success border-0 d-flex align-items-center">
-                <p class="mb-0 flex-1">' . $successCount . ' transaction(s) added successfully!</p>
+            <div class="alert alert-success border-0 d-flex align-items-center alert-dismissible fade show">
+                <i class="fas fa-check-circle me-2 fs-4"></i>
+                <div class="flex-1">
+                    <strong>Success!</strong> Imported ' . $successCount . ' transaction(s) successfully.
+                </div>
                 <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>';
         }
 
         if ($duplicateCount > 0) {
             $alerts[] = '
-            <div class="alert alert-warning border-0 d-flex align-items-center">
-                <p class="mb-0 flex-1">Skipped ' . $duplicateCount . ' transaction(s) with duplicate dates.</p>
+            <div class="alert alert-warning border-0 d-flex align-items-center alert-dismissible fade show">
+                <i class="fas fa-exclamation-triangle me-2 fs-4"></i>
+                <div class="flex-1">
+                    <strong>Skipped Duplicates:</strong> ' . $duplicateCount . ' transaction(s) already exist in the database (same date, description, and amount).
+                </div>
                 <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>';
         }
 
         if ($errorCount > 0) {
+            $errorDetailHtml = '';
+            if (!empty($errorDetails)) {
+                $errorDetailHtml = '<ul class="mb-0 mt-2 small">';
+                foreach ($errorDetails as $detail) {
+                    $errorDetailHtml .= '<li>' . htmlspecialchars($detail) . '</li>';
+                }
+                if ($errorCount > count($errorDetails)) {
+                    $errorDetailHtml .= '<li><em>... and ' . ($errorCount - count($errorDetails)) . ' more errors (check server logs)</em></li>';
+                }
+                $errorDetailHtml .= '</ul>';
+            }
+
             $alerts[] = '
-            <div class="alert alert-danger border-0 d-flex align-items-center">
-                <p class="mb-0 flex-1">Failed to import ' . $errorCount . ' transaction(s). Please check the file.</p>
+            <div class="alert alert-danger border-0 d-flex align-items-start alert-dismissible fade show">
+                <i class="fas fa-times-circle me-2 fs-4 mt-1"></i>
+                <div class="flex-1">
+                    <strong>Import Errors:</strong> Failed to import ' . $errorCount . ' transaction(s).
+                    ' . $errorDetailHtml . '
+                    <p class="mb-0 mt-2 small"><strong>Common issues:</strong> Invalid date format, missing columns, or database constraints.</p>
+                </div>
                 <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>';
         }
 
         if (empty($alerts)) {
             $alerts[] = '
-            <div class="alert alert-info border-0 d-flex align-items-center">
-                <p class="mb-0 flex-1">No new transactions were imported. All records had duplicate dates or invalid data.</p>
+            <div class="alert alert-info border-0 d-flex align-items-center alert-dismissible fade show">
+                <i class="fas fa-info-circle me-2 fs-4"></i>
+                <div class="flex-1">
+                    <strong>No Changes:</strong> No new transactions imported. All records were either duplicates or invalid.
+                </div>
                 <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>';
         }
 
-        $_SESSION['alert'] = implode('', $alerts);
+        // Summary alert
+        $totalProcessed = $successCount + $duplicateCount + $errorCount;
+        $summaryAlert = '
+        <div class="alert alert-primary border-0 d-flex align-items-center alert-dismissible fade show">
+            <i class="fas fa-info-circle me-2 fs-4"></i>
+            <div class="flex-1">
+                <strong>Import Summary:</strong> Processed ' . $totalProcessed . ' rows total. 
+                <span class="badge bg-success">' . $successCount . ' Success</span> 
+                <span class="badge bg-warning text-dark">' . $duplicateCount . ' Duplicates</span> 
+                <span class="badge bg-danger">' . $errorCount . ' Errors</span>
+            </div>
+            <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>';
+
+        $_SESSION['alert'] = $summaryAlert . implode('', $alerts);
         header("Location: transactions");
         exit;
 
     } else {
+        // Better error handling for file upload
+        $errorMsg = 'Error uploading file.';
+        if (isset($_FILES['csv_file'])) {
+            $errorCode = $_FILES['csv_file']['error'];
+            switch ($errorCode) {
+                case UPLOAD_ERR_INI_SIZE:
+                case UPLOAD_ERR_FORM_SIZE:
+                    $errorMsg = 'File is too large. Maximum size: ' . ini_get('upload_max_filesize');
+                    break;
+                case UPLOAD_ERR_PARTIAL:
+                    $errorMsg = 'File was only partially uploaded. Please try again.';
+                    break;
+                case UPLOAD_ERR_NO_FILE:
+                    $errorMsg = 'No file was uploaded. Please select a CSV file.';
+                    break;
+                case UPLOAD_ERR_NO_TMP_DIR:
+                    $errorMsg = 'Server error: Missing temporary folder.';
+                    break;
+                case UPLOAD_ERR_CANT_WRITE:
+                    $errorMsg = 'Server error: Failed to write file to disk.';
+                    break;
+                default:
+                    $errorMsg = 'Unknown upload error (Code: ' . $errorCode . ')';
+            }
+        }
+
+        error_log("CSV Upload Error: " . $errorMsg);
+
         $_SESSION['alert'] = '
-        <div class="alert alert-danger border-0 d-flex align-items-center">
-            <p class="mb-0 flex-1">Error uploading file. Please try again.</p>
+        <div class="alert alert-danger border-0 d-flex align-items-center alert-dismissible fade show">
+            <i class="fas fa-times-circle me-2 fs-4"></i>
+            <div class="flex-1">
+                <strong>Upload Failed:</strong> ' . $errorMsg . '
+            </div>
             <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>';
         header("Location: transactions");
@@ -163,6 +332,109 @@ if (isset($_POST['import_csv'])) {
     }
 }
 ?>
+<?php
+// Handle Bulk Delete
+if (isset($_POST['bulk_delete'])) {
+    if (!isset($_POST['taskIds']) || empty($_POST['taskIds'])) {
+        $_SESSION['alert'] = '
+        <div class="alert alert-warning border-0 d-flex align-items-center alert-dismissible fade show">
+            <i class="fas fa-exclamation-triangle me-2 fs-4"></i>
+            <div class="flex-1">
+                <strong>No Selection:</strong> Please select at least one transaction to delete.
+            </div>
+            <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>';
+        header("Location: transactions");
+        exit;
+    }
+
+    $selectedIds = $_POST['taskIds'];
+    $successCount = 0;
+    $errorCount = 0;
+    $errorDetails = [];
+
+    foreach ($selectedIds as $id) {
+        $id = intval($id); // Sanitize input
+
+        // Soft delete - set is_deleted = 1 instead of actually deleting
+        $deleteSql = "UPDATE tblbudget SET is_deleted = 1 WHERE budgetID = $id AND is_deleted = 0";
+
+        if (mysqli_query($con, $deleteSql)) {
+            if (mysqli_affected_rows($con) > 0) {
+                $successCount++;
+            } else {
+                // Transaction not found or already deleted
+                $errorCount++;
+                if (count($errorDetails) < 3) {
+                    $errorDetails[] = "Transaction #$id: Not found or already deleted";
+                }
+            }
+        } else {
+            $errorCount++;
+            if (count($errorDetails) < 3) {
+                $errorDetails[] = "Transaction #$id: " . mysqli_error($con);
+            }
+            error_log("Bulk Delete Error - ID $id: " . mysqli_error($con));
+        }
+    }
+
+    // Build alert messages
+    $alerts = [];
+
+    if ($successCount > 0) {
+        $alerts[] = '
+        <div class="alert alert-success border-0 d-flex align-items-center alert-dismissible fade show">
+            <i class="fas fa-check-circle me-2 fs-4"></i>
+            <div class="flex-1">
+                <strong>Deleted Successfully:</strong> ' . $successCount . ' transaction(s) have been deleted.
+            </div>
+            <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>';
+    }
+
+    if ($errorCount > 0) {
+        $errorDetailHtml = '';
+        if (!empty($errorDetails)) {
+            $errorDetailHtml = '<ul class="mb-0 mt-2 small">';
+            foreach ($errorDetails as $detail) {
+                $errorDetailHtml .= '<li>' . htmlspecialchars($detail) . '</li>';
+            }
+            if ($errorCount > count($errorDetails)) {
+                $errorDetailHtml .= '<li><em>... and ' . ($errorCount - count($errorDetails)) . ' more errors</em></li>';
+            }
+            $errorDetailHtml .= '</ul>';
+        }
+
+        $alerts[] = '
+        <div class="alert alert-danger border-0 d-flex align-items-start alert-dismissible fade show">
+            <i class="fas fa-times-circle me-2 fs-4 mt-1"></i>
+            <div class="flex-1">
+                <strong>Delete Errors:</strong> Failed to delete ' . $errorCount . ' transaction(s).
+                ' . $errorDetailHtml . '
+            </div>
+            <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>';
+    }
+
+    // Summary
+    $totalSelected = count($selectedIds);
+    $summaryAlert = '
+    <div class="alert alert-primary border-0 d-flex align-items-center alert-dismissible fade show">
+        <i class="fas fa-info-circle me-2 fs-4"></i>
+        <div class="flex-1">
+            <strong>Bulk Delete Summary:</strong> Processed ' . $totalSelected . ' transaction(s). 
+            <span class="badge bg-success">' . $successCount . ' Deleted</span> 
+            <span class="badge bg-danger">' . $errorCount . ' Failed</span>
+        </div>
+        <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>';
+
+    $_SESSION['alert'] = $summaryAlert . implode('', $alerts);
+    header("Location: transactions");
+    exit;
+}
+?>
+<?php include "head.php";?>
 <title>Transactions Management</title>
 <?php include "navi.php";
 $status = "OK";
@@ -324,7 +596,10 @@ if (isset($_SESSION['alert'])) {
                                                                         echo '<span class="badge fs-10 w-100 rounded-pill badge-subtle-primary">PayPal</span>';
                                                                     } elseif ($row["tag"] === "Card") {
                                                                         echo '<span class="badge fs-10 w-100 rounded-pill badge-subtle-info">Card</span>';
-                                                                    } else {
+                                                                    } elseif ($row["tag"] === "Airtel Money") {
+                                                                        echo '<span class="badge fs-10 w-100 rounded-pill badge-subtle-danger">Airtel Money</span>';
+                                                                    }
+                                                                    else {
                                                                         echo htmlspecialchars($row["tag"]);
                                                                     }
                                                                     ?>
@@ -363,6 +638,76 @@ if (isset($_SESSION['alert'])) {
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Delete Button (shows when items are selected) -->
+    <div class="card shadow-none border mb-3 d-none" id="bulk-actions-bar">
+        <div class="card-body py-2">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-check-circle text-primary me-2 fs-4"></i>
+                    <span id="selected-count" class="fw-bold">0</span>
+                    <span class="ms-1">transaction(s) selected</span>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="confirmBulkDelete()">
+                        <i class="fas fa-trash me-1"></i>
+                        Delete Selected
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm ms-2" onclick="clearSelection()">
+                        <i class="fas fa-times me-1"></i>
+                        Clear Selection
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Delete Confirmation Modal -->
+    <div class="modal fade" id="bulkDeleteModal" tabindex="-1" aria-labelledby="bulkDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-exclamation-triangle me-2 fs-4"></i>
+                        <h5 class="modal-title mb-0" id="bulkDeleteModalLabel">Confirm Bulk Delete</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning border-0 d-flex align-items-start mb-3">
+                        <div>
+                            <strong>Warning:</strong> This action cannot be undone!
+                        </div>
+                    </div>
+
+                    <p class="mb-3">
+                        You are about to delete <strong id="delete-count" class="text-danger">0</strong> transaction(s).
+                    </p>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="confirmDeleteCheckbox">
+                        <label class="form-check-label" for="confirmDeleteCheckbox">
+                            I understand that this will permanently delete the selected transactions
+                        </label>
+                    </div>
+
+                    <div id="transactions-to-delete" class="border rounded p-3 bg-secondary-subtle" style="max-height: 200px; overflow-y: auto;">
+                        <!-- Transaction list will be populated here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn" onclick="executeBulkDelete()" disabled>
+                        <i class="fas fa-trash me-1"></i>
+                        Delete <span id="delete-count-btn">0</span> Transaction(s)
+                    </button>
                 </div>
             </div>
         </div>
@@ -442,6 +787,7 @@ if (isset($_SESSION['alert'])) {
                                 <option value="Cash">Cash</option>
                                 <option value="Mpesa">MPesa</option>
                                 <option value="PayPal">PayPal</option>
+                                <option value="Airtel Money">Airtel Money</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -549,6 +895,7 @@ if (isset($_SESSION['alert'])) {
                                 <option value="Cash">Cash</option>
                                 <option value="Mpesa">Mpesa</option>
                                 <option value="PayPal">PayPal</option>
+                                <option value="Airtel Money">Airtel Money</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -604,7 +951,7 @@ if (isset($_SESSION['alert'])) {
                         <li><strong>Description</strong> - Transaction description</li>
                         <li><strong>Amount (Ksh)</strong> - Transaction amount</li>
                         <li><strong>Cost (Ksh)</strong> - Transaction cost</li>
-                        <li><strong>Tag</strong> - Payment method (Mpesa, Cash, PayPal, Card)</li>
+                        <li><strong>Tag</strong> - Payment method (Mpesa, Cash, PayPal, Card, Airtel Money)</li>
                         <li><strong>Date</strong> - Transaction date in format "MMM D, YYYY H:MM" (e.g., "May 10, 2025 15:30")</li>
                     </ol>
                     <p>You can download a template by exporting your current transactions.</p>
@@ -757,7 +1104,7 @@ if (isset($_SESSION['alert'])) {
 
                     // Fetch goal names for the Description field
                     try {
-                        const response = await fetch("fetch-savings-goals.php");
+                        const response = await fetch("fetch-savings-goals");
                         const goals = await response.json(); // Assuming JSON response from the server
 
                         goals.forEach(goal => {
@@ -797,6 +1144,167 @@ if (isset($_SESSION['alert'])) {
             });
         });
     </script>
+    <script>
+        // Track selected checkboxes
+        let selectedTransactions = new Set();
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add change listener to all transaction checkboxes
+            document.querySelectorAll('input[name="taskIds[]"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    updateSelectedTransactions();
+                });
+            });
+
+            // Add listener to "Select All" checkbox
+            const selectAllCheckbox = document.getElementById('checkbox-select-all');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', function() {
+                    const checkboxes = document.querySelectorAll('input[name="taskIds[]"]');
+                    checkboxes.forEach(cb => {
+                        cb.checked = this.checked;
+                    });
+                    updateSelectedTransactions();
+                });
+            }
+
+            // Enable/disable delete button based on checkbox
+            document.getElementById('confirmDeleteCheckbox').addEventListener('change', function() {
+                document.getElementById('confirmDeleteBtn').disabled = !this.checked;
+            });
+        });
+
+        // Update selected transactions count and show/hide bulk actions bar
+        function updateSelectedTransactions() {
+            selectedTransactions.clear();
+
+            document.querySelectorAll('input[name="taskIds[]"]:checked').forEach(checkbox => {
+                selectedTransactions.add({
+                    id: checkbox.value,
+                    row: checkbox.closest('tr')
+                });
+            });
+
+            const count = selectedTransactions.size;
+            document.getElementById('selected-count').textContent = count;
+
+            // Show/hide bulk actions bar
+            const bulkActionsBar = document.getElementById('bulk-actions-bar');
+            if (count > 0) {
+                bulkActionsBar.classList.remove('d-none');
+            } else {
+                bulkActionsBar.classList.add('d-none');
+            }
+
+            // Update "Select All" checkbox state
+            const selectAllCheckbox = document.getElementById('checkbox-select-all');
+            const allCheckboxes = document.querySelectorAll('input[name="taskIds[]"]');
+            if (selectAllCheckbox && allCheckboxes.length > 0) {
+                selectAllCheckbox.checked = count === allCheckboxes.length;
+                selectAllCheckbox.indeterminate = count > 0 && count < allCheckboxes.length;
+            }
+        }
+
+        // Show confirmation modal
+        function confirmBulkDelete() {
+            if (selectedTransactions.size === 0) {
+                alert('Please select at least one transaction to delete.');
+                return;
+            }
+
+            // Update counts
+            document.getElementById('delete-count').textContent = selectedTransactions.size;
+            document.getElementById('delete-count-btn').textContent = selectedTransactions.size;
+
+            // Build list of transactions to delete
+            let transactionsList = '<div class="small">';
+            let count = 0;
+            selectedTransactions.forEach(transaction => {
+                if (count < 10) { // Show first 10
+                    const row = transaction.row;
+                    const category = row.querySelector('.product h6').textContent.trim();
+                    const description = row.querySelector('.product p').textContent.trim();
+                    const amount = row.querySelector('.amount h6').textContent.trim();
+
+                    transactionsList += `
+                <div class="mb-2 pb-2 border-bottom">
+                    <div class="d-flex justify-content-between">
+                        <span>${category}</span>
+                        <strong>KSh ${amount}</strong>
+                    </div>
+                    <div class="text-muted">${description}</div>
+                </div>
+            `;
+                }
+                count++;
+            });
+
+            if (selectedTransactions.size > 10) {
+                transactionsList += `<div class="text-center text-muted mt-2">... and ${selectedTransactions.size - 10} more</div>`;
+            }
+
+            transactionsList += '</div>';
+
+            document.getElementById('transactions-to-delete').innerHTML = transactionsList;
+
+            // Reset confirmation checkbox
+            document.getElementById('confirmDeleteCheckbox').checked = false;
+            document.getElementById('confirmDeleteBtn').disabled = true;
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('bulkDeleteModal'));
+            modal.show();
+        }
+
+        // Execute bulk delete
+        function executeBulkDelete() {
+            if (!document.getElementById('confirmDeleteCheckbox').checked) {
+                alert('Please confirm that you want to delete these transactions.');
+                return;
+            }
+
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '';
+
+            // Add hidden input for bulk_delete action
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'bulk_delete';
+            actionInput.value = '1';
+            form.appendChild(actionInput);
+
+            // Add all selected transaction IDs
+            selectedTransactions.forEach(transaction => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'taskIds[]';
+                input.value = transaction.id;
+                form.appendChild(input);
+            });
+
+            // Submit form
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // Clear all selections
+        function clearSelection() {
+            document.querySelectorAll('input[name="taskIds[]"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            document.getElementById('checkbox-select-all').checked = false;
+            updateSelectedTransactions();
+        }
+
+        // Legacy function for single delete (keep existing functionality)
+        function loadDeleteModal(id) {
+            document.getElementById('deleteBudgetID').value = id;
+        }
+    </script>
+
 
 <?php
 include "footer.php";

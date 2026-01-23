@@ -78,23 +78,6 @@
             opacity: 1;
         }
     }
-    /* Fix for message hover actions visibility */
-    .comment-bubble:hover .hover-actions {
-        opacity: 1 !important;
-        transition: opacity 0.3s ease;
-    }
-
-    .hover-actions {
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    /* Alternative: Make actions always visible on mobile/touch devices */
-    @media (hover: none) and (pointer: coarse) {
-        .hover-actions {
-            opacity: 0.7 !important;
-        }
-    }
 
     /* Ensure the hover works on the entire message bubble */
     .comment-bubble {
@@ -136,6 +119,40 @@
         margin-left: 20px;
 
     }
+    /* Fix for text overflow */
+    .task-description-content {
+        word-wrap: break-word;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
+        max-width: 100%;
+    }
+
+    /* Specific handling for URLs */
+    .highlighted-link {
+        word-break: break-all;
+        color: #0d6efd;
+        text-decoration: underline;
+        display: inline-block;
+        max-width: 100%;
+        line-height: 1.4;
+    }
+
+    /* Ensure the container doesn't overflow */
+    .card-body {
+        overflow-x: hidden;
+    }
+
+    /* Mobile-specific adjustments */
+    @media (max-width: 576px) {
+        .task-description-content {
+            font-size: 0.85rem;
+        }
+
+        .highlighted-link {
+            font-size: 0.8rem;
+        }
+    }
 
     .blurred-text {
         filter: blur(5px);
@@ -159,11 +176,6 @@
         border-radius: 50%;
         margin-right: 5px;
         vertical-align: middle;
-    }
-    .highlighted-link {
-        color: #007bff;
-        text-decoration: underline;
-        font-weight: bold;
     }
 
     .highlighted-link:hover {
@@ -260,6 +272,15 @@
             flex: 0 0 100%;
             max-width: 100%;
         }
+    }
+
+    /* Preserve line breaks in descriptions */
+    .task-description {
+        white-space: pre-line;
+    }
+
+    #viewTaskDescription {
+        white-space: pre-line;
     }
 
     .summary-card {
@@ -576,6 +597,156 @@
             padding: 0.2rem 0.4rem;
             font-size: 0.7rem;
         }
+    }
+
+    .typing-indicator {
+        display: none;
+        font-style: italic;
+        color: #6c757d;
+        font-size: 0.875rem;
+        padding: 0.5rem;
+    }
+
+    .message-delivery-status {
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+    }
+
+    .file-preview {
+        max-width: 200px;
+        max-height: 200px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin: 0.5rem 0;
+    }
+
+    .connection-status {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        z-index: 1050;
+    }
+
+    .connection-online {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .connection-offline {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    #notificationToggle {
+        position: relative;
+    }
+
+    #notificationToggle:hover {
+        color: #0d6efd !important;
+    }
+
+    /* Notification permission indicator */
+    .notification-enabled::after {
+        content: '';
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 8px;
+        height: 8px;
+        background-color: #28a745;
+        border-radius: 50%;
+        border: 2px solid white;
+    }
+
+    /* Attachment styles */
+    .attachments-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .attachment-image {
+        position: relative;
+        display: inline-block;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .attachment-image:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .attachment-image img {
+        display: block;
+        transition: transform 0.3s ease;
+    }
+
+    .attachment-image:hover img {
+        transform: scale(1.05);
+    }
+
+    .attachment-file-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 10px 15px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        text-decoration: none;
+        color: #212529;
+        transition: all 0.2s ease;
+        font-size: 14px;
+    }
+
+    .attachment-file-badge:hover {
+        background: #e9ecef;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        text-decoration: none;
+        color: #212529;
+    }
+
+    .attachment-file-badge i {
+        font-size: 18px;
+    }
+    #selectedFilesPreview {
+        animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    #filesPreviewList::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    #filesPreviewList::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 2px;
+    }
+
+    #filesPreviewList::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 2px;
+    }
+
+    #filesPreviewList::-webkit-scrollbar-thumb:hover {
+        background: #555;
     }
 
 </style>
@@ -1206,12 +1377,19 @@
                     </li>
 
                     <li class="nav-item dropdown">
-                        <a class="nav-link notification-indicator notification-indicator-info px-0 fa-icon-wait" id="navbarDropdownNotification" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" data-hide-on-body-scroll="data-hide-on-body-scroll">
+                        <a class="nav-link notification-indicator notification-indicator-info px-0 fa-icon-wait"
+                           id="navbarDropdownNotification"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-haspopup="true"
+                           aria-expanded="false"
+                           data-hide-on-body-scroll="data-hide-on-body-scroll">
                             <span class="fas fa-comment" data-fa-transform="shrink-6" style="font-size: 33px;"></span>
-
-                            <span class="notification-indicator-number"><?php echo $unreadMessagesCount; ?></span>
+                            <span class="notification-indicator-number"><?php echo htmlspecialchars($unreadMessagesCount); ?></span>
                         </a>
-                        <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end dropdown-menu-card dropdown-menu-notification dropdown-caret-bg" aria-labelledby="navbarDropdownNotification">
+
+                        <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end dropdown-menu-card dropdown-menu-notification dropdown-caret-bg"
+                             aria-labelledby="navbarDropdownNotification">
                             <div class="card card-notification shadow-none">
                                 <div class="card-header">
                                     <div class="row justify-content-between align-items-center">
@@ -1220,68 +1398,118 @@
                                         </div>
                                     </div>
                                 </div>
+
                                 <?php
-                                $sql = "SELECT * FROM tbladmin WHERE email='$aid'";
+                                // Check if user is admin
+                                $sql = "SELECT * FROM tbladmin WHERE email = :email";
                                 $query = $dbh->prepare($sql);
+                                $query->bindParam(':email', $aid);
                                 $query->execute();
                                 $results = $query->fetchAll(PDO::FETCH_OBJ);
-                                $cnt = 1;
 
                                 if ($query->rowCount() > 0) {
-                                foreach ($results as $row) {
-                                if ($row->AdminName == "Admin") {
-                                ?>
-                                <div class="scrollbar-overlay" style="max-height:19rem">
-                                    <div class="list-group list-group-flush fw-normal fs-10">
-                                        <div class="list-group-title border-bottom text-info">You have <?php echo $unreadMessagesCount; ?> unread messages.</div>
-                                        <?php
-                                        // Display each unread message
-                                        foreach ($unreadMessages as $key => $message) {
-                                            // Fetch sender details from tblwriters
-                                            $senderID = $message['sender_id'];
-                                            $senderQuery = mysqli_query($con, "SELECT username, Photo FROM tblwriters WHERE id = '$senderID'");
-                                            $senderResult = mysqli_fetch_assoc($senderQuery);
+                                    foreach ($results as $row) {
+                                        if ($row->AdminName == "Admin") {
+                                            ?>
+                                            <div class="scrollbar-overlay" style="max-height:19rem">
+                                                <div class="list-group list-group-flush fw-normal fs-10">
+                                                    <div class="list-group-title border-bottom text-info">
+                                                        You have <?php echo htmlspecialchars($unreadMessagesCount); ?> unread messages.
+                                                    </div>
 
-                                            $receivedDate = new DateTime($message['timestamp']);
-                                            $now = new DateTime();
-                                            $interval = $now->diff($receivedDate);
-                                            $unreadMessages[$key]['time_received'] = $interval->format('%a days %h hours %i minutes');
-                                            if ($key >= 9) break; // Limit to only 10 messages
-                                        }
-                                        ?>
-                                        <?php foreach ($unreadMessages as $key => $message): ?>
-                                            <div class="list-group-item">
-                                                <?php
-                                                $encodedId = base64_encode($message['id']);
-                                                $senderName = $senderResult['username'];
-                                                $senderPhoto = $senderResult['Photo'];
-                                                ?>
-                                                <a class="notification notification-flush notification-unread" href="chat?message_id=<?php echo htmlspecialchars($encodedId); ?>">
-                                                    <div class="notification-avatar">
-                                                        <div class="avatar avatar-2xl me-3">
-                                                            <div class="avatar-name rounded-circle"><img src="../profileimages/<?php echo $senderPhoto; ?>" alt="<?php echo $senderName; ?>" class="rounded-circle"></div>
+                                                    <?php
+                                                    // Process unread messages with sender details and time calculation
+                                                    $processedMessages = [];
+                                                    $messageLimit = 10;
+                                                    $messageCount = 0;
+
+                                                    foreach ($unreadMessages as $key => $message) {
+                                                        if ($messageCount >= $messageLimit) {
+                                                            break;
+                                                        }
+
+                                                        // Fetch sender details from tblwriters
+                                                        $senderID = (int)$message['sender_id'];
+                                                        $senderQuery = "SELECT username, Photo FROM tblwriters WHERE id = ?";
+                                                        $stmt = mysqli_prepare($con, $senderQuery);
+                                                        mysqli_stmt_bind_param($stmt, "i", $senderID);
+                                                        mysqli_stmt_execute($stmt);
+                                                        $senderResult = mysqli_stmt_get_result($stmt);
+                                                        $sender = mysqli_fetch_assoc($senderResult);
+
+                                                        // Calculate time difference
+                                                        $receivedDate = new DateTime($message['timestamp']);
+                                                        $now = new DateTime();
+                                                        $interval = $now->diff($receivedDate);
+
+                                                        // Format time display
+                                                        if ($interval->days > 0) {
+                                                            $timeReceived = $interval->format('%a days ago');
+                                                        } elseif ($interval->h > 0) {
+                                                            $timeReceived = $interval->format('%h hours ago');
+                                                        } elseif ($interval->i > 0) {
+                                                            $timeReceived = $interval->format('%i minutes ago');
+                                                        } else {
+                                                            $timeReceived = 'Just now';
+                                                        }
+
+                                                        // Store processed message data
+                                                        $processedMessages[] = [
+                                                            'id' => $message['id'],
+                                                            'message' => $message['message'],
+                                                            'timestamp' => $message['timestamp'],
+                                                            'time_received' => $timeReceived,
+                                                            'sender_name' => $sender['username'] ?? 'Unknown User',
+                                                            'sender_photo' => $sender['Photo'] ?? 'default-avatar.png'
+                                                        ];
+
+                                                        $messageCount++;
+                                                        mysqli_stmt_close($stmt);
+                                                    }
+
+                                                    // Display processed messages
+                                                    foreach ($processedMessages as $message):
+                                                        $encodedId = base64_encode($message['id']);
+                                                        ?>
+                                                        <div class="list-group-item">
+                                                            <a class="notification notification-flush notification-unread"
+                                                               href="chat?message_id=<?php echo htmlspecialchars($encodedId); ?>">
+                                                                <div class="notification-avatar">
+                                                                    <div class="avatar avatar-2xl me-3">
+                                                                        <div class="avatar-name rounded-circle">
+                                                                            <img src="../profileimages/<?php echo htmlspecialchars($message['sender_photo']); ?>"
+                                                                                 alt="<?php echo htmlspecialchars($message['sender_name']); ?>"
+                                                                                 class="rounded-circle">
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="notification-body">
+                                                                    <p class="mb-1">
+                                                                        <strong><?php echo htmlspecialchars($message['sender_name']); ?></strong>:
+                                                                        <?php echo htmlspecialchars($message['message']); ?>
+                                                                    </p>
+                                                                    <span class="notification-time">
+                                                    <span class="me-2" role="img" aria-label="Emoji">💬</span>
+                                                    <?php echo htmlspecialchars($message['time_received']); ?>
+                                                </span>
+                                                                </div>
+                                                            </a>
                                                         </div>
-                                                    </div>
-                                                    <div class="notification-body">
-                                                        <p class="mb-1"><strong><?php echo $senderName; ?></strong>: <?php echo $message['message']; ?></p>
-                                                        <span class="notification-time"><span class="me-2" role="img" aria-label="Emoji">💬</span><?php echo $message['time_received']; ?></span>
-                                                    </div>
-                                                </a>
+                                                    <?php endforeach; ?>
+                                                </div>
                                             </div>
-                                            <?php if ($key >= 9) break; // Display only up to 10 messages ?>
-                                        <?php endforeach; ?>
-                                    </div>
-                                </div>
-                                <div class="card-footer text-center border-top"><a class="card-link d-block" href="chat">View all</a></div>
+
+                                            <div class="card-footer text-center border-top">
+                                                <a class="card-link d-block" href="chat">View all</a>
+                                            </div>
+                                            <?php
+                                        }
+                                    }
+                                }
+                                ?>
                             </div>
                         </div>
                     </li>
-                    <?php
-                    }
-                    }
-                    } ?>
-
-
 
                     <li class='nav-item dropdown'>
                         <?php
@@ -1420,56 +1648,93 @@
                         <?php endif; ?>
                     </li>
 
-                    <li class="nav-item dropdown"><a class="nav-link pe-0 ps-2" id="navbarDropdownUser" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link pe-0 ps-2"
+                           id="navbarDropdownUser"
+                           role="button"
+                           data-bs-toggle="dropdown"
+                           aria-haspopup="true"
+                           aria-expanded="false">
+
                             <?php
-                            $aid=$_SESSION['odmsaid'];
-                            $sql="SELECT * from  tbladmin where email=:aid";
-                            $query = $dbh -> prepare($sql);
-                            $query->bindParam(':aid',$aid,PDO::PARAM_STR);
+                            // Get current admin session
+                            $aid = $_SESSION['odmsaid'];
+
+                            // Fetch admin details
+                            $sql = "SELECT * FROM tbladmin WHERE email = :aid";
+                            $query = $dbh->prepare($sql);
+                            $query->bindParam(':aid', $aid, PDO::PARAM_STR);
                             $query->execute();
-                            $results=$query->fetchAll(PDO::FETCH_OBJ);
-                            $cnt=1;
-                            if($query->rowCount() > 0)
-                            {
-                            foreach($results as $row)
-                            {
+                            $results = $query->fetchAll(PDO::FETCH_OBJ);
+
+                            if ($query->rowCount() > 0) {
+                            foreach ($results as $row) {
                             ?>
                             <div class="avatar avatar-xl status-online">
-                                <?php
-                                if($row->Photo=="avatar.png")
-                                {
-                                    ?>
-                                    <img class="rounded-circle" src="../assets/img/team/avatar.png" alt="" />
-                                    <?php
-                                } else {
-                                    ?>
-                                    <img class="rounded-circle" src="../profileimages/<?php  echo $row->Photo;?>" alt="">
-                                    <?php
-                                } ?>
+                                <?php if ($row->Photo == "avatar.png" || empty($row->Photo)): ?>
+                                    <img class="rounded-circle"
+                                         src="../assets/img/team/avatar.png"
+                                         alt="Default Avatar" />
+                                <?php else: ?>
+                                    <img class="rounded-circle"
+                                         src="../profileimages/<?php echo htmlspecialchars($row->Photo); ?>"
+                                         alt="<?php echo htmlspecialchars($row->FirstName . ' ' . $row->LastName); ?> Avatar">
+                                <?php endif; ?>
                             </div>
                         </a>
-                        <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end py-0" aria-labelledby="navbarDropdownUser">
+
+                        <div class="dropdown-menu dropdown-caret dropdown-caret dropdown-menu-end py-0"
+                             aria-labelledby="navbarDropdownUser">
                             <div class="bg-white dark__bg-1000 rounded-2 py-2">
-                                <a class="dropdown-item fw-bold text-warning" href="#"><span><?php  echo $row->FirstName;?> <?php  echo $row->LastName;?></span></a>
+                                <!-- User Name Header -->
+                                <a class="dropdown-item fw-bold text-warning" href="#">
+                                    <span>
+                                        <?php echo htmlspecialchars($row->FirstName . ' ' . $row->LastName); ?>
+                                    </span>
+                                </a>
 
                                 <div class="dropdown-divider"></div>
-                                <a class="dropdown-item" href="profile">Profile &amp; account</a>
-                                <a class="dropdown-item" href="settings">Settings</a>
+
+                                <!-- Account Management Section -->
+                                <a class="dropdown-item" href="profile">
+                                    <i class="fas fa-user me-2"></i>Profile &amp; account
+                                </a>
+                                <a class="dropdown-item" href="settings">
+                                    <i class="fas fa-cog me-2"></i>Settings
+                                </a>
+                                <a class="dropdown-item" href="level-management">
+                                    <i class="fas fa-layer-group me-2"></i>Levels
+                                </a>
+                                <a class="dropdown-item" href="bonus-settings">
+                                    <i class="fas fa-gift me-2"></i>Bonus
+                                </a>
 
                                 <div class="dropdown-divider"></div>
-                                <a class="dropdown-item" href="changelog">Version</a>
-                                <a class="dropdown-item" href="logs">Logs</a>
+
+                                <!-- System Information Section -->
+                                <a class="dropdown-item" href="changelog">
+                                    <i class="fas fa-code-branch me-2"></i>Version
+                                </a>
+                                <a class="dropdown-item" href="14">
+                                    <i class="fas fa-file-alt me-2"></i>Logs
+                                </a>
 
                                 <div class="dropdown-divider"></div>
-                                <a class="dropdown-item" href="logout?logout=1">Logout</a>
+
+                                <!-- Logout Section -->
+                                <a class="dropdown-item text-danger" href="logout?logout=1">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                </a>
                             </div>
                         </div>
+
+                        <?php
+                        }
+                        }
+                        ?>
                     </li>
                 </ul>
             </nav>
-            <?php
-            }
-            } ?>
 
             <?php
             $query = mysqli_query($con, "SELECT * FROM tblsettings WHERE id = 3");
@@ -1539,3 +1804,409 @@
                     </div>';
             }
             ?>
+
+  <script>
+                // Browser Notifications Handler
+                class NotificationManager {
+                    constructor() {
+                        this.previousCounts = {
+                            tasks: 0,
+                            messages: 0,
+                            comments: 0
+                        };
+                        this.initialized = false;
+                        this.checkInterval = null;
+
+                        this.init();
+                    }
+
+                    async init() {
+                        // Request notification permission
+                        if ('Notification' in window) {
+                            if (Notification.permission === 'default') {
+                                await Notification.requestPermission();
+                            }
+                        }
+
+                        await this.updateCounts(false);
+                        this.initialized = true;
+                        this.startPeriodicCheck();
+                    }
+
+                    async requestNotificationPermission() {
+                        if ('Notification' in window && Notification.permission === 'default') {
+                            const permission = await Notification.requestPermission();
+                            if (permission === 'granted') {
+                                this.updateNotificationIndicator();
+                            } else if (permission === 'denied') {
+                                alert('Notifications are blocked. Please enable them in your browser settings for this site.');
+                            }
+                            return permission;
+                        }
+                        return Notification.permission;
+                    }
+
+                    playNotificationSound() {
+                        try {
+                            const audio = new Audio('../audio/task-notification.mp3');
+                            audio.volume = 0.7;
+                            audio.play().catch(() => {
+                                this.playFallbackSound();
+                            });
+                        } catch (error) {
+                            this.playFallbackSound();
+                        }
+                    }
+
+                    playFallbackSound() {
+                        try {
+                            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                            const oscillator = audioContext.createOscillator();
+                            const gainNode = audioContext.createGain();
+
+                            oscillator.connect(gainNode);
+                            gainNode.connect(audioContext.destination);
+
+                            oscillator.frequency.value = 800;
+                            oscillator.type = 'sine';
+
+                            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+                            oscillator.start(audioContext.currentTime);
+                            oscillator.stop(audioContext.currentTime + 0.5);
+                        } catch (error) {
+                            // Silent fallback - continue without sound
+                        }
+                    }
+
+                    updateNotificationIndicator() {
+                        const toggleBtn = document.getElementById('notificationToggle');
+                        if (toggleBtn) {
+                            const icon = toggleBtn.querySelector('span');
+                            if (Notification.permission === 'granted') {
+                                toggleBtn.classList.add('notification-enabled');
+                                toggleBtn.title = 'Browser Notifications Enabled';
+                                if (icon) {
+                                    icon.style.color = '#28a745';
+                                }
+                            } else {
+                                toggleBtn.classList.remove('notification-enabled');
+                                toggleBtn.title = 'Enable Browser Notifications';
+                                if (icon) {
+                                    icon.style.color = '';
+                                }
+                            }
+                        }
+                    }
+
+                    startPeriodicCheck() {
+                        if (this.checkInterval) {
+                            clearInterval(this.checkInterval);
+                        }
+                        this.checkInterval = setInterval(() => {
+                            this.updateCounts(true);
+                        }, 30000);
+                    }
+
+                    stopPeriodicCheck() {
+                        if (this.checkInterval) {
+                            clearInterval(this.checkInterval);
+                        }
+                    }
+
+                    async updateCounts(showNotifications = true) {
+                        try {
+                            const response = await fetch('get-notification-counts', {
+                                method: 'GET',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                }
+                            });
+
+                            if (!response.ok) {
+                                throw new Error('Failed to fetch notification counts');
+                            }
+
+                            const data = await response.json();
+
+                            if (this.initialized && showNotifications) {
+                                this.checkForNewNotifications(data);
+                            }
+
+                            this.previousCounts = {
+                                tasks: data.tasks,
+                                messages: data.messages,
+                                comments: data.comments
+                            };
+
+                        } catch (error) {
+                            console.error('Error updating notification counts:', error);
+                        }
+                    }
+
+                    checkForNewNotifications(newCounts) {
+                        if (newCounts.tasks > this.previousCounts.tasks) {
+                            const diff = newCounts.tasks - this.previousCounts.tasks;
+                            this.showNotification(
+                                `${diff} New Task${diff > 1 ? 's' : ''}`,
+                                diff === 1 ? 'You have a new task notification' : `You have ${diff} new task notifications`,
+                                'task',
+                                'submitted-tasks'
+                            );
+                        }
+
+                        if (newCounts.messages > this.previousCounts.messages) {
+                            const diff = newCounts.messages - this.previousCounts.messages;
+                            this.showNotification(
+                                `${diff} New Message${diff > 1 ? 's' : ''}`,
+                                diff === 1 ? 'You have a new message' : `You have ${diff} new messages`,
+                                'message',
+                                'chat'
+                            );
+                        }
+
+                        if (newCounts.comments > this.previousCounts.comments) {
+                            const diff = newCounts.comments - this.previousCounts.comments;
+                            this.showNotification(
+                                `${diff} New Comment${diff > 1 ? 's' : ''}`,
+                                diff === 1 ? 'You have a new comment from a writer' : `You have ${diff} new comments from writers`,
+                                'comment',
+                                'all-comments'
+                            );
+                        }
+                    }
+
+                    showNotification(title, body, type = 'info', clickUrl = null) {
+                        if ('Notification' in window) {
+                            if (Notification.permission === 'granted') {
+                                try {
+                                    this.playNotificationSound();
+
+                                    const options = {
+                                        body: body,
+                                        icon: this.getIconForType(type),
+                                        badge: '../assets/img/icons/spot-illustrations/itasker.png',
+                                        tag: `${type}-${Date.now()}`,
+                                        renotify: true,
+                                        silent: false,
+                                        dir: 'ltr',
+                                        lang: 'en-US',
+                                        vibrate: [200, 100, 200]
+                                    };
+
+                                    const notification = new Notification(title, options);
+
+                                    notification.onclick = (event) => {
+                                        window.focus();
+                                        if (clickUrl) {
+                                            window.location.href = clickUrl;
+                                        }
+                                        notification.close();
+                                    };
+
+                                    setTimeout(() => {
+                                        if (notification) {
+                                            notification.close();
+                                        }
+                                    }, 60000);
+
+                                } catch (error) {
+                                    console.error('Failed to create notification:', error);
+                                }
+                            } else if (Notification.permission === 'default') {
+                                Notification.requestPermission().then(permission => {
+                                    if (permission === 'granted') {
+                                        this.showNotification(title, body, type, clickUrl);
+                                    }
+                                });
+                            }
+                        }
+                    }
+
+                    getIconForType(type) {
+                        const baseUrl = '../assets/img/icons/spot-illustrations/';
+                        switch (type) {
+                            case 'task':
+                                return baseUrl + 'task-icon.png';
+                            case 'message':
+                                return baseUrl + 'message-icon.png';
+                            case 'comment':
+                                return baseUrl + 'comment-icon.png';
+                            default:
+                                return baseUrl + 'itasker.png';
+                        }
+                    }
+
+                    handleVisibilityChange() {
+                        if (document.hidden) {
+                            this.startPeriodicCheck();
+                        } else {
+                            this.updateCounts(true);
+                        }
+                    }
+                }
+
+                // Initialize the notification manager
+                window.notificationManager = null;
+
+                document.addEventListener('DOMContentLoaded', function() {
+                    try {
+                        window.notificationManager = new NotificationManager();
+                    } catch (error) {
+                        console.error('Failed to initialize NotificationManager:', error);
+                    }
+
+                    document.addEventListener('visibilitychange', () => {
+                        if (window.notificationManager) {
+                            window.notificationManager.handleVisibilityChange();
+                        }
+                    });
+
+                    // Add notification toggle button
+                    const navbar = document.querySelector('.navbar-nav.ms-auto');
+                    if (navbar) {
+                        const notificationToggle = document.createElement('li');
+                        notificationToggle.className = 'nav-item';
+                        notificationToggle.innerHTML = `
+                <a class="nav-link px-2" href="#" id="notificationToggle" title="Enable Browser Notifications">
+                    <span class="fas fa-desktop" style="font-size: 20px;"></span>
+                </a>
+            `;
+                        navbar.insertBefore(notificationToggle, navbar.firstChild);
+
+                        setTimeout(() => {
+                            if (window.notificationManager) {
+                                window.notificationManager.updateNotificationIndicator();
+                            }
+                        }, 500);
+
+                        document.getElementById('notificationToggle').addEventListener('click', (e) => {
+                            e.preventDefault();
+                            if (window.notificationManager) {
+                                if (Notification.permission !== 'granted') {
+                                    window.notificationManager.requestNotificationPermission();
+                                }
+                            }
+                        });
+                    }
+                });
+
+                window.addEventListener('beforeunload', () => {
+                    if (window.notificationManager) {
+                        window.notificationManager.stopPeriodicCheck();
+                    }
+                });
+            </script>
+
+  <script>
+                // Solution 1: AJAX Polling (Recommended for this use case)
+                class NotificationUpdater {
+                    constructor(updateInterval = 15000) { // Update every 15 seconds
+                        this.updateInterval = updateInterval;
+                        this.isRunning = false;
+                    }
+
+                    start() {
+                        if (this.isRunning) return;
+                        this.isRunning = true;
+                        this.updateNotifications();
+                        this.intervalId = setInterval(() => {
+                            this.updateNotifications();
+                        }, this.updateInterval);
+                    }
+
+                    stop() {
+                        if (this.intervalId) {
+                            clearInterval(this.intervalId);
+                            this.isRunning = false;
+                        }
+                    }
+
+                    async updateNotifications() {
+                        try {
+                            const response = await fetch('notification-update', {
+                                method: 'GET',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                }
+                            });
+
+                            if (!response.ok) throw new Error('Network response was not ok');
+
+                            const data = await response.json();
+
+                            // Update task notifications
+                            this.updateCounter('navbarDropdownTasks', data.task_count);
+
+                            // Update message notifications
+                            this.updateCounter('navbarDropdownNotification', data.message_count);
+
+                            // Update comment notifications
+                            this.updateCounter('navbarDropdownComments', data.comment_count);
+
+                        } catch (error) {
+                            console.error('Error updating notifications:', error);
+                        }
+                    }
+
+                    updateCounter(elementId, count) {
+                        const notificationLink = document.getElementById(elementId);
+                        if (!notificationLink) return;
+
+                        const counterElement = notificationLink.querySelector('.notification-indicator-number');
+
+                        if (count > 0) {
+                            if (counterElement) {
+                                counterElement.textContent = count;
+                            } else {
+                                // Create counter if it doesn't exist
+                                const newCounter = document.createElement('span');
+                                newCounter.className = 'notification-indicator-number';
+                                newCounter.textContent = count;
+                                notificationLink.appendChild(newCounter);
+                            }
+                        } else {
+                            // Remove counter if count is 0
+                            if (counterElement) {
+                                counterElement.remove();
+                            }
+                        }
+                    }
+                }
+
+                // Initialize the updater when page loads
+                document.addEventListener('DOMContentLoaded', function() {
+                    const notificationUpdater = new NotificationUpdater(30000); // 30 seconds
+                    notificationUpdater.start();
+
+                    // Optional: Update more frequently when user is active
+                    let userActive = true;
+                    let inactiveTimer;
+
+                    function setUserInactive() {
+                        userActive = false;
+                        notificationUpdater.stop();
+                        // Start with longer interval when inactive (2 minutes)
+                        notificationUpdater.updateInterval = 120000;
+                        notificationUpdater.start();
+                    }
+
+                    function setUserActive() {
+                        if (!userActive) {
+                            userActive = true;
+                            notificationUpdater.stop();
+                            // Shorter interval when active (30 seconds)
+                            notificationUpdater.updateInterval = 30000;
+                            notificationUpdater.start();
+                        }
+                        clearTimeout(inactiveTimer);
+                        inactiveTimer = setTimeout(setUserInactive, 300000); // 5 minutes
+                    }
+
+                    // Track user activity
+                    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+                        document.addEventListener(event, setUserActive, true);
+                    });
+                });
+            </script>

@@ -2041,7 +2041,7 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                 <!-- Email Notifications Settings -->
                 <div class="col-12">
                     <div class="card h-100">
-                        <div class="card-header bg-light">
+                        <div class="card-header">
                             <h5 class="mb-0 d-flex align-items-center">
                                 <i class="fas fa-envelope text-primary me-2"></i>
                                 Email Notification Settings
@@ -2191,11 +2191,11 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
             </div>
         </div>
 
-        <!-- Settings View Tab -->
+        <!-- Snooze Tab -->
         <div class="tab-pane fade" id="snooze-view" role="tabpanel" aria-labelledby="snooze-tab">
         <div class="col-12">
             <div class="card h-100">
-                <div class="card-header bg-light">
+                <div class="card-header">
                     <h5 class="mb-0 d-flex align-items-center">
                         <i class="fas fa-clock text-warning me-2"></i>
                         Snooze Settings

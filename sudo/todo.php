@@ -166,6 +166,11 @@ if (isset($_GET['export'])) {
                 }
             }
 
+            // Add default filter if no status is specified
+            if (!isset($_GET['status']) || empty($_GET['status'])) {
+                $where_conditions[] = "status IN ('pending', 'in_progress')";
+            }
+
             $where_clause = !empty($where_conditions) ? "WHERE " . implode(" AND ", $where_conditions) : "";
         } else {
             $where_clause = "";
@@ -247,6 +252,11 @@ $categories_stmt = $con->prepare("SELECT * FROM categories ORDER BY name");
 $categories_stmt->execute();
 $categories = $categories_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
+// Pagination settings
+$tasks_per_page = 10;
+$current_page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$offset = ($current_page - 1) * $tasks_per_page;
+
 // Build query with filters
 $where_conditions = [];
 $params = [];
@@ -292,9 +302,26 @@ if (isset($_GET['due_filter'])) {
     }
 }
 
+// Apply default filter if no status is specified
+if (!isset($_GET['status']) || empty($_GET['status'])) {
+    if (!isset($_GET['view_all'])) { // Allow override with view_all parameter
+        $where_conditions[] = "status IN ('pending', 'in_progress')";
+    }
+}
+
 $where_clause = !empty($where_conditions) ? "WHERE " . implode(" AND ", $where_conditions) : "";
 
-// Fetch todos with filters
+// Get total count for pagination
+$count_sql = "SELECT COUNT(*) as total FROM tbltodos t LEFT JOIN categories c ON t.category_id = c.id $where_clause";
+$count_stmt = $con->prepare($count_sql);
+if (!empty($params)) {
+    $count_stmt->bind_param($param_types, ...$params);
+}
+$count_stmt->execute();
+$total_tasks = $count_stmt->get_result()->fetch_assoc()['total'];
+$total_pages = ceil($total_tasks / $tasks_per_page);
+
+// Fetch todos with filters and pagination
 $sql = "
     SELECT t.*, c.name as category_name, c.color as category_color,
            (SELECT COUNT(*) FROM subtasks WHERE todo_id = t.id) as subtask_count,
@@ -310,7 +337,13 @@ $sql = "
         END,
         t.due_date ASC,
         t.created_at DESC
+    LIMIT ? OFFSET ?
 ";
+
+// Add pagination parameters
+$params[] = $tasks_per_page;
+$params[] = $offset;
+$param_types .= "ii";
 
 $stmt = $con->prepare($sql);
 if (!empty($params)) {
@@ -320,7 +353,7 @@ $stmt->execute();
 $result = $stmt->get_result();
 $todos = $result->fetch_all(MYSQLI_ASSOC);
 
-// Get statistics
+// Get statistics (without default filter to show all stats)
 $stats_query = "
     SELECT 
         COUNT(*) as total,
@@ -333,6 +366,36 @@ $stats_query = "
 ";
 $stats_result = $con->query($stats_query);
 $stats = $stats_result->fetch_assoc();
+
+// Helper function to build filter URLs
+function buildFilterUrl($filter_type, $filter_value = null) {
+    $current_params = $_GET;
+
+    // Remove pagination when changing filters
+    unset($current_params['page']);
+    unset($current_params['view_all']);
+
+    // Clear existing filters and set new ones
+    unset($current_params['status']);
+    unset($current_params['due_filter']);
+
+    switch ($filter_type) {
+        case 'all':
+            $current_params['view_all'] = '1';
+            break;
+        case 'status':
+            $current_params['status'] = $filter_value;
+            break;
+        case 'overdue':
+            $current_params['due_filter'] = 'overdue';
+            break;
+        case 'due_today':
+            $current_params['due_filter'] = 'today';
+            break;
+    }
+
+    return '?' . http_build_query($current_params);
+}
 
 if (isset($_SESSION['alert'])) {
     echo $_SESSION['alert'];
@@ -348,6 +411,9 @@ if (isset($_SESSION['alert'])) {
         <div class="row flex-between-center gx-0">
             <div class="col-lg-auto d-flex align-items-center">
                 <h4 class="mb-0 text-primary fw-bold">To Do <span class="text-info fw-medium">List</span></h4>
+                <?php if (!isset($_GET['view_all']) && (!isset($_GET['status']) || empty($_GET['status']))): ?>
+                    <span class="badge badge-subtle-info ms-2">Active Tasks</span>
+                <?php endif; ?>
             </div>
             <div class="col-lg-auto pt-3 pt-lg-0">
                 <div class="d-flex align-items-center">
@@ -368,54 +434,86 @@ if (isset($_SESSION['alert'])) {
 <!-- Statistics Dashboard -->
 <div class="row g-3 mb-4">
     <div class="col-md-2">
-        <div class="card stats-card bg-primary text-white">
-            <div class="card-body text-center">
-                <h3 class="mb-1"><?php echo $stats['total']; ?></h3>
-                <small>Total Tasks</small>
+        <a href="<?php echo buildFilterUrl('due_today'); ?>" class="text-decoration-none">
+            <div class="card stats-card bg-body-tertiary stats-clickable">
+                <div class="card-body text-center py-3">
+                    <div class="mb-2">
+                        <i class="fas fa-calendar-day fa-2x text-secondary"></i>
+                    </div>
+                    <h3 class="mb-1"><?php echo $stats['due_today']; ?></h3>
+                    <small class="text-muted">Due Today</small>
+                </div>
             </div>
-        </div>
+        </a>
+    </div>
+
+    <div class="col-md-2">
+        <a href="<?php echo buildFilterUrl('status', 'in_progress'); ?>" class="text-decoration-none">
+            <div class="card stats-card bg-body-tertiary stats-clickable">
+                <div class="card-body text-center py-3">
+                    <div class="mb-2">
+                        <i class="fas fa-clock fa-2x text-warning"></i>
+                    </div>
+                    <h3 class="mb-1"><?php echo $stats['in_progress']; ?></h3>
+                    <small class="text-muted">In Progress</small>
+                </div>
+            </div>
+        </a>
     </div>
     <div class="col-md-2">
-        <div class="card stats-card bg-success text-white">
-            <div class="card-body text-center">
-                <h3 class="mb-1"><?php echo $stats['completed']; ?></h3>
-                <small>Completed</small>
+        <a href="<?php echo buildFilterUrl('status', 'pending'); ?>" class="text-decoration-none">
+            <div class="card stats-card bg-body-tertiary stats-clickable">
+                <div class="card-body text-center py-3">
+                    <div class="mb-2">
+                        <i class="fas fa-hourglass-start fa-2x text-info"></i>
+                    </div>
+                    <h3 class="mb-1"><?php echo $stats['pending']; ?></h3>
+                    <small class="text-muted">Pending</small>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-2">
-        <div class="card stats-card bg-warning text-white">
-            <div class="card-body text-center">
-                <h3 class="mb-1"><?php echo $stats['in_progress']; ?></h3>
-                <small>In Progress</small>
+        <a href="<?php echo buildFilterUrl('overdue'); ?>" class="text-decoration-none">
+            <div class="card stats-card bg-body-tertiary stats-clickable">
+                <div class="card-body text-center py-3">
+                    <div class="mb-2">
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                    </div>
+                    <h3 class="mb-1"><?php echo $stats['overdue']; ?></h3>
+                    <small class="text-muted">Overdue</small>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-2">
-        <div class="card stats-card bg-info text-white">
-            <div class="card-body text-center">
-                <h3 class="mb-1"><?php echo $stats['pending']; ?></h3>
-                <small>Pending</small>
+        <a href="<?php echo buildFilterUrl('status', 'completed'); ?>" class="text-decoration-none">
+            <div class="card stats-card bg-body-tertiary stats-clickable">
+                <div class="card-body text-center py-3">
+                    <div class="mb-2">
+                        <i class="fas fa-check-circle fa-2x text-success"></i>
+                    </div>
+                    <h3 class="mb-1"><?php echo $stats['completed']; ?></h3>
+                    <small class="text-muted">Completed</small>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-2">
-        <div class="card stats-card bg-danger text-white">
-            <div class="card-body text-center">
-                <h3 class="mb-1"><?php echo $stats['overdue']; ?></h3>
-                <small>Overdue</small>
+        <a href="<?php echo buildFilterUrl('all'); ?>" class="text-decoration-none">
+            <div class="card stats-card bg-body-tertiary stats-clickable">
+                <div class="card-body text-center py-3">
+                    <div class="mb-2">
+                        <i class="fas fa-tasks fa-2x text-primary"></i>
+                    </div>
+                    <h3 class="mb-1"><?php echo $stats['total']; ?></h3>
+                    <small class="text-muted">Total Tasks</small>
+                </div>
             </div>
-        </div>
-    </div>
-    <div class="col-md-2">
-        <div class="card stats-card bg-secondary text-white">
-            <div class="card-body text-center">
-                <h3 class="mb-1"><?php echo $stats['due_today']; ?></h3>
-                <small>Due Today</small>
-            </div>
-        </div>
+        </a>
     </div>
 </div>
+
 
 <!-- Search and Filter Section -->
 <div class="card mb-3">
@@ -461,7 +559,24 @@ if (isset($_SESSION['alert'])) {
             <div class="col-md-1">
                 <button type="submit" class="btn btn-outline-primary w-100"><span class="fas fa-filter"></span></button>
             </div>
+
+            <!-- Preserve view_all parameter if present -->
+            <?php if (isset($_GET['view_all'])): ?>
+                <input type="hidden" name="view_all" value="1">
+            <?php endif; ?>
         </form>
+
+        <!-- Reset filters button -->
+        <div class="mt-3">
+            <a href="<?php echo parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); ?>" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-undo"></i> Reset Filters
+            </a>
+            <?php if (!isset($_GET['view_all'])): ?>
+                <a href="<?php echo buildFilterUrl('all'); ?>" class="btn btn-outline-info btn-sm ms-2">
+                    <i class="fas fa-eye"></i> View All Tasks
+                </a>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 
@@ -480,6 +595,20 @@ if (isset($_SESSION['alert'])) {
                 <button class="btn btn-secondary btn-sm ms-auto" onclick="clearSelection()">Clear Selection</button>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Task Count and Pagination Info -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="text-muted">
+        Showing <?php echo min($offset + 1, $total_tasks); ?>-<?php echo min($offset + $tasks_per_page, $total_tasks); ?> of <?php echo $total_tasks; ?> tasks
+    </div>
+    <div>
+        <select class="form-select form-select-sm" onchange="changeTasksPerPage(this.value)" style="width: auto;">
+            <option value="10" <?php echo $tasks_per_page == 10 ? 'selected' : ''; ?>>10 per page</option>
+            <option value="25" <?php echo $tasks_per_page == 25 ? 'selected' : ''; ?>>25 per page</option>
+            <option value="50" <?php echo $tasks_per_page == 50 ? 'selected' : ''; ?>>50 per page</option>
+        </select>
     </div>
 </div>
 
@@ -544,7 +673,7 @@ if (isset($_SESSION['alert'])) {
 
                                             <!-- Task Description -->
                                             <?php if ($todo['description']): ?>
-                                                <div class="text-600 fs-11 mb-2"><?php echo htmlspecialchars($todo['description']); ?></div>
+                                                <div class="text-600 fs-11 mb-2" style="white-space: pre-line;"><?php echo htmlspecialchars($todo['description']); ?></div>
                                             <?php endif; ?>
 
                                             <!-- Subtasks Progress -->
@@ -606,10 +735,20 @@ if (isset($_SESSION['alert'])) {
                 <?php else: ?>
                     <div class="text-center py-5">
                         <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No tasks found. Add your first task to get started!</p>
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
-                            <i class="fas fa-plus"></i> Add Your First Task
+                        <?php if (!isset($_GET['view_all']) && (!isset($_GET['status']) || empty($_GET['status']))): ?>
+                            <p class="text-muted">No active tasks found. You're all caught up!</p>
+                            <p class="text-muted">Click "View All Tasks" to see completed tasks or add a new task.</p>
+                        <?php else: ?>
+                            <p class="text-muted">No tasks found matching your criteria.</p>
+                        <?php endif; ?>
+                        <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                            <i class="fas fa-plus"></i> Add New Task
                         </button>
+                        <?php if (!isset($_GET['view_all'])): ?>
+                            <a href="<?php echo buildFilterUrl('all'); ?>" class="btn btn-outline-info">
+                                <i class="fas fa-eye"></i> View All Tasks
+                            </a>
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
             </div>
@@ -617,6 +756,82 @@ if (isset($_SESSION['alert'])) {
     </div>
 </div>
 
+<!-- Pagination -->
+<?php if ($total_pages > 1): ?>
+    <nav aria-label="Task pagination">
+        <ul class="pagination pagination-sm justify-content-center mb-4">
+            <!-- Previous Page -->
+            <?php if ($current_page > 1): ?>
+                <li class="page-item">
+                    <a class="page-link" href="<?php echo buildPaginationUrl($current_page - 1); ?>" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            <?php else: ?>
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo;</span>
+                </li>
+            <?php endif; ?>
+
+            <!-- Page Numbers -->
+            <?php
+            $start_page = max(1, $current_page - 2);
+            $end_page = min($total_pages, $current_page + 2);
+
+            if ($start_page > 1): ?>
+                <li class="page-item">
+                    <a class="page-link" href="<?php echo buildPaginationUrl(1); ?>">1</a>
+                </li>
+                <?php if ($start_page > 2): ?>
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                <?php endif;
+            endif;
+
+            for ($i = $start_page; $i <= $end_page; $i++): ?>
+                <li class="page-item <?php echo $i == $current_page ? 'active' : ''; ?>">
+                    <a class="page-link" href="<?php echo buildPaginationUrl($i); ?>"><?php echo $i; ?></a>
+                </li>
+            <?php endfor;
+
+            if ($end_page < $total_pages): ?>
+                <?php if ($end_page < $total_pages - 1): ?>
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                <?php endif; ?>
+                <li class="page-item">
+                    <a class="page-link" href="<?php echo buildPaginationUrl($total_pages); ?>"><?php echo $total_pages; ?></a>
+                </li>
+            <?php endif; ?>
+
+            <!-- Next Page -->
+            <?php if ($current_page < $total_pages): ?>
+                <li class="page-item">
+                    <a class="page-link" href="<?php echo buildPaginationUrl($current_page + 1); ?>" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            <?php else: ?>
+                <li class="page-item disabled">
+                    <span class="page-link">&raquo;</span>
+                </li>
+            <?php endif; ?>
+        </ul>
+    </nav>
+<?php endif; ?>
+
+<?php
+// Helper function to build pagination URLs
+function buildPaginationUrl($page) {
+    $params = $_GET;
+    $params['page'] = $page;
+    return '?' . http_build_query($params);
+}
+?>
+
+<!-- Rest of the modals and forms remain the same -->
 <!-- Add Task Modal -->
 <div class="modal fade" id="addTaskModal" tabindex="-1" aria-labelledby="addTaskModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -1036,6 +1251,14 @@ if (isset($_SESSION['alert'])) {
     setInterval(updateTime, 1000);
     updateTime();
 
+    // Tasks per page change function
+    function changeTasksPerPage(value) {
+        const url = new URL(window.location);
+        url.searchParams.set('per_page', value);
+        url.searchParams.delete('page'); // Reset to first page
+        window.location.href = url.toString();
+    }
+
     // Auto-save functionality
     let autoSaveTimer;
     function autoSave() {
@@ -1294,7 +1517,9 @@ if (isset($_SESSION['alert'])) {
                     document.getElementById('viewTaskTitle').textContent = task.title;
 
                     // Set description
-                    document.getElementById('viewTaskDescription').textContent = task.description || 'No description provided';
+                    const descriptionElement = document.getElementById('viewTaskDescription');
+                    descriptionElement.style.whiteSpace = 'pre-line';
+                    descriptionElement.textContent = task.description || 'No description provided';
 
                     // Set priority and status
                     const priorityBadge = document.getElementById('viewTaskPriority');
@@ -1648,7 +1873,7 @@ if (isset($_SESSION['alert'])) {
         // If exporting filtered results, include current filter parameters
         if (exportType === 'filtered') {
             const urlParams = new URLSearchParams(window.location.search);
-            const filterParams = ['search', 'status', 'priority', 'category', 'due_filter'];
+            const filterParams = ['search', 'status', 'priority', 'category', 'due_filter', 'view_all'];
 
             filterParams.forEach(param => {
                 if (urlParams.has(param) && urlParams.get(param)) {
@@ -1705,7 +1930,36 @@ if (isset($_SESSION['alert'])) {
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {
         updateBulkActions();
-        // setupRealTimeSearch(); // Uncomment if you want real-time search instead of form submission
+        setupRealTimeSearch(); // Uncomment if you want real-time search instead of form submission
     });
 </script>
 
+<style>
+    .stats-clickable {
+        transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+    }
+
+    .stats-clickable:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .pagination .page-link {
+        color: #495057;
+        border-color: #dee2e6;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+
+    .pagination .page-link:hover {
+        color: #007bff;
+        background-color: #e9ecef;
+        border-color: #dee2e6;
+    }
+
+
+</style>

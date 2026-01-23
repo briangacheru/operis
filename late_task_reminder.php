@@ -152,17 +152,7 @@ function generateEmailBody($lateTasksData, $config, $totalTasks, $totalValue, $p
                 max-width: 800px;
                 height: auto;
             }
-            .email-header {
-                text-align: center;
-                background: white;
-                color: #0073e6;
-                padding: 20px;
-            }
-            .email-header h1 {
-                margin: 0;
-                font-size: 24px;
-                color: #0073e6;
-            }
+            
             .summary-section {
                 background: #f8f9fa;
                 padding: 20px;

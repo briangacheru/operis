@@ -9,16 +9,27 @@
       <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/aws/aws-crt-php" />
       <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/aws/aws-sdk-php" />
       <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/composer" />
+      <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/firebase/php-jwt" />
+      <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/google/apiclient" />
+      <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/google/apiclient-services" />
+      <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/google/auth" />
       <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/guzzlehttp/guzzle" />
       <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/guzzlehttp/promises" />
       <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/guzzlehttp/psr7" />
+      <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/monolog/monolog" />
       <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/mtdowling/jmespath.php" />
+      <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/paragonie/constant_time_encoding" />
+      <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/paragonie/random_compat" />
+      <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/phpseclib/phpseclib" />
+      <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/psr/cache" />
       <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/psr/http-client" />
       <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/psr/http-factory" />
       <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/psr/http-message" />
+      <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/psr/log" />
       <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/ralouphie/getallheaders" />
       <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/symfony/deprecation-contracts" />
       <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/symfony/polyfill-mbstring" />
+      <excludeFolder url="file://$MODULE_DIR$/sudo/vendor/tecnickcom/tcpdf" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

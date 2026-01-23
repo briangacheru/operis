@@ -96,12 +96,15 @@ if ($rowWriter->is_verified == 1) {
                                     $totalCompletedTasks = (float) $result1['total']; // Cast to float to ensure arithmetic operation
 
                                     // Query to sum amount from tbloverdrafts
-                                    $query2 = mysqli_query($con, "SELECT SUM(amount) AS total FROM tbloverdrafts WHERE is_deleted = 0 AND is_settled = 0 AND email = '$aid'");
+                                    $query2 = mysqli_query($con, "SELECT SUM(amount) AS total FROM tbloverdrafts WHERE is_deleted = 0 AND is_settled = 0 AND record_type = 'overdraft' AND description = 'iTasker' AND email = '$aid'");
                                     $result2 = mysqli_fetch_assoc($query2);
                                     $totalOverdrafts = (float) $result2['total']; // Cast to float to ensure arithmetic operation
 
-                                    // Calculate amount due by subtracting total completed task costs from total overdrafts
-                                    $amount_due = $totalCompletedTasks - $totalOverdrafts;
+                                    $bonus_query = mysqli_query($con, "SELECT SUM(amount) AS total FROM tbloverdrafts WHERE is_settled = 0 AND is_deleted = 0 AND record_type = 'bonus' AND description = 'Performance Bonus' AND email = '$aid'");
+                                    $result3 = mysqli_fetch_assoc($bonus_query);
+                                    $totalBonuses = (float) $result3['total'];
+
+                                    $amount_due = $totalCompletedTasks + $totalBonuses - $totalOverdrafts;
                                     ?>
                                     <h5 class="text-800 mb-0"><span class="badge rounded-pill badge-subtle-info">Ksh. <?php echo number_format($amount_due, 2, '.', ','); ?></span></h5>
                                 </div>
@@ -551,24 +554,8 @@ if ($rowWriter->is_verified == 1) {
             <!--/.bg-holder-->
 
             <div class="card-body position-relative">
-                <?php
-                $totalOverDraftsFormatted = "No data"; // Default message if the query fails
-                $totalOverDraftsRaw = 0; // Raw total for JavaScript
-                $query = mysqli_query($con, "select sum(amount) as totalDraft  from tbloverdrafts  WHERE is_settled = 0 AND email = '$aid' AND is_deleted = 0");
-                if ($query) {
-                    $rowWriter = mysqli_fetch_array($query);
-                    if ($rowWriter && $rowWriter['totalDraft'] !== null) {
-                        $totalOverDraftsRaw = $rowWriter['totalDraft']; // Keep the raw total
-                        $totalOverDraftsFormatted = 'Ksh. ' . number_format($rowWriter['totalDraft'], 2);
-                    } else {
-                        $totalOverDraftsFormatted = 'Ksh. 0.00';
-                    }
-                } else {
-                    $totalOverDraftsFormatted = "Error: " . mysqli_error($con);
-                }
-                ?>
                 <h6>Total Overdraft Amount</h6>
-                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $totalOverDraftsRaw; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div>
+                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $totalOverdrafts; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div>
                 <a class="fw-semi-bold fs-10 text-nowrap text-info" href="overdraft">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>
         </div>
@@ -580,20 +567,6 @@ if ($rowWriter->is_verified == 1) {
             <!--/.bg-holder-->
 
             <div class="card-body position-relative">
-                <?php
-                // Query to sum CPP*pages for completed, unpaid tasks
-                $query1 = mysqli_query($con, "SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed' AND email = '$aid'");
-                $result1 = mysqli_fetch_assoc($query1);
-                $totalCompletedTasks = (float) $result1['total']; // Cast to float to ensure arithmetic operation
-
-                // Query to sum amount from tbloverdrafts
-                $query2 = mysqli_query($con, "SELECT SUM(amount) AS total FROM tbloverdrafts WHERE is_settled = 0 AND is_deleted = 0 AND email = '$aid'");
-                $result2 = mysqli_fetch_assoc($query2);
-                $totalOverdrafts = (float) $result2['total']; // Cast to float to ensure arithmetic operation
-
-                // Calculate amount due by subtracting total completed task costs from total overdrafts
-                $amount_due = $totalCompletedTasks - $totalOverdrafts;
-                ?>
                 <h6>Total Amount Due</h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $amount_due; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-primary" href="completed-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>

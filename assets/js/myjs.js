@@ -51,26 +51,5 @@ function exportOverdraftAs() {
     form.submit();
 }
 
-/* -------------------------------------------------------------------------- */
-/*                              Fetch totals for overdraft                    */
-/* -------------------------------------------------------------------------- */
-
-    function updateFormFields(writerName) {
-    $.ajax({
-        type: 'GET',
-        url: 'get_amount_due',
-        data: { writer_name: writerName },
-        dataType: 'json',
-        success: function(response) {
-            $('#tasks_total').val(response.totalCompletedTasks);
-            $('#overdraft_total').val(response.totalOverdrafts);
-            $('#amount_due').val(response.amountDue);
-        },
-        error: function() {
-            alert('Error fetching data.');
-        }
-    });
-}
-
 
 

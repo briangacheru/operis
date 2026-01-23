@@ -85,7 +85,7 @@
             <div class='col-md-6 col-xxl-3'>
                 <div class='card account-card h-md-100'>
                     <div class='card-header d-flex flex-between-center pb-0'>
-                        <h6 class='mb-0'>Active Accounts</h6>
+                        <h6 class='mb-0'>Accounts</h6>
                         <i class='fas fa-university fa-2x opacity-75'></i>
                     </div>
                     <div class='card-body pt-2'>
@@ -94,6 +94,7 @@
                                 <div class='d-flex align-items-center'>
                                     <div>
                                         <h5 class='mb-2' id='activeAccounts'>Loading...</h5>
+                                        <small class='opacity-75' id='inactiveAccounts'></small>
                                     </div>
                                 </div>
                             </div>
@@ -104,15 +105,16 @@
             <div class='col-md-6 col-xxl-3'>
                 <div class='card account-card h-md-100'>
                     <div class='card-header d-flex flex-between-center pb-0'>
-                        <h6 class='mb-0'>Inactive Accounts</h6>
-                        <i class='far fa-pause-circle fa-2x opacity-75'></i>
+                        <h6 class='mb-0' id='savingsTitle'>Monthly Savings</h6>
+                        <i class='fas fa-piggy-bank fa-2x opacity-75'></i>
                     </div>
                     <div class='card-body pt-2'>
                         <div class='row g-0 h-100 align-items-center'>
                             <div class='col'>
                                 <div class='d-flex align-items-center'>
                                     <div>
-                                        <h5 class='mb-2' id='inactiveAccounts'>Loading...</h5>
+                                        <h5 class="mb-2" id='monthlySavings'>Loading...</h5>
+                                        <small class='opacity-75' id='savingsDetails'>Savings, MMF & SACCO</small>
                                     </div>
                                 </div>
                             </div>
@@ -1048,8 +1050,18 @@
                 const data = await response.json();
 
                 document.getElementById('totalBalance').textContent = formatCurrency(data.total_balance);
-                document.getElementById('activeAccounts').textContent = data.active_accounts;
-                document.getElementById('inactiveAccounts').textContent = data.inactive_accounts;
+                document.getElementById('activeAccounts').textContent = data.active_accounts + ' Active';
+                document.getElementById('inactiveAccounts').textContent = data.inactive_accounts + ' Inactive';
+                document.getElementById('monthlySavings').textContent = formatCurrency(data.monthly_savings || 0);
+                document.getElementById('monthlySavings').className = (data.monthly_savings || 0) >= 0 ? 'mb-2 text-success' : 'mb-2 text-danger';
+
+                // Update the title to show the specific month
+                document.getElementById('savingsTitle').textContent = data.savings_month_display === 'No Data' ?
+                    'Monthly Savings' :
+                    data.savings_month_display + ' Savings';
+
+                // Update the details to show account types
+                document.getElementById('savingsDetails').textContent = 'Savings, MMF & Sacco';
 
                 // Use the enhanced monthly growth display
                 updateMonthlyGrowthDisplay(data);
@@ -1057,6 +1069,10 @@
                 totalBalance = data.total_balance;
             } catch (error) {
                 console.error('Error loading summary:', error);
+                // Set fallback values on error
+                document.getElementById('savingsTitle').textContent = 'Monthly Savings';
+                document.getElementById('activeAccounts').textContent = 'Error';
+                document.getElementById('inactiveAccounts').textContent = 'Error';
             }
         }
 
@@ -1208,7 +1224,7 @@
                         <td>${account.last_balance_update ? formatBalanceDate(account.last_balance_update) : 'No balance data'}</td>
                         <td>${statusBadge}</td>
                         <td>
-                            <button class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="tooltip" data-bs-placement="top" title="View Account" onclick="viewDetails(${account.id})">
+                            <button class="btn btn-sm btn-outline-secondary me-1 mb-2" data-bs-toggle="tooltip" data-bs-placement="top" title="View Account" onclick="viewDetails(${account.id})">
                                 <i class="fas fa-eye"></i>
                             </button>
                             <button class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle='tooltip' data-bs-placement='top' title='Edit Account' onclick="editAccount(${account.id})">

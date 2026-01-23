@@ -58,12 +58,12 @@
                                         <input class="form-control" name="account" type="text" required="required" />
                                         <div class="invalid-feedback">This field is required</div>
                                     </div>
-                                    <div class="col-sm-6 mb-3">
+                                    <div class="col-sm-4 mb-3">
                                         <label class="form-label" for="product-summary">Pages: </label>
                                         <input class="form-control"  type="number" name="pages" id="pages" min="0" step="0.5" required="required"/>
                                         <div class="invalid-feedback">This field is required</div>
                                     </div>
-                                    <div class="col-sm-6 mb-3">
+                                    <div class="col-sm-4 mb-3">
                                         <label class="form-label" for="cpp">CPP: </label>
                                         <select class="form-select" id="cpp" name="cpp" required="required">
                                             <option value="375">375</option>
@@ -76,16 +76,23 @@
                                             <option value="750">750</option>
                                         </select>
                                     </div>
+                                    <div class="col-sm-4 mb-3">
+                                        <label class="form-label" for="cpp">Confirmed: </label>
+                                        <select class="form-select" name="is_confirmed">
+                                            <option selected value="0">Yes</option>
+                                            <option value="1">No</option>
+                                        </select>
+                                    </div>
                                     <div class="col-sm-6 mb-3">
                                         <label class="form-label" for="basic-form-due">Deadline:</label>
                                         <input class="form-control" name="due_date" required="required" id="due_date" type="datetime-local" min="<?php echo date('Y-m-d\T00:00'); ?>" />
                                         <div class="invalid-feedback">This field is required</div>
                                     </div>
                                     <div class="col-sm-6 mb-3">
-                                        <label class="form-label" for="cpp">Confirmed: </label>
-                                        <select class="form-select" name="is_confirmed">
-                                            <option selected value="0">Yes</option>
-                                            <option value="1">No</option>
+                                        <label class="form-label" for="publish">Publish: </label>
+                                        <select class="form-select" name="publish" id="publish">
+                                            <option selected value="1">Yes (Send Email & Set Active)</option>
+                                            <option value="0">No (Save as Draft, No Email)</option>
                                         </select>
                                     </div>
                                     <div class="col-sm-6 mb-3">
