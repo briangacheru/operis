@@ -14,7 +14,7 @@ if (isset($_GET['task_id'])) {
 
 
 // Define variables for task data
-$taskTopic = $taskSubject = $taskAccount = $taskStatus = $taskConfirmation = $taskIsPaid = $taskDescription = $taskWriter = $taskDueDate  = $taskCPP = $taskDuplicate = $taskPages = '';
+$taskTopic = $taskSubject = $taskAccount = $taskStatus = $taskConfirmation = $taskIsPaid = $taskDescription = $taskWriter = $taskDueDate  = $taskCPP = $taskDuplicate = $taskPages = $taskPublish = '';
 
 // Retrieve the task data from the database
 $sql2 = "SELECT * FROM tbltasks WHERE id='$taskId'";
@@ -37,7 +37,7 @@ if ($row = mysqli_fetch_array($result)) {
     $taskDuplicate = $row["is_duplicate"];
     $admin_acknowledged = $row["admin_acknowledged"];
     $acknowledged = $row["acknowledged"];
-
+    $taskPublish = $row["publish"];
 }
 ?>
 <title>iTasker | Edit Task #<?php  echo $taskId;?></title>
@@ -101,12 +101,12 @@ if ($row = mysqli_fetch_array($result)) {
                                     <input class="form-control" name="account" type="text" value="<?php  echo $taskAccount;?>" required="required" />
                                     <div class="invalid-feedback">This field is required</div>
                                 </div>
-                                <div class="col-sm-6 mb-3">
+                                <div class="col-sm-4 mb-3">
                                     <label class="form-label" for="product-summary">Pages: </label>
                                     <input class="form-control"  type="number" name="pages" id="pages" min="0" step="0.5" value="<?php  echo $taskPages;?>" required="required"/>
                                     <div class="invalid-feedback">This field is required</div>
                                 </div>
-                                <div class="col-sm-6 mb-3">
+                                <div class="col-sm-4 mb-3">
                                     <label class="form-label" for="cpp">CPP: </label>
                                     <select class="form-select" id="cpp" name="cpp" required="required">
                                         <option value="375" <?php echo ($taskCPP == '375') ? 'selected' : ''; ?>>375</option>
@@ -118,6 +118,13 @@ if ($row = mysqli_fetch_array($result)) {
                                         <option value="500" <?php echo ($taskCPP == '500') ? 'selected' : ''; ?>>500</option>
                                         <option value="700" <?php echo ($taskCPP == '700') ? 'selected' : ''; ?>>700</option>
                                         <option value="750" <?php echo ($taskCPP == '750') ? 'selected' : ''; ?>>750</option>
+                                    </select>
+                                </div>
+                                <div class="col-sm-4 mb-3">
+                                    <label class="form-label" for="publish">Publish: </label>
+                                    <select class="form-select" id="publish" name="publish" required="required">
+                                        <option value="1" <?php echo ($taskPublish == '1') ? 'selected' : ''; ?>>Yes (Published)</option>
+                                        <option value="0" <?php echo ($taskPublish == '0') ? 'selected' : ''; ?>>No (Draft)</option>
                                     </select>
                                 </div>
                                 <div class="col-sm-6 mb-3">

@@ -130,7 +130,7 @@ function getModernEmailTemplate($title, $content, $footerText = '') {
     </html>';
 }
 
-// Updated Morning summary email - sends alert even with no reminders
+// Updated Morning summary email - respects send_empty_summaries setting
 function sendMorningSummaryEmail() {
     // Check if morning summary is enabled
     if (getSetting('morning_summary_enabled', '1') !== '1') {
@@ -165,7 +165,16 @@ function sendMorningSummaryEmail() {
     $stmt->execute();
     $overdueReminders = $stmt->fetchAll();
 
-    // Always send email, even if no reminders
+    // Check if we should send empty summaries
+    $sendEmptyEnabled = getSetting('send_empty_summaries', '1') === '1';
+    $hasReminders = !empty($todayReminders) || !empty($overdueReminders);
+
+    // Only send if we have reminders OR if empty summaries are enabled
+    if (!$hasReminders && !$sendEmptyEnabled) {
+        echo "Morning summary skipped - no reminders and empty summaries disabled\n";
+        return false;
+    }
+
     $content = '<h2 style="color: #2c3e50; margin-bottom: 20px;">Good Morning! Here\'s your reminder summary:</h2>';
 
     // Statistics
@@ -243,7 +252,7 @@ function sendMorningSummaryEmail() {
     return sendEmail($email_config['to_email'], $subject, $htmlBody);
 }
 
-// Updated Evening progress email - sends alert even with no reminders
+// Updated Evening progress email - respects send_empty_summaries setting
 function sendEveningProgressEmail() {
     // Check if evening progress is enabled
     if (getSetting('evening_progress_enabled', '1') !== '1') {
@@ -277,7 +286,16 @@ function sendEveningProgressEmail() {
     $stmt->execute([$today]);
     $overdueReminders = $stmt->fetchAll();
 
-    // Always send email, even if no reminders
+    // Check if we should send empty summaries
+    $sendEmptyEnabled = getSetting('send_empty_summaries', '1') === '1';
+    $hasReminders = !empty($todayReminders) || !empty($overdueReminders);
+
+    // Only send if we have reminders OR if empty summaries are enabled
+    if (!$hasReminders && !$sendEmptyEnabled) {
+        echo "Evening progress skipped - no reminders and empty summaries disabled\n";
+        return false;
+    }
+
     $completedToday = array_filter($todayReminders, function($r) { return $r['is_completed']; });
     $incompleteToday = array_filter($todayReminders, function($r) { return !$r['is_completed']; });
 

@@ -77,7 +77,10 @@ $ajaxEndpoints = [
     'mark_all_tasks_read.php',
     'get-task-details.php',
     'update-task-acknowledgment.php',
-    'mark-writer-comments-read.php'
+    'mark-writer-comments-read.php',
+    'get_amount_due.php',
+    'notification_update.php',
+    'get_notification_counts.php'
 ];
 
 // Store current page for redirect (but not for login pages or AJAX endpoints)

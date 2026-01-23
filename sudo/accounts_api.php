@@ -162,11 +162,72 @@ function getSummary($db)
             $monthlyGrowth = $currentTotal > 0 ? 100 : 0; // 100% if we have current balance but no previous
         }
 
+        // Calculate monthly savings using latest available data - SIMPLIFIED
+        $savingsTypes = ['Savings', 'MMF', 'Sacco'];
+
+        // Get the latest month that has any savings data
+        $latestSavingsQuery = "SELECT MAX(bh.month_year) as latest_month
+            FROM balance_history bh
+            INNER JOIN accounts a ON bh.account_id = a.id
+            INNER JOIN account_types at ON a.account_type_id = at.id
+            WHERE a.status = 'Active' AND at.type_name IN ('Savings', 'MMF', 'Sacco')";
+
+        $latestSavingsStmt = $db->prepare($latestSavingsQuery);
+        $latestSavingsStmt->execute();
+        $latestSavingsResult = $latestSavingsStmt->fetch(PDO::FETCH_ASSOC);
+        $latestSavingsMonth = $latestSavingsResult['latest_month'];
+
+        if ($latestSavingsMonth) {
+            // Get the previous month that has savings data
+            $previousSavingsMonthQuery = "SELECT MAX(bh.month_year) as previous_month
+                FROM balance_history bh
+                INNER JOIN accounts a ON bh.account_id = a.id
+                INNER JOIN account_types at ON a.account_type_id = at.id
+                WHERE a.status = 'Active' AND at.type_name IN ('Savings', 'MMF', 'Sacco') 
+                AND bh.month_year < ?";
+
+            $previousSavingsMonthStmt = $db->prepare($previousSavingsMonthQuery);
+            $previousSavingsMonthStmt->execute([$latestSavingsMonth]);
+            $previousSavingsMonthResult = $previousSavingsMonthStmt->fetch(PDO::FETCH_ASSOC);
+            $previousSavingsMonth = $previousSavingsMonthResult['previous_month'];
+
+            // Get latest month savings total
+            $currentSavingsQuery = "SELECT COALESCE(SUM(bh.balance), 0) as savings_total
+                FROM balance_history bh
+                INNER JOIN accounts a ON bh.account_id = a.id
+                INNER JOIN account_types at ON a.account_type_id = at.id
+                WHERE bh.month_year = ? AND a.status = 'Active' AND at.type_name IN ('Savings', 'MMF', 'Sacco')";
+
+            $currentSavingsStmt = $db->prepare($currentSavingsQuery);
+            $currentSavingsStmt->execute([$latestSavingsMonth]);
+            $currentSavingsResult = $currentSavingsStmt->fetch(PDO::FETCH_ASSOC);
+            $currentSavingsTotal = floatval($currentSavingsResult['savings_total']);
+
+            $previousSavingsTotal = 0;
+            if ($previousSavingsMonth) {
+                $previousSavingsStmt = $db->prepare($currentSavingsQuery);
+                $previousSavingsStmt->execute([$previousSavingsMonth]);
+                $previousSavingsResult = $previousSavingsStmt->fetch(PDO::FETCH_ASSOC);
+                $previousSavingsTotal = floatval($previousSavingsResult['savings_total']);
+            }
+
+            $monthlySavings = $currentSavingsTotal - $previousSavingsTotal;
+            $savingsMonthDisplay = date('F Y', strtotime($latestSavingsMonth));
+
+        } else {
+            $monthlySavings = 0;
+            $savingsMonthDisplay = 'No Data';
+            $latestSavingsMonth = null;
+        }
+
         // Add calculated values to summary
         $summary['monthly_growth'] = round($monthlyGrowth, 2);
         $summary['current_month_total'] = $currentTotal;
         $summary['previous_month_total'] = $previousTotal;
         $summary['growth_amount'] = $currentTotal - $previousTotal;
+        $summary['monthly_savings'] = $monthlySavings;
+        $summary['savings_month_display'] = $savingsMonthDisplay;
+        $summary['latest_savings_month'] = $latestSavingsMonth;
 
         // Ensure all numeric values are properly formatted
         $summary['total_balance'] = floatval($summary['total_balance']);

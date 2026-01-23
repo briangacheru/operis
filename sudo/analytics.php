@@ -79,7 +79,7 @@ if (isset($_SESSION['alert'])) {
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script>
         const fetchDataAndRenderChart = (filter) => {
-            fetch(`chart-data.php?filter=${filter}`)
+            fetch(`chart-data?filter=${filter}`)
                 .then(response => response.json())
                 .then(data => {
                     // Custom sort logic based on the filter
@@ -104,11 +104,11 @@ if (isset($_SESSION['alert'])) {
                         }
                     });
                     //const reversedData = data.reverse();
-                    const categories = data.map(d => d.period);
-                    const income = data.map(d => parseFloat(d.income) || 0);
-                    const expenses = data.map(d => parseFloat(d.expenses) || 0);
-                    const savings = data.map(d => parseFloat(d.savings) || 0);
-                    const writer_payment = data.map(d => parseFloat(d.writer_payment) || 0);
+                    const categories = sortedData.map(d => d.period);
+                    const income = sortedData.map(d => parseFloat(d.income) || 0);
+                    const expenses = sortedData.map(d => parseFloat(d.expenses) || 0);
+                    const savings = sortedData.map(d => parseFloat(d.savings) || 0);
+                    const writer_payment = sortedData.map(d => parseFloat(d.writer_payment) || 0);
 
                     const options = {
                         chart: {
@@ -219,7 +219,7 @@ if (isset($_SESSION['alert'])) {
     </script>
     <script>
         const fetchAndRenderChartCost = (filter) => {
-            fetch(`transaction-cost-chart.php?filter=${filter}`)
+            fetch(`transaction-cost-chart?filter=${filter}`)
                 .then(response => response.json())
                 .then(data => {
                     const categories = data.categories; // Time periods

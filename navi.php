@@ -51,14 +51,43 @@
         border: 2px dashed #ff9900; /* Dashed border in warning color */
     }
 
-    .highlighted-link {
-        color: #007bff;
-        text-decoration: underline;
-        font-weight: bold;
-    }
-
     .highlighted-link:hover {
         color: #0056b3;
+    }
+
+    /* Fix for text overflow */
+    .task-description-content {
+        word-wrap: break-word;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
+        max-width: 100%;
+    }
+
+    /* Specific handling for URLs */
+    .highlighted-link {
+        word-break: break-all;
+        color: #0d6efd;
+        text-decoration: underline;
+        display: inline-block;
+        max-width: 100%;
+        line-height: 1.4;
+    }
+
+    /* Ensure the container doesn't overflow */
+    .card-body {
+        overflow-x: hidden;
+    }
+
+    /* Mobile-specific adjustments */
+    @media (max-width: 576px) {
+        .task-description-content {
+            font-size: 0.85rem;
+        }
+
+        .highlighted-link {
+            font-size: 0.8rem;
+        }
     }
 
     .file-list ul {
@@ -150,6 +179,27 @@
 
     .table-active {
         border-left: 4px solid #28a745 !important; /* Yellow left border */
+    }
+
+    #notificationToggle {
+        position: relative;
+    }
+
+    #notificationToggle:hover {
+        color: #0d6efd !important;
+    }
+
+    /* Notification permission indicator */
+    .notification-enabled::after {
+        content: '';
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 8px;
+        height: 8px;
+        background-color: #28a745;
+        border-radius: 50%;
+        border: 2px solid white;
     }
 </style>
 
@@ -863,23 +913,23 @@
             }
             } ?>
             <?php
-            $query = mysqli_query($con, "SELECT * FROM tblsettings WHERE id = 3");
+                $query = mysqli_query($con, "SELECT * FROM tblsettings WHERE id = 3");
 
-            if ($query && mysqli_num_rows($query) > 0) {
-                $row = mysqli_fetch_assoc($query);
-                $currentNotification = $row['description'];
+                if ($query && mysqli_num_rows($query) > 0) {
+                    $row = mysqli_fetch_assoc($query);
+                    $currentNotification = $row['description'];
 
-                if (isset($row['regStatus']) && $row['regStatus'] == 1) {
-                    ?>
-                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                        <strong>Notification!</strong> <?php echo htmlspecialchars($currentNotification, ENT_QUOTES, 'UTF-8'); ?>
-                        <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                    <?php
+                    if (isset($row['regStatus']) && $row['regStatus'] == 1) {
+                        ?>
+                        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                            <strong>Notification!</strong> <?php echo htmlspecialchars($currentNotification, ENT_QUOTES, 'UTF-8'); ?>
+                            <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        <?php
+                    }
+                } else {
+                    echo '<div class="alert alert-danger" role="alert">Error fetching notification settings.</div>';
                 }
-            } else {
-                echo '<div class="alert alert-danger" role="alert">Error fetching notification settings.</div>';
-            }
             ?>
 
             <!-- Alert for Unconfirmed Tasks -->
@@ -915,4 +965,411 @@
                 }
             }
             ?>
+
+
+            <script>
+                // Browser Notifications Handler
+                class NotificationManager {
+                    constructor() {
+                        this.previousCounts = {
+                            tasks: 0,
+                            messages: 0,
+                            comments: 0
+                        };
+                        this.initialized = false;
+                        this.checkInterval = null;
+
+                        this.init();
+                    }
+
+                    async init() {
+                        // Request notification permission
+                        if ('Notification' in window) {
+                            if (Notification.permission === 'default') {
+                                await Notification.requestPermission();
+                            }
+                        }
+
+                        await this.updateCounts(false);
+                        this.initialized = true;
+                        this.startPeriodicCheck();
+                    }
+
+                    async requestNotificationPermission() {
+                        if ('Notification' in window && Notification.permission === 'default') {
+                            const permission = await Notification.requestPermission();
+                            if (permission === 'granted') {
+                                this.updateNotificationIndicator();
+                            } else if (permission === 'denied') {
+                                alert('Notifications are blocked. Please enable them in your browser settings for this site.');
+                            }
+                            return permission;
+                        }
+                        return Notification.permission;
+                    }
+
+                    playNotificationSound() {
+                        try {
+                            const audio = new Audio('audio/task-notification.mp3');
+                            audio.volume = 0.7;
+                            audio.play().catch(() => {
+                                this.playFallbackSound();
+                            });
+                        } catch (error) {
+                            this.playFallbackSound();
+                        }
+                    }
+
+                    playFallbackSound() {
+                        try {
+                            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                            const oscillator = audioContext.createOscillator();
+                            const gainNode = audioContext.createGain();
+
+                            oscillator.connect(gainNode);
+                            gainNode.connect(audioContext.destination);
+
+                            oscillator.frequency.value = 800;
+                            oscillator.type = 'sine';
+
+                            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+                            oscillator.start(audioContext.currentTime);
+                            oscillator.stop(audioContext.currentTime + 0.5);
+                        } catch (error) {
+                            // Silent fallback - continue without sound
+                        }
+                    }
+
+                    updateNotificationIndicator() {
+                        const toggleBtn = document.getElementById('notificationToggle');
+                        if (toggleBtn) {
+                            const icon = toggleBtn.querySelector('span');
+                            if (Notification.permission === 'granted') {
+                                toggleBtn.classList.add('notification-enabled');
+                                toggleBtn.title = 'Browser Notifications Enabled';
+                                if (icon) {
+                                    icon.style.color = '#28a745';
+                                }
+                            } else {
+                                toggleBtn.classList.remove('notification-enabled');
+                                toggleBtn.title = 'Enable Browser Notifications';
+                                if (icon) {
+                                    icon.style.color = '';
+                                }
+                            }
+                        }
+                    }
+
+                    startPeriodicCheck() {
+                        if (this.checkInterval) {
+                            clearInterval(this.checkInterval);
+                        }
+                        this.checkInterval = setInterval(() => {
+                            this.updateCounts(true);
+                        }, 30000);
+                    }
+
+                    stopPeriodicCheck() {
+                        if (this.checkInterval) {
+                            clearInterval(this.checkInterval);
+                        }
+                    }
+
+                    async updateCounts(showNotifications = true) {
+                        try {
+                            const response = await fetch('get-notification-counts', {
+                                method: 'GET',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                }
+                            });
+
+                            if (!response.ok) {
+                                throw new Error('Failed to fetch notification counts');
+                            }
+
+                            const data = await response.json();
+
+                            if (this.initialized && showNotifications) {
+                                this.checkForNewNotifications(data);
+                            }
+
+                            this.previousCounts = {
+                                tasks: data.tasks,
+                                messages: data.messages,
+                                comments: data.comments
+                            };
+
+                        } catch (error) {
+                            console.error('Error updating notification counts:', error);
+                        }
+                    }
+
+                    checkForNewNotifications(newCounts) {
+                        if (newCounts.tasks > this.previousCounts.tasks) {
+                            const diff = newCounts.tasks - this.previousCounts.tasks;
+                            this.showNotification(
+                                `${diff} New Task${diff > 1 ? 's' : ''}`,
+                                diff === 1 ? 'You have a new task notification' : `You have ${diff} new task notifications`,
+                                'task',
+                                'tasks-in-progress'
+                            );
+                        }
+
+                        if (newCounts.messages > this.previousCounts.messages) {
+                            const diff = newCounts.messages - this.previousCounts.messages;
+                            this.showNotification(
+                                `${diff} New Message${diff > 1 ? 's' : ''}`,
+                                diff === 1 ? 'You have a new message' : `You have ${diff} new messages`,
+                                'message',
+                                'chat'
+                            );
+                        }
+
+                        if (newCounts.comments > this.previousCounts.comments) {
+                            const diff = newCounts.comments - this.previousCounts.comments;
+                            this.showNotification(
+                                `${diff} New Comment${diff > 1 ? 's' : ''}`,
+                                diff === 1 ? 'You have a new task comment from admin' : `You have ${diff} new comments from admin`,
+                                'comment',
+                                'all-comments'
+                            );
+                        }
+                    }
+
+                    showNotification(title, body, type = 'info', clickUrl = null) {
+                        if ('Notification' in window) {
+                            if (Notification.permission === 'granted') {
+                                try {
+                                    this.playNotificationSound();
+
+                                    const options = {
+                                        body: body,
+                                        icon: this.getIconForType(type),
+                                        badge: 'assets/img/icons/spot-illustrations/itasker.png',
+                                        tag: `${type}-${Date.now()}`,
+                                        renotify: true,
+                                        silent: false,
+                                        dir: 'ltr',
+                                        lang: 'en-US',
+                                        vibrate: [200, 100, 200]
+                                    };
+
+                                    const notification = new Notification(title, options);
+
+                                    notification.onclick = (event) => {
+                                        window.focus();
+                                        if (clickUrl) {
+                                            window.location.href = clickUrl;
+                                        }
+                                        notification.close();
+                                    };
+
+                                    setTimeout(() => {
+                                        if (notification) {
+                                            notification.close();
+                                        }
+                                    }, 60000);
+
+                                } catch (error) {
+                                    console.error('Failed to create notification:', error);
+                                }
+                            } else if (Notification.permission === 'default') {
+                                Notification.requestPermission().then(permission => {
+                                    if (permission === 'granted') {
+                                        this.showNotification(title, body, type, clickUrl);
+                                    }
+                                });
+                            }
+                        }
+                    }
+
+                    getIconForType(type) {
+                        const baseUrl = '../assets/img/icons/spot-illustrations/';
+                        switch (type) {
+                            case 'task':
+                                return baseUrl + 'task-icon.png';
+                            case 'message':
+                                return baseUrl + 'message-icon.png';
+                            case 'comment':
+                                return baseUrl + 'comment-icon.png';
+                            default:
+                                return baseUrl + 'itasker.png';
+                        }
+                    }
+
+                    handleVisibilityChange() {
+                        if (document.hidden) {
+                            this.startPeriodicCheck();
+                        } else {
+                            this.updateCounts(true);
+                        }
+                    }
+                }
+
+                // Initialize the notification manager
+                window.notificationManager = null;
+
+                document.addEventListener('DOMContentLoaded', function() {
+                    try {
+                        window.notificationManager = new NotificationManager();
+                    } catch (error) {
+                        console.error('Failed to initialize NotificationManager:', error);
+                    }
+
+                    document.addEventListener('visibilitychange', () => {
+                        if (window.notificationManager) {
+                            window.notificationManager.handleVisibilityChange();
+                        }
+                    });
+
+                    // Add notification toggle button
+                    const navbar = document.querySelector('.navbar-nav.ms-auto');
+                    if (navbar) {
+                        const notificationToggle = document.createElement('li');
+                        notificationToggle.className = 'nav-item';
+                        notificationToggle.innerHTML = `
+                <a class="nav-link px-2" href="#" id="notificationToggle" title="Enable Browser Notifications">
+                    <span class="fas fa-desktop" style="font-size: 20px;"></span>
+                </a>
+            `;
+                        navbar.insertBefore(notificationToggle, navbar.firstChild);
+
+                        setTimeout(() => {
+                            if (window.notificationManager) {
+                                window.notificationManager.updateNotificationIndicator();
+                            }
+                        }, 500);
+
+                        document.getElementById('notificationToggle').addEventListener('click', (e) => {
+                            e.preventDefault();
+                            if (window.notificationManager) {
+                                if (Notification.permission !== 'granted') {
+                                    window.notificationManager.requestNotificationPermission();
+                                }
+                            }
+                        });
+                    }
+                });
+
+                window.addEventListener('beforeunload', () => {
+                    if (window.notificationManager) {
+                        window.notificationManager.stopPeriodicCheck();
+                    }
+                });
+            </script>
+
+            <script>
+                class NotificationUpdater {
+                    constructor(updateInterval = 15000) { // Update every 15 seconds
+                        this.updateInterval = updateInterval;
+                        this.isRunning = false;
+                    }
+
+                    start() {
+                        if (this.isRunning) return;
+                        this.isRunning = true;
+                        this.updateNotifications();
+                        this.intervalId = setInterval(() => {
+                            this.updateNotifications();
+                        }, this.updateInterval);
+                    }
+
+                    stop() {
+                        if (this.intervalId) {
+                            clearInterval(this.intervalId);
+                            this.isRunning = false;
+                        }
+                    }
+
+                    async updateNotifications() {
+                        try {
+                            const response = await fetch('get-notification-counts', {
+                                method: 'GET',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                }
+                            });
+
+                            if (!response.ok) throw new Error('Network response was not ok');
+
+                            const data = await response.json();
+
+                            // Update task notifications
+                            this.updateCounter('navbarDropdownTasks', data.tasks);
+
+                            // Update message notifications
+                            this.updateCounter('navbarDropdownNotification', data.messages);
+
+                            // Update comment notifications
+                            this.updateCounter('navbarDropdownComments', data.comments);
+
+                        } catch (error) {
+                            console.error('Error updating notifications:', error);
+                        }
+                    }
+
+                    updateCounter(elementId, count) {
+                        const notificationLink = document.getElementById(elementId);
+                        if (!notificationLink) return;
+
+                        const counterElement = notificationLink.querySelector('.notification-indicator-number');
+
+                        if (count > 0) {
+                            if (counterElement) {
+                                counterElement.textContent = count;
+                            } else {
+                                // Create counter if it doesn't exist
+                                const newCounter = document.createElement('span');
+                                newCounter.className = 'notification-indicator-number';
+                                newCounter.textContent = count;
+                                notificationLink.appendChild(newCounter);
+                            }
+                        } else {
+                            // Remove counter if count is 0
+                            if (counterElement) {
+                                counterElement.remove();
+                            }
+                        }
+                    }
+                }
+
+                // Initialize the updater when page loads
+                document.addEventListener('DOMContentLoaded', function() {
+                    const notificationUpdater = new NotificationUpdater(15000); // 15 seconds
+                    notificationUpdater.start();
+
+                    // Optional: Update more frequently when user is active
+                    let userActive = true;
+                    let inactiveTimer;
+
+                    function setUserInactive() {
+                        userActive = false;
+                        notificationUpdater.stop();
+                        // Start with longer interval when inactive (2 minutes)
+                        notificationUpdater.updateInterval = 120000;
+                        notificationUpdater.start();
+                    }
+
+                    function setUserActive() {
+                        if (!userActive) {
+                            userActive = true;
+                            notificationUpdater.stop();
+                            // Shorter interval when active (15 seconds)
+                            notificationUpdater.updateInterval = 15000;
+                            notificationUpdater.start();
+                        }
+                        clearTimeout(inactiveTimer);
+                        inactiveTimer = setTimeout(setUserInactive, 300000); // 5 minutes
+                    }
+
+                    // Track user activity
+                    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+                        document.addEventListener(event, setUserActive, true);
+                    });
+                });
+            </script>
+
 

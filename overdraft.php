@@ -10,7 +10,7 @@
         <div class="card-header z-1">
             <div class="row flex-between-center gx-0">
                 <div class="col-lg-auto d-flex align-items-center">
-                    <h4 class="mb-0 text-primary fw-bold">Overdraft <span class="text-info fw-medium"> Records</span></h4>
+                    <h4 class="mb-0 text-primary fw-bold">Overdraft & Bonus <span class="text-info fw-medium"> Records</span></h4>
                 </div>
                 <div class="col-lg-auto pt-3 pt-lg-0">
                     <form class="row flex-lg-column flex-xxl-row gx-3 gy-2 align-items-center align-items-lg-start align-items-xxl-center">
@@ -24,142 +24,195 @@
             </div>
         </div>
     </div>
-    <!--<div class="alert alert-success border-0 d-flex align-items-center" role="alert">
-        <div class="bg-success me-3 icon-item"><span class="fas fa-check-circle text-white fs-6"></span></div>
-        <p class="mb-0 flex-1">A simple success alert—check it out!</p>
-        <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>-->
 
-    <?php
-    if (isset($_SESSION['alert'])) {
-        echo $_SESSION['alert'];
-        unset($_SESSION['alert']); // Clear the alert message
-    }
-    ?>
-    <div class="card mb-3">
-        <div class="card-header">
-            <div class="row flex-between-end">
-                <div class="col-auto align-self-center">
-                    <h5 class="mb-0" data-anchor="data-anchor" id="readonly-plain-text">Overdraft Computation<a class="anchorjs-link " aria-label="Anchor" data-anchorjs-icon="#" href="#readonly-plain-text" style="margin-left: 0.1875em; padding-right: 0.1875em; padding-left: 0.1875em;"></a></h5>
-<!--                    <p class="mb-0 pt-1 mt-2 mb-0">If you want to have <code>input readonly</code> elements in your form styled as plain text, use the <code>.form-control-plaintext</code> class to remove the default form field styling and preserve the correct margin and padding.</p>-->
-                </div>
-            </div>
-        </div>
-        <div class="card-body bg-body-tertiary">
-            <div class="tab-content">
-                <div class="tab-pane preview-tab-pane active show" role="tabpanel" aria-labelledby="tab-dom-d44a7604-3161-4788-b15b-1099097428d5" id="dom-d44a7604-3161-4788-b15b-1099097428d5">
-                    <form method="post" id="overdraftFormView">
-                        <div class="mb-3 row">
-                            <label class="col-sm-3 col-form-label" for="staticEmail">Select Writer</label>
-                            <div class="col-sm-9">
-                                <select name='writer' id='writer' class='form-select' onchange='updateFormFields(this.value);'>
-                                    <option value='' selected disabled>Select Writer</option>
-                                    <?php
-                                    $query = "SELECT id, username, email FROM tblwriters WHERE is_deleted = 0 AND email = '$aid' ORDER BY username DESC";
-                                    $result = mysqli_query($con, $query);
-                                    if(mysqli_num_rows($result) > 0) {
-                                        while ($row = mysqli_fetch_assoc($result)) {
-                                            $displayText = htmlspecialchars($row['username'], ENT_QUOTES, 'UTF-8') . " | " . htmlspecialchars($row['email'], ENT_QUOTES, 'UTF-8');
-                                            echo "<option value='" . $row['username'] . "'>" . $displayText . "</option>";
-                                        }
-                                    } else {
-                                        echo "<p>No writers found.</p>";
-                                    }
-                                    ?>
-                                </select>
+<?php
+if (isset($_SESSION['alert'])) {
+    echo $_SESSION['alert'];
+    unset($_SESSION['alert']); // Clear the alert message
+}
+?>
+    <div class="card-body mb-3 bg-body-tertiary">
+        <div class="tab-content">
+            <div class="tab-pane preview-tab-pane active show" role="tabpanel">
+                <form method="post" id="overdraftFormView">
+                    <?php
+                    if (isset($_SESSION['sessionWriter'])) {
+                        $email = $_SESSION['sessionWriter'];
+
+                        // Get writer name from email
+                        $writer_query = "SELECT username FROM tblwriters WHERE email = ? AND is_deleted = 0";
+                        $writer_stmt = mysqli_prepare($con, $writer_query);
+                        mysqli_stmt_bind_param($writer_stmt, "s", $email);
+                        mysqli_stmt_execute($writer_stmt);
+                        $writer_result = mysqli_stmt_get_result($writer_stmt);
+                        $writer_data = mysqli_fetch_assoc($writer_result);
+                        $writer_name = $writer_data['username'] ?? '';
+
+                        // Auto-load financial data for the current writer
+                        if (!empty($writer_name)) {
+                            // Get completed tasks total
+                            $tasks_query = "SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE writer = ? AND is_deleted = 0 AND is_paid = 0 AND status = 'Completed'";
+                            $tasks_stmt = mysqli_prepare($con, $tasks_query);
+                            mysqli_stmt_bind_param($tasks_stmt, "s", $writer_name);
+                            mysqli_stmt_execute($tasks_stmt);
+                            $tasks_result = mysqli_stmt_get_result($tasks_stmt);
+                            $tasks_row = mysqli_fetch_assoc($tasks_result);
+                            $total_tasks = (float) ($tasks_row['total'] ?? 0);
+
+                            // Get total overdrafts (excluding bonuses)
+                            $overdraft_query = "SELECT SUM(amount) AS total FROM tbloverdrafts WHERE writer = ? AND is_settled = 0 AND is_deleted = 0 AND (record_type IS NULL OR record_type = 'overdraft')";
+                            $overdraft_stmt = mysqli_prepare($con, $overdraft_query);
+                            mysqli_stmt_bind_param($overdraft_stmt, "s", $writer_name);
+                            mysqli_stmt_execute($overdraft_stmt);
+                            $overdraft_result = mysqli_stmt_get_result($overdraft_stmt);
+                            $overdraft_row = mysqli_fetch_assoc($overdraft_result);
+                            $total_overdrafts = (float) ($overdraft_row['total'] ?? 0);
+
+                            // Get total bonuses
+                            $bonus_query = "SELECT SUM(amount) AS total FROM tbloverdrafts WHERE writer = ? AND is_settled = 0 AND is_deleted = 0 AND record_type = 'bonus'";
+                            $bonus_stmt = mysqli_prepare($con, $bonus_query);
+                            mysqli_stmt_bind_param($bonus_stmt, "s", $writer_name);
+                            mysqli_stmt_execute($bonus_stmt);
+                            $bonus_result = mysqli_stmt_get_result($bonus_stmt);
+                            $bonus_row = mysqli_fetch_assoc($bonus_result);
+                            $total_bonuses = (float) ($bonus_row['total'] ?? 0);
+
+                            $amount_due = $total_tasks + $total_bonuses  - $total_overdrafts;
+                        } else {
+                            $total_tasks = 0;
+                            $total_overdrafts = 0;
+                            $total_bonuses = 0;
+                            $amount_due = 0;
+                        }
+                    } else {
+                        // Session not set
+                        $total_tasks = 0;
+                        $total_overdrafts = 0;
+                        $total_bonuses = 0;
+                        $amount_due = 0;
+                        $writer_name = '';
+                        $email = '';
+                    }
+                    ?>
+
+                    <div class="row ms-2">
+                        <div class="col-md-6">
+                            <div class="mb-3 row">
+                                <label class="col-sm-6 col-form-label fw-bold">Unpaid Tasks Total:</label>
+                                <div class="col-sm-6">
+                                    <div class="form-control-plaintext fw-bold text-success">Ksh. <?php echo number_format($total_tasks, 2); ?></div>
+                                </div>
+                            </div>
+                            <div class="mb-3 row">
+                                <label class="col-sm-6 col-form-label fw-bold">Total Overdrafts:</label>
+                                <div class="col-sm-6">
+                                    <div class="form-control-plaintext fw-bold text-warning">Ksh. <?php echo number_format($total_overdrafts, 2); ?></div>
+                                </div>
                             </div>
                         </div>
-                        <div class="mb-3 row">
-                            <label class="col-sm-3 col-form-label" for="tasks_total">Unpaid Tasks total</label>
-                            <div class="col-sm-9">
-                                <input type="number" name="tasks_total" class="form-control" id="tasks_total" readonly>
+                        <div class="col-md-6">
+                            <div class="mb-3 row">
+                                <label class="col-sm-6 col-form-label fw-bold">Total Bonuses:</label>
+                                <div class="col-sm-6">
+                                    <div class="form-control-plaintext fw-bold text-info">Ksh. <?php echo number_format($total_bonuses, 2); ?></div>
+                                </div>
+                            </div>
+                            <div class="mb-3 row">
+                                <label class="col-sm-6 col-form-label fw-bold">Amount Due:</label>
+                                <div class="col-sm-6">
+                                    <div class="form-control-plaintext fw-bold <?php echo ($amount_due >= 0) ? 'text-success' : 'text-danger'; ?>">Ksh. <?php echo number_format($amount_due, 2); ?></div>
+                                    <small class="text-muted">Unpaid Tasks + Bonuses - Overdrafts</small>
+                                </div>
                             </div>
                         </div>
-                        <div class="mb-3 row">
-                            <label class="col-sm-3 col-form-label" for="overdraft_total">Total Overdraft</label>
-                            <div class="col-sm-9">
-                                <input type="number" name="overdraft_total" class="form-control" id="overdraft_total" readonly>
-                            </div>
-                        </div>
-                        <div class="mb-3 row">
-                            <label class="col-sm-3 col-form-label" for="amount_due">Amount Due</label>
-                            <div class="col-sm-9">
-                                <input type="number" name="amount_due" class="form-control" id="amount_due" readonly>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
-    <div class="row  g-3 mb-3">
+    <div class="row g-3 mb-3">
         <div class="col">
             <div class="card mb-3">
                 <div class="card-body p-0">
                     <div class="tab-content">
-                        <div class="tab-pane preview-tab-pane active" role="tabpanel" aria-labelledby="tab-dom-41cf422d-2a1d-40e2-b92a-ceac8cdfaca0" id="dom-41cf422d-2a1d-40e2-b92a-ceac8cdfaca0">
+                        <div class="tab-pane preview-tab-pane active" role="tabpanel">
                             <div class="card shadow-none">
                                 <form id="tasksForm" method="post">
-                                <div class="card-header">
-                                    <div class="row flex-between-center">
-                                        <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
-                                            <h5>Overdraft History</h5>
-                                        </div>
-                                        <div class="col-6 col-sm-auto ms-auto text-end ps-0">
-                                            <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
-<!--                                                <button class="btn btn-falcon-default btn-sm mx-2" type="button"><span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Filter</span></button>-->
-                                                <button class="btn btn-falcon-primary btn-sm" onclick="exportTableToCSVWithConfirmation('overdrafts.csv')"  data-bs-toggle="tooltip" data-bs-placement="top" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
+                                    <div class="card-header">
+                                        <div class="row flex-between-center">
+                                            <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
+                                                <div class="btn-group ms-3" role="group">
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="filter-all" onclick="filterRecords('all')">All</button>
+                                                    <button type="button" class="btn btn-outline-warning btn-sm" id="filter-overdraft" onclick="filterRecords('overdraft')">Overdrafts</button>
+                                                    <button type="button" class="btn btn-outline-info btn-sm" id="filter-bonus" onclick="filterRecords('bonus')">Bonuses</button>
+                                                </div>
+                                            </div>
+                                            <div class="col-6 col-sm-auto ms-auto text-end ps-0">
+                                                <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
+                                                    <button class="btn btn-falcon-primary btn-sm" onclick="exportTableToCSVWithConfirmation('financial_records.csv')" data-bs-toggle="tooltip" data-bs-placement="top" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
                                     <div class="card-body px-0 pt-0">
                                         <table class="table table-sm mb-0 overflow-hidden data-table fs-10" data-datatables="data-datatables">
                                             <thead class="bg-200">
                                             <tr>
-                                                <th class='text-900 no-sort white-space-nowrap d-none'>
-                                                    <div class='form-check mb-0 d-flex align-items-center'>
-                                                        <input class='form-check-input' id='checkbox-select-all'
-                                                               type='checkbox' onclick='selectAllTasks(this)'
-                                                               data-bulk-select='{"body":"table-simple-pagination-body","actions":"table-simple-pagination-actions","replacedElement":"table-simple-pagination-replace-element"}'/>
+                                                <th class="text-900 no-sort white-space-nowrap d-none">
+                                                    <div class="form-check mb-0 d-flex align-items-center">
+                                                        <input class="form-check-input" id="checkbox-select-all" type="checkbox" onclick="selectAllTasks(this)" data-bulk-select='{"body":"table-simple-pagination-body","actions":"table-simple-pagination-actions","replacedElement":"table-simple-pagination-replace-element"}' />
                                                     </div>
                                                 </th>
+                                                <th class="text-900 sort pe-1 align-middle white-space-nowrap ps-4">Type</th>
                                                 <th class="text-900 sort pe-1 align-middle white-space-nowrap"><span class="ms-3">Amount (Ksh)</span></th>
-                                                <th class="text-900 sort pe-1 align-middle white-space-nowrap">Date</th>
-                                                <th class="text-900 no-sort pe-1 align-middle data-table-row-action"></th>
+                                                <th class="text-900 sort pe-1 align-middle white-space-nowrap">Description</th>
+                                                <th class="text-900 sort pe-1 align-middle white-space-nowrap">Transaction Date</th>
+                                                <th class="text-900 sort pe-1 align-middle white-space-nowrap">Status</th>
                                             </tr>
                                             </thead>
                                             <tbody class="list" id="table-simple-pagination-body">
                                             <?php
-                                            $query = mysqli_query($con, "SELECT * FROM tbloverdrafts WHERE is_settled = 0 AND is_deleted = 0 AND email = '$aid' ORDER BY created_at DESC");
+                                            if (isset($_SESSION['sessionWriter'])) {
+                                                $email = $_SESSION['sessionWriter'];
+                                                    $query = mysqli_query($con, "SELECT * FROM tbloverdrafts WHERE is_settled = 0 AND is_deleted = 0 AND email = '$email' ORDER BY od_date DESC");
+                                                        } else {
+                                                            $query = false;
+                                                        }
                                             $cnt = 1;
+                                            if ($query && mysqli_num_rows($query) > 0) {
                                             while ($row = mysqli_fetch_array($query)) {
-                                                $encodedId = base64_encode($row["id"]); // Encode the id
+                                                $encodedId = base64_encode($row["id"]);
+                                                $recordType = isset($row["record_type"]) && !empty($row["record_type"]) ? $row["record_type"] : 'overdraft';
+                                                $badgeClass = ($recordType === 'bonus') ? 'badge-subtle-info' : 'badge-subtle-warning';
+                                                $typeDisplay = ($recordType === 'bonus') ? 'Bonus' : 'Overdraft';
+                                                $amountClass = ($recordType === 'bonus') ? 'text-info' : 'text-warning';
                                                 ?>
-                                                <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100">
-                                                    <td class='align-middle d-none' style='width: 28px;'>
-                                                        <div class='form-check mb-0'>
-                                                            <input class='form-check-input' type='checkbox'
-                                                                   id="simple-pagination-item-<?php echo $cnt; ?>"
-                                                                   data-bulk-select-row='data-bulk-select-row'
-                                                                   value="<?php echo $row['id']; ?>" name='taskIds[]'/>
+                                                <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100 record-row" data-record-type="<?php echo $recordType; ?>">
+                                                    <td class="align-middle d-none" style="width: 28px;">
+                                                        <div class="form-check mb-0">
+                                                            <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]" />
                                                         </div>
                                                     </td>
-                                                    <td class="align-middle white-space-nowrap fw-semi-bold text-900"><span class="ms-3"><?php echo $row['amount']; ?></span></td>
-                                                    <td class="align-middle white-space-nowrap payment text-900"><?php echo date("jS M, Y h:i A", strtotime($row['od_date'])); ?></td>
-                                                    <td class="align-middle white-space-nowrap text-end position-relative">
-                                                        <div class="hover-actions bg-100">
-                                                            <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal" data-bs-target="#overdraft-view-modal" data-bs-toggle="tooltip" data-bs-placement="top" title="View Overdraft" data-id="<?php echo $row['id']; ?>" data-writer="<?php echo $row['writer']; ?>" data-amount="<?php echo $row['amount']; ?>" data-date="<?php echo $row['od_date']; ?>"><span class="far fa-eye"></span></a>
-                                                        </div>
-                                                        <div class="dropdown font-sans-serif btn-reveal-trigger">
-                                                            <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal-sm transition-none" type="button" id="crm-recent-leads-4" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-chevron-left fs-11"></span></button>
-                                                        </div>
+                                                    <td class="align-middle white-space-nowrap ps-4">
+                                                        <span class="badge <?php echo $badgeClass; ?> rounded-pill"><?php echo $typeDisplay; ?></span>
+                                                    </td>
+                                                    <td class="align-middle white-space-nowrap fw-semi-bold <?php echo $amountClass; ?>">
+                                                        <span class="ms-3"><?php echo number_format($row['amount'], 2); ?></span>
+                                                    </td>
+                                                    <td class="align-middle white-space-nowrap text-900"><?php echo htmlspecialchars($row['description']); ?></td>
+                                                    <td class="align-middle white-space-nowrap text-900"><?php echo date("jS M, Y h:i A", strtotime($row['od_date'])); ?></td>
+                                                    <td class="align-middle white-space-nowrap">
+                                                        <?php if ($recordType === 'bonus'): ?>
+                                                            <span class="badge badge-subtle-info rounded-pill">Credited</span>
+                                                        <?php else: ?>
+                                                            <span class="badge badge-subtle-warning rounded-pill">Active</span>
+                                                        <?php endif; ?>
                                                     </td>
                                                 </tr>
                                                 <?php
                                                 $cnt = $cnt + 1;
-                                            }
+                                            }}
                                             ?>
                                             </tbody>
                                         </table>
@@ -174,6 +227,11 @@
     </div>
 
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default filter to show all records
+            filterRecords('all');
+        });
+
         function clearForm() {
             document.getElementById('overdraftForm').reset();
         }
@@ -192,10 +250,16 @@
                 var row = [], cols = rows[i].querySelectorAll("td, th");
 
                 for (var j = 0; j < cols.length; j++) {
-                    row.push(cols[j].innerText);
+                    // Skip hidden columns and clean up the text
+                    var cellText = cols[j].innerText.trim();
+                    if (cellText !== '') {
+                        row.push('"' + cellText.replace(/"/g, '""') + '"');
+                    }
                 }
 
-                csv.push(row.join(","));
+                if (row.length > 0) {
+                    csv.push(row.join(","));
+                }
             }
 
             // Download CSV
@@ -221,26 +285,32 @@
             downloadLink.click();
         }
 
-        // View Overdraft Modal data population
-        document.addEventListener('DOMContentLoaded', function() {
-            const overdraftModal = document.getElementById('overdraft-view-modal');
+        function filterRecords(type) {
+            const rows = document.querySelectorAll('.record-row');
+            const filterButtons = document.querySelectorAll('[id^="filter-"]');
 
-            overdraftModal.addEventListener('show.bs.modal', function (event) {
-                const button = event.relatedTarget; // Button that triggered the modal
-
-                // Extract data from data-* attributes
-                const id = button.getAttribute('data-id');
-                const writer = button.getAttribute('data-writer');
-                const amount = button.getAttribute('data-amount');
-                const date = button.getAttribute('data-date');
-
-                // Update modal form fields
-                document.getElementById('overdraft-id').value = id;
-                document.getElementById('modal-auth-name').value = writer;
-                document.getElementById('modal-auth-amount').value = amount;
-                document.getElementById('modal-auth-date').value = date;
+            // Update button states
+            filterButtons.forEach(btn => {
+                btn.classList.remove('btn-outline-warning', 'btn-outline-info', 'btn-outline-secondary', 'btn-warning', 'btn-info', 'btn-secondary');
+                if (btn.id === `filter-${type}`) {
+                    if (type === 'all') btn.classList.add('btn-secondary');
+                    else if (type === 'overdraft') btn.classList.add('btn-warning');
+                    else if (type === 'bonus') btn.classList.add('btn-info');
+                } else {
+                    btn.classList.add('btn-outline-secondary');
+                }
             });
-        });
+
+            // Show/hide rows based on filter
+            rows.forEach(row => {
+                const recordType = row.getAttribute('data-record-type');
+                if (type === 'all' || recordType === type) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
     </script>
 <?php
 include "footer.php";

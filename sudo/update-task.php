@@ -70,15 +70,16 @@ if ($_POST['action'] == 'submitForm') {
     $cpp = mysqli_real_escape_string($con, $_POST['cpp']);
     $pages = mysqli_real_escape_string($con, $_POST['pages']);
     $is_confirmed = mysqli_real_escape_string($con, $_POST['is_confirmed']);
+    $publish = mysqli_real_escape_string($con, $_POST['publish']);
     $admin_acknowledged = mysqli_real_escape_string($con, $_POST['admin_acknowledged']);
     $acknowledged = mysqli_real_escape_string($con, $_POST['acknowledged']);
     $sendEmail = isset($_POST['sendEmail']) ? mysqli_real_escape_string($con, $_POST['sendEmail']) : '0';
 
     // Update the main task record (without file columns)
-    $sql = 'UPDATE tbltasks SET topic=?, subject=?, account=?, description=?, writer=?, email=?, status=?, due_date=?, cpp=?, pages=?, is_confirmed=?, admin_acknowledged=?, acknowledged=? WHERE id=?';
+    $sql = 'UPDATE tbltasks SET topic=?, subject=?, account=?, description=?, writer=?, email=?, status=?, due_date=?, cpp=?, pages=?, is_confirmed=?, publish =?, admin_acknowledged=?, acknowledged=? WHERE id=?';
 
     if ($stmt = mysqli_prepare($con, $sql)) {
-        mysqli_stmt_bind_param($stmt, 'ssssssssssiiii', $topic, $subject, $account, $description, $writer, $writerEmail, $status, $due_date, $cpp, $pages, $is_confirmed, $admin_acknowledged, $acknowledged, $taskId);
+        mysqli_stmt_bind_param($stmt, 'ssssssssssiiiii', $topic, $subject, $account, $description, $writer, $writerEmail, $status, $due_date, $cpp, $pages, $is_confirmed, $publish, $admin_acknowledged, $acknowledged, $taskId);
 
         if (mysqli_stmt_execute($stmt)) {
             if (mysqli_stmt_affected_rows($stmt) >= 0) { // Changed to >= 0 to handle cases where no changes were made
@@ -144,40 +145,58 @@ if ($_POST['action'] == 'submitForm') {
                         $mail->addAddress($writerEmail);
                         $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin');
 
-                        // Attach new files only
+                        // Handle attachments
                         $tempFiles = [];
                         if (!empty($uploadedFiles)) {
                             foreach ($uploadedFiles as $fileData) {
-                                $tempFile = tempnam(sys_get_temp_dir(), 'email_attachment_');
-                                $tempFiles[] = $tempFile;
+                                try {
+                                    // Create temp directory if it doesn't exist
+                                    $tempDir = sys_get_temp_dir();
+                                    if (empty($tempDir) || !is_writable($tempDir)) {
+                                        $tempDir = dirname(__FILE__) . '/temp';
+                                        if (!is_dir($tempDir)) {
+                                            mkdir($tempDir, 0755, true);
+                                        }
+                                    }
 
-                                // URL encode to handle spaces and special characters
-                                $encodedUrl = str_replace(' ', '%20', $fileData['fileUrl']);
+                                    // Generate unique temp file path
+                                    $tempFile = $tempDir . '/' . uniqid('email_attachment_') . '_' . basename($fileData['fileName']);
 
-                                $ch = curl_init($encodedUrl);
-                                $fp = fopen($tempFile, 'wb');
+                                    // URL encode to handle spaces and special characters
+                                    $encodedUrl = str_replace(' ', '%20', $fileData['fileUrl']);
 
-                                if ($fp === false) {
-                                    error_log("Failed to open temp file: $tempFile");
-                                    continue;
+                                    $ch = curl_init($encodedUrl);
+                                    $fp = fopen($tempFile, 'wb');
+
+                                    if ($fp !== false) {
+                                        curl_setopt($ch, CURLOPT_FILE, $fp);
+                                        curl_setopt($ch, CURLOPT_HEADER, 0);
+                                        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                                        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                                        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+
+                                        $success = curl_exec($ch);
+                                        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+                                        fclose($fp);
+                                        curl_close($ch);
+
+                                        if ($success !== false && $httpCode == 200 && file_exists($tempFile) && filesize($tempFile) > 0) {
+                                            $mail->addAttachment($tempFile, $fileData['fileName']);
+                                            $tempFiles[] = $tempFile;
+                                        } else {
+                                            error_log('cURL error or empty file: ' . curl_error($ch) . ' for URL: ' . $encodedUrl . ' HTTP Code: ' . $httpCode);
+                                            // Clean up failed temp file
+                                            if (file_exists($tempFile)) {
+                                                @unlink($tempFile);
+                                            }
+                                        }
+                                    } else {
+                                        error_log("Failed to open temp file: $tempFile");
+                                    }
+                                } catch (Exception $e) {
+                                    error_log("Error processing attachment: " . $e->getMessage());
                                 }
-
-                                curl_setopt($ch, CURLOPT_FILE, $fp);
-                                curl_setopt($ch, CURLOPT_HEADER, 0);
-                                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-                                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                                curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-
-                                $success = curl_exec($ch);
-
-                                if ($success === false) {
-                                    error_log('cURL error: ' . curl_error($ch) . ' for URL: ' . $encodedUrl);
-                                } else {
-                                    $mail->addAttachment($tempFile, $fileData['fileName']);
-                                }
-
-                                curl_close($ch);
-                                fclose($fp);
                             }
                         }
 

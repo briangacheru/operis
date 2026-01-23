@@ -138,16 +138,26 @@ if (isset($_GET['del'])) {
                                                 $is_confirmed = $row['is_confirmed']; // Assuming 'is_confirmed' is the column name in your database
 
                                                 if ($is_confirmed == 0) {
-                                                    $confirmationClass = 'bg-light';
+                                                    $confirmationClass = 'badge-subtle-light';
                                                     $confirmationText = 'Confirmed';
                                                 } elseif ($is_confirmed == 1) {
-                                                    $confirmationClass = 'bg-primary';
+                                                    $confirmationClass = 'badge-subtle-primary';
                                                     $confirmationText = 'Unconfirmed';
                                                 } elseif ($is_confirmed == 2) {
-                                                    $confirmationClass = 'bg-danger';
+                                                    $confirmationClass = 'badge-subtle-danger';
                                                     $confirmationText = 'Declined';
                                                 }
-                                                $confirmation = "<span class='badge badge rounded-pill $confirmationClass'>$confirmationText</span>";
+                                                $confirmation = "<span class='badge rounded-pill $confirmationClass'>$confirmationText</span>";
+
+                                                $publish = $row['publish'];
+                                                $publishClass = 'badge-subtle-success';
+                                                $publishText = 'Published';
+
+                                                if ($publish == 0 || $publish == false || empty($publish)) {
+                                                    $publishClass = 'badge-subtle-secondary';
+                                                    $publishText = 'Unpublished';
+                                                }
+                                                $published = "<span class='badge rounded-pill $publishClass'>$publishText</span>";
                                                 ?>
                                         <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100">
                                             <td class="align-middle" style="width: 28px;">
@@ -168,6 +178,9 @@ if (isset($_GET['del'])) {
                                             <?php if ($is_confirmed != 0): ?>
                                                 <?php echo $confirmation;?>
                                             <?php endif; ?>
+                                                <?php if ($publish != 1): ?>
+                                                    <?php echo $published;?>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="align-middle white-space-nowrap text-900">
                                                 <h6 class="mb-1 fw-semi-bold text-nowrap"><?php echo $row["account"];?></h6>

@@ -1,39 +1,73 @@
 <?php
-include "check-login.php"; // Include your database connection file
+session_start();
+include "dbcon.php";
+header('Content-Type: application/json');
 
-if (isset($_GET['user_id'])) {
-    $userId = intval($_GET['user_id']);
-    $currentUserEmail = $_SESSION['odmsaid'];
+// Validate input
+if (!isset($_GET['user_id'])) {
+    echo json_encode(['status' => 'error', 'message' => 'User ID is required']);
+    exit();
+}
 
-    // Fetch the current user ID based on the email
-    $currentUserIdQuery = mysqli_prepare($con, "
-        SELECT id FROM tbladmin WHERE email = ?
+$userId = filter_var($_GET['user_id'], FILTER_VALIDATE_INT);
+
+if ($userId === false || $userId <= 0) {
+    echo json_encode(['status' => 'error', 'message' => 'Invalid user ID']);
+    exit();
+}
+
+// Check authentication
+if (!isset($_SESSION['odmsaid']) || empty($_SESSION['odmsaid'])) {
+    echo json_encode(['status' => 'error', 'message' => 'Not authenticated']);
+    exit();
+}
+
+$currentUserEmail = $_SESSION['odmsaid'];
+
+try {
+    // Get current user ID
+    $escapedEmail = mysqli_real_escape_string($con, $currentUserEmail);
+    $currentUserQuery = mysqli_query($con, "
+        SELECT id FROM tbladmin WHERE email = '$escapedEmail'
         UNION
-        SELECT id FROM tblwriters WHERE email = ?
+        SELECT id FROM tblwriters WHERE email = '$escapedEmail'
     ");
-    mysqli_stmt_bind_param($currentUserIdQuery, 'ss', $currentUserEmail, $currentUserEmail);
-    mysqli_stmt_execute($currentUserIdQuery);
-    $result = mysqli_stmt_get_result($currentUserIdQuery);
-    $currentUser = mysqli_fetch_assoc($result);
 
-    if ($currentUser) {
-        $currentUserId = $currentUser['id'];
-
-        // Update is_read status for messages where the current user is the receiver
-        $updateQuery = mysqli_prepare($con, "
-            UPDATE chat_messages SET is_read = 1 WHERE receiver_id = ? AND sender_id = ? AND is_read = 0
-        ");
-        mysqli_stmt_bind_param($updateQuery, 'ii', $currentUserId, $userId);
-
-        if (mysqli_stmt_execute($updateQuery)) {
-            echo json_encode(['status' => 'success']);
-        } else {
-            echo json_encode(['status' => 'error', 'message' => 'Failed to update read status.']);
-        }
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'User not found.']);
+    if (!$currentUserQuery) {
+        throw new Exception('Database query failed: ' . mysqli_error($con));
     }
-} else {
-    echo json_encode(['status' => 'error', 'message' => 'User ID is required.']);
+
+    $currentUser = mysqli_fetch_assoc($currentUserQuery);
+
+    if (!$currentUser) {
+        echo json_encode(['status' => 'error', 'message' => 'User not found']);
+        exit();
+    }
+
+    $currentUserId = intval($currentUser['id']);
+
+    // Update read status
+    $updateQuery = mysqli_query($con, "
+        UPDATE chat_messages 
+        SET is_read = 1 
+        WHERE receiver_id = $currentUserId 
+          AND sender_id = $userId 
+          AND is_read = 0
+    ");
+
+    if (!$updateQuery) {
+        throw new Exception('Database update failed: ' . mysqli_error($con));
+    }
+
+    $affectedRows = mysqli_affected_rows($con);
+
+    echo json_encode([
+        'status' => 'success',
+        'messages_updated' => $affectedRows
+    ]);
+
+} catch (Exception $e) {
+    error_log('Update read status error: ' . $e->getMessage());
+    echo json_encode(['status' => 'error', 'message' => 'Internal server error']);
 }
 ?>

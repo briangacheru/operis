@@ -8,6 +8,26 @@ if (!function_exists('formatFileSize')) {
         return round($bytes / pow(1024, $power), 2) . ' ' . $units[$power];
     }
 }
+
+if (!function_exists('getFileIconClass')) {
+    function getFileIconClass($extension) {
+        $iconMap = [
+            'pdf' => 'fas fa-file-pdf text-danger',
+            'doc' => 'fas fa-file-word text-primary',
+            'docx' => 'fas fa-file-word text-primary',
+            'xls' => 'fas fa-file-excel text-success',
+            'xlsx' => 'fas fa-file-excel text-success',
+            'txt' => 'fas fa-file-alt text-secondary',
+            'jpg' => 'fas fa-file-image text-info',
+            'jpeg' => 'fas fa-file-image text-info',
+            'png' => 'fas fa-file-image text-info',
+            'gif' => 'fas fa-file-image text-info',
+            'webp' => 'fas fa-file-image text-info',
+        ];
+        return $iconMap[$extension] ?? 'fas fa-file text-muted';
+    }
+}
+
 if (isset($_GET['task_id'])) {
     $encodedId = $_GET['task_id'];
     $taskId = base64_decode($encodedId);
@@ -96,8 +116,115 @@ if ($isLate && $rowTask["status"] === 'In Progress') {
     }
     $confirmation = "<span class='badge badge rounded-pill $confirmationClass'>$confirmationText</span>";
 
+    $publish = $rowTask['publish'];
+    if ($publish == !1) {
+        $publishText = 'Unpublished';
+    }
 ?>
+<?php
+// Determine current user type and ID
+$currentUserType = 'admin'; // default
+$currentUserId = null;
 
+// Check if user is admin
+$adminCheckQuery = "SELECT id FROM tbladmin WHERE email = '" . mysqli_real_escape_string($con, $_SESSION['odmsaid']) . "'";
+$adminResult = mysqli_query($con, $adminCheckQuery);
+
+if ($adminResult && mysqli_num_rows($adminResult) > 0) {
+    $currentUserType = 'admin';
+    $adminData = mysqli_fetch_assoc($adminResult);
+    $currentUserId = $adminData['id'];
+} else {
+    // Check if user is writer
+    $writerCheckQuery = "SELECT id FROM tblwriters WHERE email = '" . mysqli_real_escape_string($con, $_SESSION['odmsaid']) . "'";
+    $writerResult = mysqli_query($con, $writerCheckQuery);
+
+    if ($writerResult && mysqli_num_rows($writerResult) > 0) {
+        $currentUserType = 'writer';
+        $writerData = mysqli_fetch_assoc($writerResult);
+        $currentUserId = $writerData['id'];
+    }
+}
+
+// Determine receiver based on sender type
+if ($currentUserType === 'admin') {
+    // Admin sends to writer assigned to this task
+    // Get writer ID from task
+    $writerIdQuery = "SELECT id FROM tblwriters WHERE email = '" . mysqli_real_escape_string($con, $taskWriterEmail) . "'";
+    $writerIdResult = mysqli_query($con, $writerIdQuery);
+
+    if ($writerIdResult && mysqli_num_rows($writerIdResult) > 0) {
+        $writerIdData = mysqli_fetch_assoc($writerIdResult);
+        $receiverId = $writerIdData['id'];
+    } else {
+        $receiverId = 0; // Fallback
+    }
+    $receiverType = 'writer';
+} else {
+    // Writer sends to admin
+    // Get the first admin or specific admin for this task
+    $adminIdQuery = "SELECT id FROM tbladmin ORDER BY id ASC LIMIT 1";
+    $adminIdResult = mysqli_query($con, $adminIdQuery);
+
+    if ($adminIdResult && mysqli_num_rows($adminIdResult) > 0) {
+        $adminIdData = mysqli_fetch_assoc($adminIdResult);
+        $receiverId = $adminIdData['id'];
+    } else {
+        $receiverId = 1; // Fallback to admin ID 1
+    }
+    $receiverType = 'admin';
+}
+?>
+<?php
+// Get all comments for this task
+$commentsQuery = "SELECT * FROM tbl_task_comments WHERE task_id = ? ORDER BY created_at ASC";
+$commentsStmt = mysqli_prepare($con, $commentsQuery);
+mysqli_stmt_bind_param($commentsStmt, 'i', $taskId);
+mysqli_stmt_execute($commentsStmt);
+$commentsResult = mysqli_stmt_get_result($commentsStmt);
+
+$comments = [];
+while ($row = mysqli_fetch_assoc($commentsResult)) {
+    $comments[] = $row;
+}
+mysqli_stmt_close($commentsStmt);
+
+// Calculate unread messages using already determined currentUserType from above
+$unreadCount = 0;
+$firstUnreadIndex = -1;
+
+foreach ($comments as $index => $comment) {
+    // Count unread messages from the opposite user type
+    if ($currentUserType === 'admin' && $comment['user_type'] === 'writer' && $comment['is_read'] == 0) {
+        $unreadCount++;
+        if ($firstUnreadIndex === -1) $firstUnreadIndex = $index;
+    } elseif ($currentUserType === 'writer' && $comment['user_type'] === 'admin' && $comment['is_read'] == 0) {
+        $unreadCount++;
+        if ($firstUnreadIndex === -1) $firstUnreadIndex = $index;
+    }
+}
+
+// Determine conversation status
+$conversationStatus = 'Active';
+$statusIcon = 'fa-circle';
+$statusClass = 'text-success';
+
+if (in_array($taskStatus, ['Completed', 'Cancelled'])) {
+    $conversationStatus = 'Closed';
+    $statusIcon = 'fa-lock';
+    $statusClass = 'text-secondary';
+} elseif (!empty($comments)) {
+    $lastComment = end($comments);
+    $lastCommentTime = strtotime($lastComment['created_at']);
+    $timeDiff = time() - $lastCommentTime;
+
+    if ($timeDiff > 86400) { // More than 24 hours
+        $conversationStatus = 'Quiet';
+        $statusIcon = 'fa-circle';
+        $statusClass = 'text-warning';
+    }
+}
+?>
 <?php
 // 1. Calculate task timeline metrics
 $taskMetrics = [];
@@ -463,6 +590,15 @@ if (isset($_SESSION['alert'])) {
 }
 ?>
 
+    <?php if ($publish != 1): ?>
+        <div class="alert alert-danger mt-2">
+            <h5 class="mb-0 text-800">
+                    <?php echo $publishText;?>
+
+            </h5>
+        </div>
+    <?php endif; ?>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999;"></div>
     <div class="card mb-3">
         <div class="card-body">
             <div class="row justify-content-between align-items-center">
@@ -477,7 +613,9 @@ if (isset($_SESSION['alert'])) {
                             </span>
                             <span class="calendar-day"><?php echo $currentDay; ?> </span></div>
                         <div class="flex-1 fs-10">
-                            <h5 class="mb-sm-0 text-primary fs-7">Task ID: <span class="text-info fw-medium">#<?php  echo $taskId;?></span></h5>
+                            <h5 class="mb-sm-0 text-primary fs-7">Task ID:
+                                <span class="text-info fw-medium">#<?php  echo $taskId;?></span>
+                            </h5>
                             <p class="mb-0">Posted on <span class="text-info ms-2"><?php  echo date("d M Y, g:i A", strtotime($taskCreatedOn));?></span></p>
                             <?php if ($rowTask['acknowledged'] == 0): ?>
                                 <p class='mb-0'>Viewed on <span class='badge badge rounded-pill badge-subtle-secondary'> Not Viewed<span class='ms-1 fas fa-eye-slash' data-fa-transform='shrink-2'></span></span></p>
@@ -502,7 +640,7 @@ if (isset($_SESSION['alert'])) {
                         <i class="fas fa-edit" aria-hidden="true"></i>
                         <span class="ms-1 d-none d-sm-inline-block">Edit Task</span>
                     </a>
-                    <a class="btn btn-outline-info btn-sm mx-2" type="button"  href="duplicate-task?task_id=<?php echo $encodedId; ?>" data-bs-toggle="tooltip" data-bs-placement="top" title="Duplicate Task" onclick="return confirmDuplicate();">
+                    <a class="btn btn-outline-info btn-sm mx-2" type="button" href="#" data-bs-toggle="modal" data-bs-target="#duplicateModal" data-task-id="<?php echo base64_encode($taskId); ?>" data-task-title="<?php echo htmlspecialchars($rowTask['topic'], ENT_QUOTES); ?>" data-bs-placement="top" title="Duplicate Task">
                         <i class="fas fa-copy" aria-hidden="true"></i>
                         <span class="d-none d-sm-inline-block d-xl-none d-xxl-inline-block ms-1">Duplicate</span>
                     </a>
@@ -521,8 +659,8 @@ if (isset($_SESSION['alert'])) {
         </div>
     </div>
 
-    <div class="card overflow-hidden mb-3" data-bs-theme="light">
-        <div class="card-body bg-black">
+    <div class="card overflow-hidden mb-3">
+        <div class="card-body">
             <div class="bg-holder rounded-3" style="background-image:url(../assets/img/illustrations/corner-3.png);">
             </div>
             <!--/.bg-holder-->
@@ -533,9 +671,9 @@ if (isset($_SESSION['alert'])) {
                         <div class="col">
                             <div class="row align-items-center">
                                 <div class="col col-sm-12">
-                                    <h6 class="fw-semi-bold text-400 fs-9 text-uppercase"><span class="fas fa-book text-white me-1"> </span><?php  echo $taskSubject;?></h6>
-                                    <h2 class="fw-bold text-white text-uppercase"><?php  echo $taskTopic;?> </h2>
-                                    <p class="text-white fw-semi-bold fs-10"><span class="me-1 fs-9">Due</span><span class="text-info ms-2 fs-10"><?php  echo date("d M Y, g:i A", strtotime($taskDueDate));?></span>
+                                    <h6 class="fw-semi-bold fs-9 text-uppercase"><span class="fas fa-book me-1"> </span><?php  echo $taskSubject;?></h6>
+                                    <h2 class="fw-bold text-uppercase"><?php  echo $taskTopic;?> </h2>
+                                    <p class="fw-semi-bold fs-10"><span class="me-1 fs-9">Due</span><span class="text-info ms-2 fs-10"><?php  echo date("d M Y, g:i A", strtotime($taskDueDate));?></span>
                                      </p>
                                     <?php
                                     $due_date = new DateTime($rowTask['due_date']);
@@ -581,46 +719,133 @@ if (isset($_SESSION['alert'])) {
                                         <?php endif; ?>
                                     <?php endif; ?>
                                     <?php $totalCost = $taskPages * $taskCPP;  ?>
-                                    <h5 class="fs-9 mt-3 text-white">Ksh. <?php  echo $totalCost;?> </h5>
+                                    <h5 class="fs-9 mt-3">Ksh. <?php  echo $totalCost;?> </h5>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <hr class="text-secondary text-opacity-50" />
                     <div class="d-flex flex-wrap gap-2 justify-content-center justify-content-md-start">
-                        <span class="badge rounded-pill badge-subtle-dark border border-300 text-info py-2 px-3">
-                            <?php
-                            if ($taskWriter) {
-                                // Fetch the writerID from tblwriters based on the username (taskWriter)
-                                $stmt = $con->prepare("SELECT id FROM tblwriters WHERE username = ?");
-                                $stmt->bind_param("s", $taskWriter);
-                                $stmt->execute();
-                                $result = $stmt->get_result();
-                                $writerId = $result->fetch_assoc()['id'];
+                        <span class="badge rounded-pill badge-subtle-info border border-300 text-info py-2 px-3">
+    <?php
+    if ($taskWriter) {
+        // Fetch the writerID, last_seen, and email from tblwriters
+        $stmt = $con->prepare("SELECT id, last_seen, email FROM tblwriters WHERE username = ?");
+        $stmt->bind_param("s", $taskWriter);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $writerData = $result->fetch_assoc();
 
-                                if ($writerId) {
-                                    // Encode writerID for use in the link
-                                    $encodedWriterId = base64_encode($writerId);
-                                    ?>
-                                    <span class="fas fa-user-graduate text-white me-1"></span>
-                                    <a class="text-info" href="writer.php?writerID=<?php echo $encodedWriterId; ?>"><?php echo htmlspecialchars($taskWriter); ?></a>
-                                    <?php
-                                } else {
-                                    echo "Writer not found.";
-                                    exit;
-                                }
-                            } else {
-                                echo "Task writer not found.";
-                                exit;
-                            }
-                            ?>
+        if ($writerData) {
+            $writerId = $writerData['id'];
+            $lastSeen = $writerData['last_seen'];
+            $writerEmail = $writerData['email'];
+
+            // Get writer's performance and level
+            include_once('writer-performance-functions.php');
+            $writerPerf = calculateWriterPerformance($con, $writerEmail);
+            $writerLevel = getWriterLevel($con, $writerPerf['completed_tasks']);
+
+            // Determine online status based on last_seen
+            $statusClass = 'text-secondary';
+            $statusText = 'Offline';
+            $titleText = 'Never seen'; // Default title text
+            $isOnline = false; // Track online status for icon display
+
+            if ($lastSeen) {
+                $lastSeenTime = new DateTime($lastSeen);
+                $currentTime = new DateTime();
+                $timeDiff = $currentTime->diff($lastSeenTime);
+
+                // Format the full date for the title
+                $titleText = 'Last seen: ' . $lastSeenTime->format('M d, Y \a\t g:i A');
+
+                // Calculate total minutes for more accurate comparison
+                $totalMinutes = ($timeDiff->days * 24 * 60) + ($timeDiff->h * 60) + $timeDiff->i;
+
+                // Determine status based on time difference
+                if ($totalMinutes <= 5) {
+                    // Online if seen within last 5 minutes
+                    $statusText = 'Online';
+                    $statusClass = 'text-success';
+                    $titleText = 'Currently online';
+                    $isOnline = true;
+                } else if ($totalMinutes <= 15) {
+                    // Just now if seen within 15 minutes
+                    $statusText = 'Just now';
+                    $statusClass = 'text-success';
+                } else if ($totalMinutes <= 60) {
+                    // Show minutes if less than an hour
+                    $statusText = $timeDiff->i . 'm ago';
+                    $statusClass = 'text-info';
+                } else if ($timeDiff->days == 0) {
+                    // Show hours if same day
+                    $statusText = $timeDiff->h . 'h ago';
+                    $statusClass = 'text-warning';
+                } else if ($timeDiff->days == 1) {
+                    // Yesterday
+                    $statusText = 'Yesterday';
+                    $statusClass = 'text-secondary';
+                } else if ($timeDiff->days <= 7) {
+                    // Show days if within a week
+                    $statusText = $timeDiff->days . 'd ago';
+                    $statusClass = 'text-secondary';
+                } else if ($timeDiff->days <= 30) {
+                    // Show weeks if within a month
+                    $weeks = floor($timeDiff->days / 7);
+                    $statusText = $weeks . 'w ago';
+                    $statusClass = 'text-secondary';
+                } else {
+                    // Show months for older
+                    $months = floor($timeDiff->days / 30);
+                    $statusText = $months . 'mo ago';
+                    $statusClass = 'text-secondary';
+                }
+            }
+
+            // Encode writerID for use in the link
+            $encodedWriterId = base64_encode($writerId);
+            ?>
+            <i class="<?php echo $writerLevel['icon_class']; ?> me-1" style="color: <?php echo $writerLevel['icon_color']; ?>;"></i>
+            <a style="color: <?php echo $writerLevel['icon_color']; ?>;" href="writer.php?writerID=<?php echo $encodedWriterId; ?>"
+               data-bs-toggle="tooltip"  data-bs-placement="top" title="View <?php echo htmlspecialchars($taskWriter); ?>'s Profile"><?php echo htmlspecialchars($taskWriter); ?></a>
+
+            <!-- Writer Level Badge -->
+            <span class="badge rounded-pill ms-2 px-2 py-1"
+                  style="background-color: <?php echo $writerLevel['icon_color']; ?>15; color: <?php echo $writerLevel['icon_color']; ?>; border: 1px solid <?php echo $writerLevel['icon_color']; ?>30;"
+                  title="Level <?php echo $writerLevel['level_number']; ?> - <?php echo $writerLevel['level_name']; ?>"
+                  data-bs-toggle="tooltip"  data-bs-placement="top">
+                <?php echo $writerLevel['level_name']; ?>
+            </span>
+
+            <!-- Online Status Indicator -->
+            <span class="ms-2 <?php echo $statusClass; ?>" style="font-size: 11px;" data-bs-toggle="tooltip"  data-bs-placement="top" title="<?php echo htmlspecialchars($titleText); ?>">
+                <?php if ($isOnline): ?>
+                    <i class="fas fa-circle" style="font-size: 8px;"></i>
+                <?php else: ?>
+                    <i class="far fa-circle" style="font-size: 8px;"></i>
+                <?php endif; ?>
+                <?php echo $statusText; ?>
+            </span>
+            <?php
+            $stmt->close(); // Close the statement
+        } else {
+            echo '<span class="text-danger">Writer not found</span>';
+        }
+    } else {
+        echo '<span class="text-danger">Task writer not specified</span>';
+    }
+    ?>
+</span>
+                        <span class="badge rounded-pill badge-subtle-info border border-300 text-info py-2 px-3">
+                            <span class="fas fa-user me-1"></span><?php echo htmlspecialchars($taskAccount); ?>
                         </span>
-                        <span class="badge rounded-pill badge-subtle-dark border border-300 text-info py-2 px-3">
-                            <span class="fas fa-user text-white me-1"> </span><?php  echo $taskAccount;?></span>
-                        <span class="badge rounded-pill badge-subtle-dark border border-300 text-info py-2 px-3">
-                            <span class="fas fa-file text-white me-1"> </span><?php  echo $taskPages;?> Pages</span>
-                        <span class="badge rounded-pill badge-subtle-dark border border-300 text-info py-2 px-3">
-                            <span class="fas fa-credit-card text-white me-1"> </span>Ksh. <?php  echo $taskCPP;?> Per page</span>
+                        <span class="badge rounded-pill badge-subtle-info border border-300 text-info py-2 px-3">
+                            <span class="fas fa-file  me-1"></span><?php echo htmlspecialchars($taskPages); ?> Pages
+                        </span>
+                        <span class="badge rounded-pill badge-subtle-info border border-300 text-info py-2 px-3">
+                            <span class="fas fa-credit-card me-1"></span>Ksh. <?php echo htmlspecialchars($taskCPP); ?> Per page
+                        </span>
                     </div>
                 </div>
             </div>
@@ -641,7 +866,7 @@ if (isset($_SESSION['alert'])) {
                     <ul class="list-unstyled position-relative fs-9 p-0 m-0">
                         <li class="mb-2">
                             <div class="d-flex">
-                                <dd>
+                                <dd class="task-description-content">
                                     <?php
                                     // Remove slashes and make links clickable
                                     $cleanText = stripslashes($taskDescription);
@@ -661,7 +886,6 @@ if (isset($_SESSION['alert'])) {
             </div>
         </div>
     </div>
-
     <!-- Task Files card section -->
     <div class='col mb-3'>
         <div class='row g-3'>
@@ -768,6 +992,11 @@ if (isset($_SESSION['alert'])) {
                                                download="<?php echo htmlspecialchars($fileName); ?>">
                                                 <img src="../assets/img/icons/cloud-download.svg" alt="" width="15"/>
                                             </a>
+                                            <button class="btn btn-tertiary border-300 btn-sm me-1 text-600"
+                                                    data-bs-toggle="tooltip" data-bs-placement="top" title="Delete File"
+                                                    onclick="confirmDeleteFile(<?php echo $fileRow['id']; ?>, '<?php echo htmlspecialchars($fileName, ENT_QUOTES); ?>', '<?php echo $formattedDate; ?>', 'task')">
+                                                <img src="../assets/img/icons/delete.svg" alt="" width="15"/>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -910,7 +1139,6 @@ if (isset($_SESSION['alert'])) {
             </div>
         </div>
     </div>
-
 <?php
 // Fetch all comments for this task
 $commentsQuery = 'SELECT * FROM tbl_task_comments WHERE task_id = ? ORDER BY created_at ASC';
@@ -1085,27 +1313,25 @@ foreach ($comments as $comment) {
     }
 }
 ?>
-
     <!-- Task Discussion Card -->
     <div class='row'>
-        <div class='col-lg-12 order-1 order-lg-0'>
-            <div class='card mb-3 shadow-sm border-0'>
-                <!-- Gradient Header -->
-                <div class='card-header position-relative overflow-hidden' style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;'>
-                    <div class="position-absolute top-0 start-0 w-100 h-100 grain-overlay"></div>
-                    <div class="position-relative d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center">
-                            <div class="me-3 p-2 rounded-circle bg-white bg-opacity-25">
-                                <i class="fas fa-comments text-white fs-5"></i>
+        <div class='col-md-12 col-xxl-12 mb-3'>
+            <div class='card shadow-sm border-0 overflow-hidden h-100' style='border-radius: 15px;'>
+                <!-- Enhanced Card Header with Gradient -->
+                <div class='card-header text-white position-relative overflow-hidden bg-body-tertiary'>
+                    <div class='d-flex justify-content-between align-items-center position-relative' style='z-index: 2;'>
+                        <div class='d-flex align-items-center'>
+                            <div class="me-2 text-primary">
+                                <i class="fas fa-comments"></i>
                             </div>
                             <div>
-                                <h6 class='mb-0 text-white fw-bold'>Task Discussion</h6>
-                                <small class="text-white-50">
+                                <h6 class='mb-0'>Task Discussion</h6>
+                                <small class="text-1000">
                                     <i class="fas <?php echo $statusIcon; ?> me-1"></i>
                                     <?php if ($unreadCount > 0): ?>
                                         <span class="badge bg-danger me-2 pulse-animation" style="font-size: 10px;">
-                                        <?php echo $unreadCount; ?> unread
-                                    </span>
+                                <?php echo $unreadCount; ?> unread
+                            </span>
                                     <?php else: ?>
                                         <?php echo count($comments); ?> messages •
                                     <?php endif; ?>
@@ -1114,59 +1340,20 @@ foreach ($comments as $comment) {
                             </div>
                         </div>
 
-                        <!-- Conditional Add Message Button -->
-                        <?php if (!in_array($taskStatus, ['Completed', 'Cancelled'])): ?>
-                            <button class="btn btn-light btn-sm shadow-sm hover-lift" onclick="toggleCommentForm()" style="transition: all 0.3s ease;">
-                                <i class="fas fa-plus me-1"></i>Add Message
-                            </button>
-                        <?php else: ?>
+                        <!-- Status Badge -->
+                        <?php if (in_array($taskStatus, ['Completed', 'Cancelled'])): ?>
                             <span class="badge bg-secondary bg-opacity-75 text-white px-3 py-2">
-                            <i class="fas fa-lock me-1"></i>Conversation Closed
-                        </span>
+                        <i class="fas fa-lock me-1"></i>Conversation Closed
+                    </span>
                         <?php endif; ?>
                     </div>
                 </div>
 
-                <!-- Enhanced Card Body -->
-                <div class='card-body p-0'>
+                <!-- Card Body with Comments -->
+                <div class='card-body p-0 d-flex flex-column' style='height: 650px;'>
 
-                    <!-- Conditional Comment Form - Only show if conversation is active -->
-                    <?php if (!in_array($taskStatus, ['Completed', 'Cancelled'])): ?>
-                        <div id="commentForm" class="position-sticky top-0 bg-white shadow-sm border-bottom" style="display: none; z-index: 10;">
-                            <div class="p-3">
-                                <form id="addCommentForm" onsubmit="addComment(event)">
-                                    <div class="mb-3">
-                                        <label class="form-label text-muted fw-medium">
-                                            <i class="fas fa-edit me-1"></i>Write your message
-                                        </label>
-                                        <textarea class="form-control border-0 shadow-sm" id="commentText" rows="4"
-                                                  placeholder="Share your thoughts, ask questions, or provide updates..."
-                                                  style="resize: none; background: #f8f9fc; transition: all 0.3s ease;"
-                                                  onfocus="this.style.background='#ffffff'; this.style.boxShadow='0 0 0 3px rgba(102, 126, 234, 0.1)'"
-                                                  onblur="this.style.background='#f8f9fc'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)'"
-                                                  required></textarea>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <small class="text-muted">
-                                            <i class="fas fa-info-circle me-1"></i>
-                                            Press Ctrl+Enter to send quickly
-                                        </small>
-                                        <div class="d-flex gap-2">
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleCommentForm()">
-                                                <i class="fas fa-times me-1"></i>Cancel
-                                            </button>
-                                            <button type="submit" class="btn btn-primary btn-sm shadow-sm">
-                                                <i class="fas fa-paper-plane me-1"></i>Send Message
-                                            </button>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <!-- Comments Container -->
-                    <div id="commentsContainer" class="px-3" style="max-height: 600px; overflow-y: auto;">
+                    <!-- Comments Container (Scrollable) -->
+                    <div id="commentsContainer" class="flex-grow-1 px-3 py-3" style='overflow-y: auto; overflow-x: hidden;'>
                         <?php if (empty($comments)): ?>
                             <!-- Empty State -->
                             <div class="text-center py-5">
@@ -1178,9 +1365,6 @@ foreach ($comments as $comment) {
                                 <h6 class="text-muted mb-2">No messages yet</h6>
                                 <?php if (!in_array($taskStatus, ['Completed', 'Cancelled'])): ?>
                                     <p class="text-muted small mb-3">Start the conversation by sharing your thoughts or asking questions.</p>
-                                    <button class="btn btn-outline-primary btn-sm" onclick="toggleCommentForm()">
-                                        <i class="fas fa-plus me-1"></i>Write first message
-                                    </button>
                                 <?php else: ?>
                                     <p class="text-muted small">This conversation is closed as the task has been <?php echo strtolower($taskStatus); ?>.</p>
                                 <?php endif; ?>
@@ -1188,116 +1372,128 @@ foreach ($comments as $comment) {
                         <?php else: ?>
                             <!-- Unread Messages Summary -->
                             <?php if ($unreadCount > 0): ?>
-                                <div class="unread-summary">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas fa-bell text-danger me-2"></i>
-                                        <strong class="text-danger">You have <?php echo $unreadCount; ?> unread message<?php echo $unreadCount > 1 ? 's' : ''; ?></strong>
-                                        <button class="btn btn-sm btn-outline-danger ms-auto" onclick="scrollToFirstUnread()">
-                                            <i class="fas fa-arrow-down me-1"></i>Jump to first unread
-                                        </button>
+                                <div class="alert alert-warning border-0 d-flex align-items-center mb-3" role="alert" style="background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);">
+                                    <div class="me-3">
+                                        <i class="fas fa-bell fa-lg"></i>
                                     </div>
+                                    <div class="flex-grow-1">
+                                        <strong>You have <?php echo $unreadCount; ?> unread message<?php echo $unreadCount > 1 ? 's' : ''; ?></strong>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-dark" onclick="scrollToFirstUnread()">
+                                        <i class="fas fa-arrow-down me-1"></i>Jump to first
+                                    </button>
                                 </div>
                             <?php endif; ?>
 
-                            <!-- Messages Thread -->
-                            <div class="py-3">
-                                <?php foreach ($comments as $index => $comment): ?>
-                                    <?php
-                                    $isAdmin = $comment['user_type'] === 'admin';
-                                    $isLastMessage = $index === count($comments) - 1;
+                            <!-- Messages Loop -->
+                            <div class="messages-list">
+                                <?php
+                                $lastDate = null;
+                                foreach ($comments as $index => $comment):
+                                    $isAdmin = ($comment['user_type'] === 'admin');
+                                    $messageDate = date('Y-m-d', strtotime($comment['created_at']));
 
-                                    // Check if this is the first unread message for scroll targeting
-                                    $isFirstUnread = false;
-                                    if (isset($_SESSION['odmsaid']) && $comment['user_type'] === 'writer' && $comment['is_read'] == 0) {
-                                        // Check if this is the first unread writer message for admin
-                                        $prevUnreadCheck = array_slice($comments, 0, $index);
-                                        $hasUnreadBefore = false;
-                                        foreach ($prevUnreadCheck as $prevComment) {
-                                            if ($prevComment['user_type'] === 'writer' && $prevComment['is_read'] == 0) {
-                                                $hasUnreadBefore = true;
-                                                break;
-                                            }
+                                    // Show date separator if date changed
+                                    if ($messageDate !== $lastDate):
+                                        $lastDate = $messageDate;
+                                        $displayDate = '';
+                                        $today = date('Y-m-d');
+                                        $yesterday = date('Y-m-d', strtotime('-1 day'));
+
+                                        if ($messageDate === $today) {
+                                            $displayDate = 'Today';
+                                        } elseif ($messageDate === $yesterday) {
+                                            $displayDate = 'Yesterday';
+                                        } else {
+                                            $displayDate = date('F j, Y', strtotime($messageDate));
                                         }
-                                        $isFirstUnread = !$hasUnreadBefore;
-                                    } elseif (isset($_SESSION['sessionWriter']) && $comment['user_type'] === 'admin' && $comment['is_read'] == 0) {
-                                        // Check if this is the first unread admin message for writer
-                                        $prevUnreadCheck = array_slice($comments, 0, $index);
-                                        $hasUnreadBefore = false;
-                                        foreach ($prevUnreadCheck as $prevComment) {
-                                            if ($prevComment['user_type'] === 'admin' && $prevComment['is_read'] == 0) {
-                                                $hasUnreadBefore = true;
-                                                break;
-                                            }
+                                        ?>
+                                        <div class="text-center my-3">
+                                <span class="badge bg-info-subtle text-muted px-3 py-2">
+                                    <i class="far fa-calendar me-1"></i><?php echo $displayDate; ?>
+                                </span>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <!-- Message Item -->
+                                    <div class="comment-item mb-3 <?php echo $firstUnreadIndex === $index ? 'first-unread-message' : ''; ?>"
+                                         id="<?php echo $firstUnreadIndex === $index ? 'first-unread-message' : 'comment-' . $comment['id']; ?>"
+                                         data-comment-id="<?php echo $comment['id']; ?>"
+                                         data-timestamp="<?php echo $comment['created_at']; ?>"
+                                        <?php
+                                        // Add unread indicator
+                                        $isUnread = false;
+                                        if ($currentUserType === 'admin' && $comment['user_type'] === 'writer' && $comment['is_read'] == 0) {
+                                            $isUnread = true;
+                                        } elseif ($currentUserType === 'writer' && $comment['user_type'] === 'admin' && $comment['is_read'] == 0) {
+                                            $isUnread = true;
                                         }
-                                        $isFirstUnread = !$hasUnreadBefore;
-                                    }
-                                    ?>
+                                        if ($isUnread): ?>
+                                            data-unread="true"
+                                        <?php endif; ?>
+                                         style="animation: <?php echo $isUnread ? 'fadeInUp 0.5s ease' : 'none'; ?>;">
 
-                                    <div class="comment-item mb-4 <?php echo $isAdmin ? 'admin-comment' : 'writer-comment'; ?> animate-fade-in"
-                                         style="animation-delay: <?php echo $index * 0.1; ?>s;"
-                                         <?php if ($isFirstUnread): ?>id="first-unread-message"<?php endif; ?>>
+                                        <div class="d-flex <?php echo ($comment['user_type'] === $currentUserType) ? 'flex-row-reverse' : 'flex-row'; ?> align-items-start gap-2">
 
-                                        <div class="d-flex align-items-start <?php echo $isAdmin ? '' : 'flex-row-reverse'; ?>" style="gap: 12px;">
-                                            <!-- Enhanced Avatar -->
-                                            <div class="notification-avatar flex-shrink-0" style="width: 45px;">
-                                                <?php
-                                                $userKey = $comment['user_type'] . '_' . $comment['username'];
-                                                $onlineStatus = $userOnlineStatuses[$userKey];
-
-                                                // Determine status class based on online status
-                                                $statusClass = '';
-                                                if ($onlineStatus['is_online'] == 1) {
-                                                    $statusClass = 'status-online';
-                                                } else if ($onlineStatus['last_seen']) {
-                                                    $lastSeenTime = new DateTime($onlineStatus['last_seen']);
-                                                    $currentTime = new DateTime();
-                                                    $timeDiff = $currentTime->diff($lastSeenTime);
-
-                                                    if ($timeDiff->days > 0) {
-                                                        $statusClass = 'status-offline';
-                                                    } else if ($timeDiff->h > 0) {
-                                                        $statusClass = 'status-away';
-                                                    } else if ($timeDiff->i <= 5) {
-                                                        $statusClass = 'status-idle';
-                                                    } else {
-                                                        $statusClass = 'status-away';
-                                                    }
-                                                } else {
-                                                    $statusClass = 'status-offline';
-                                                }
-                                                ?>
-
-                                                <div class='align-items-center avatar avatar-xl  <?php echo $statusClass; ?>'
-                                                     data-bs-toggle="tooltip"
-                                                     data-bs-placement="top"
-                                                     data-bs-html="true"
-                                                     title="<strong><?php echo htmlspecialchars($comment['username']); ?></strong><br>
-                                                            Status: <?php echo $onlineStatus['status_text']; ?>
-                                                            <?php if ($onlineStatus['last_seen'] && $onlineStatus['is_online'] == 0): ?>
-                                                                <br><small>Last seen: <?php echo date('M j, Y g:i A', strtotime($onlineStatus['last_seen'])); ?></small>
-                                                            <?php endif; ?>">
-
-                                                    <!-- Check if user has profile image -->
+                                        <!-- User Avatar -->
+                                            <div class="flex-shrink-0">
+                                                <div class="position-relative">
                                                     <?php
-                                                    $profileImage = null;
+                                                    // Get online status for this user
                                                     $userKey = $comment['user_type'] . '_' . $comment['username'];
-                                                    $userEmailForStatus = $userEmails[$userKey] ?? null;
+                                                    $userStatus = $userOnlineStatuses[$userKey] ?? getUserOnlineStatus($con, $comment['user_type'], $comment['username'], '');
 
-                                                    // Try to get profile image based on user type
+                                                    // Determine status color and text based on last_seen
+                                                    $statusColor = 'secondary';
+                                                    $statusText = 'Offline';
+                                                    $timeDiff = null;
+                                                    $onlineThresholdMinutes = 1; // Consider online if active within last 5 minutes
+
+                                                    if ($userStatus['last_seen']) {
+                                                        $lastSeenTime = new DateTime($userStatus['last_seen']);
+                                                        $now = new DateTime();
+                                                        $timeDiff = $now->diff($lastSeenTime);
+
+                                                        // Calculate total minutes since last seen
+                                                        $totalMinutes = ($timeDiff->days * 24 * 60) + ($timeDiff->h * 60) + $timeDiff->i;
+
+                                                        if ($totalMinutes <= $onlineThresholdMinutes) {
+                                                            // Active within threshold - consider online
+                                                            $statusColor = 'success';
+                                                            $statusText = 'Online';
+                                                        } elseif ($timeDiff->days > 0) {
+                                                            $statusColor = 'secondary';
+                                                            $statusText = 'Last seen ' . ($timeDiff->days == 1 ? '1 day ago' : $timeDiff->days . ' days ago');
+                                                        } elseif ($timeDiff->h > 0) {
+                                                            $statusColor = 'warning';
+                                                            $statusText = 'Last seen ' . ($timeDiff->h == 1 ? '1 hour ago' : $timeDiff->h . ' hours ago');
+                                                        } else {
+                                                            $statusColor = 'info';
+                                                            $statusText = 'Last seen ' . ($timeDiff->i == 1 ? '1 minute ago' : $timeDiff->i . ' minutes ago');
+                                                        }
+                                                    } else {
+                                                        // No last_seen recorded
+                                                        $statusColor = 'secondary';
+                                                        $statusText = 'Offline';
+                                                    }
+
+                                                    // Get profile image
+                                                    $profileImage = null;
                                                     if ($comment['user_type'] === 'admin') {
-                                                        $imgQuery = "SELECT Photo FROM tbladmin WHERE username = ? OR AdminName = ? OR email = ? OR CONCAT(FirstName, ' ', LastName) = ? LIMIT 1";
+                                                        $imgQuery = 'SELECT Photo FROM tbladmin WHERE email = ? OR username = ? LIMIT 1';
                                                         if ($imgStmt = mysqli_prepare($con, $imgQuery)) {
-                                                            $emailToCheck = $userEmailForStatus ?: $comment['username'];
-                                                            $fullName = $comment['username']; // In case username is actually full name
-                                                            mysqli_stmt_bind_param($imgStmt, 'ssss', $comment['username'], $comment['username'], $emailToCheck, $fullName);
+                                                            $userEmailForStatus = isset($_SESSION['odmsaid']) ? $_SESSION['odmsaid'] : '';
+                                                            $emailToCheck = $userEmailForStatus ? $userEmailForStatus : $comment['username'];
+                                                            mysqli_stmt_bind_param($imgStmt, 'ss', $comment['username'], $emailToCheck);
                                                             mysqli_stmt_execute($imgStmt);
                                                             mysqli_stmt_bind_result($imgStmt, $profileImage);
                                                             mysqli_stmt_fetch($imgStmt);
                                                             mysqli_stmt_close($imgStmt);
                                                         }
                                                     } else {
-                                                        $imgQuery = "SELECT Photo FROM tblwriters WHERE username = ? OR email = ? LIMIT 1";
+                                                        $imgQuery = 'SELECT Photo FROM tblwriters WHERE username = ? OR email = ? LIMIT 1';
                                                         if ($imgStmt = mysqli_prepare($con, $imgQuery)) {
+                                                            $userEmailForStatus = isset($_SESSION['sessionWriter']) ? $_SESSION['sessionWriter'] : '';
                                                             $emailToCheck = $userEmailForStatus ? $userEmailForStatus : $comment['username'];
                                                             mysqli_stmt_bind_param($imgStmt, 'ss', $comment['username'], $emailToCheck);
                                                             mysqli_stmt_execute($imgStmt);
@@ -1307,7 +1503,6 @@ foreach ($comments as $comment) {
                                                         }
                                                     }
 
-                                                    // Check if profile image exists and is accessible
                                                     $imageExists = false;
                                                     if ($profileImage) {
                                                         $imagePath = "../profileimages/" . $profileImage;
@@ -1317,73 +1512,83 @@ foreach ($comments as $comment) {
                                                     }
                                                     ?>
 
-                                                    <?php if ($imageExists): ?>
-                                                        <!-- User has profile image -->
-                                                        <img class="rounded-circle" src="<?php echo $imagePath; ?>" alt="<?php echo htmlspecialchars($comment['username']); ?>"
-                                                             style="width: 45px; height: 45px; object-fit: cover;">
-                                                    <?php else: ?>
-                                                        <!-- Fallback to initials -->
-                                                        <div class="avatar-name rounded-circle shadow-sm <?php echo $isAdmin ? 'bg-primary' : 'bg-success'; ?>"
-                                                             style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
-                                                                <span class='fw-bold text-white' style="font-size: 14px;">
-                                                                    <?php echo strtoupper(substr($comment['username'], 0, 2)); ?>
-                                                                </span>
-                                                        </div>
-                                                    <?php endif; ?>
+                                                    <!-- Avatar with Tooltip -->
+                                                    <div data-bs-toggle="tooltip"
+                                                         data-bs-placement="<?php echo $isAdmin ? 'right' : 'left'; ?>"
+                                                         data-bs-html="true"
+                                                         title="<div class='text-center'>
+                    <strong><?php echo htmlspecialchars($comment['username']); ?></strong><br>
+                    <span class='badge bg-<?php echo $statusColor; ?> mt-1'>
+                        <i class='fas fa-circle'></i> <?php echo $statusText; ?>
+                    </span>
+                    <?php if ($userStatus['last_seen'] && $userStatus['is_online'] == 0): ?>
+                        <br><small class='text-muted mt-1 d-block'><?php echo date('M j, Y g:i A', strtotime($userStatus['last_seen'])); ?></small>
+                    <?php endif; ?>
+                </div>">
+
+                                                        <?php if ($imageExists): ?>
+                                                            <img class="rounded-circle"
+                                                                 src="<?php echo $imagePath; ?>"
+                                                                 alt="<?php echo htmlspecialchars($comment['username']); ?>"
+                                                                 style="width: 45px; height: 45px; object-fit: cover; cursor: pointer; transition: transform 0.2s;">
+                                                        <?php else: ?>
+                                                            <div class="avatar-name rounded-circle shadow-sm <?php echo $isAdmin ? 'bg-primary' : 'bg-success'; ?>"
+                                                                 style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s;">
+                <span class='fw-bold text-white' style="font-size: 14px;">
+                    <?php echo strtoupper(substr($comment['username'], 0, 2)); ?>
+                </span>
+                                                            </div>
+                                                        <?php endif; ?>
+
+                                                        <!-- Status Indicator Dot -->
+                                                        <span class="position-absolute bottom-0 end-0
+                     badge rounded-pill bg-<?php echo $statusColor; ?>
+                     border border-white border-2
+                     <?php echo $userStatus['is_online'] == 1 ? 'pulse-ring' : ''; ?>"
+                                                              style="width: 12px; height: 12px; padding: 0; transform: translate(25%, 25%);">
+        </span>
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            <!-- Enhanced Message Bubble -->
-                                            <div class="flex-1" style="min-width: 0; max-width: calc(100% - 60px);">
-                                                <div class="comment-bubble position-relative p-3 shadow-sm <?php echo $isAdmin ? 'bg-primary-subtle border border-primary-subtle' : 'bg-success-subtle border border-success-subtle'; ?>"
-                                                     style="border-radius: <?php echo $isAdmin ? '20px 20px 20px 5px' : '20px 20px 5px 20px'; ?>; transition: all 0.3s ease; word-wrap: break-word;">
+                                            <!-- Message Bubble -->
+                                            <div class="flex-grow-1" style="max-width: 75%;">
+                                                <div class="comment-bubble position-relative p-3 shadow-sm <?php echo ($comment['user_type'] === $currentUserType) ? 'bg-success-subtle border border-success-subtle' : 'bg-primary-subtle border border-primary-subtle'; ?>"
+                                                     style="border-radius: <?php echo ($comment['user_type'] === $currentUserType) ? '20px 20px 5px 20px' : '20px 20px 20px 5px'; ?>; word-wrap: break-word;">
 
                                                     <!-- Message Header -->
                                                     <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
-                                                        <div class="comment-author fw-bold <?php echo $isAdmin ? 'text-primary' : 'text-success'; ?>" style="font-size: 13px;">
-                                                            <i class="fas <?php echo $isAdmin ? 'fa-user-shield' : 'fa-user-edit'; ?> me-1" style="font-size: 11px;"></i>
+                                                        <div class="comment-author fw-bold <?php echo ($comment['user_type'] === $currentUserType) ? 'text-success' : 'text-primary'; ?>" style="font-size: 13px;">
+                                                            <i class="fas <?php echo ($comment['user_type'] === $currentUserType) ? 'fa-user-shield' : 'fa-user-edit'; ?> me-1" style="font-size: 11px;"></i>
                                                             <?php echo htmlspecialchars($comment['username']); ?>
 
-                                                            <?php
-                                                            // Show unread indicator based on current user type
-                                                            $showUnreadBadge = false;
-                                                            if (isset($_SESSION['odmsaid']) && $comment['user_type'] === 'writer' && $comment['is_read'] == 0) {
-                                                                // Admin viewing unread writer message
-                                                                $showUnreadBadge = true;
-                                                            } elseif (isset($_SESSION['sessionWriter']) && $comment['user_type'] === 'admin' && $comment['is_read'] == 0) {
-                                                                // Writer viewing unread admin message
-                                                                $showUnreadBadge = true;
-                                                            }
-
-                                                            if ($showUnreadBadge): ?>
-                                                                <span class="badge bg-danger ms-2 pulse-animation unread-message-badge" style="font-size: 9px; animation: pulse 2s infinite;">
-                                                                <i class="fas fa-envelope me-1"></i>UNREAD
-                                                            </span>
+                                                            <?php if ($isUnread): ?>
+                                                                <span class="badge bg-danger ms-2 pulse-animation" style="font-size: 9px;">
+                                                            <i class="fas fa-envelope me-1"></i>UNREAD
+                                                        </span>
                                                             <?php endif; ?>
                                                         </div>
 
-                                                        <!-- Enhanced Timestamp -->
+                                                        <!-- Timestamp -->
                                                         <div class="d-flex align-items-center flex-shrink-0">
                                                             <small class="fw-medium text-muted d-flex align-items-center" style="font-size: 11px;">
                                                                 <i class="far fa-clock me-1"></i>
-                                                                <?php echo date('M d, g:i A', strtotime($comment['created_at'])); ?>
+                                                                <?php echo date('g:i A', strtotime($comment['created_at'])); ?>
 
                                                                 <!-- Read Status Ticks -->
                                                                 <span class="ms-2">
-                                                                   <?php if ($comment['is_read'] == 1): ?>
-                                                                       <!-- Double tick for read messages -->
-                                                                       <i class="fas fa-check-double text-primary" title="Read" style="font-size: 10px;"></i>
-                                                                   <?php else: ?>
-                                                                       <!-- Single tick for unread messages -->
-                                                                       <i class="fas fa-check text-muted" title="Delivered" style="font-size: 10px;"></i>
-                                                                   <?php endif; ?>
-                                                               </span>
+                                                           <?php if ($comment['is_read'] == 1): ?>
+                                                               <i class="fas fa-check-double text-primary" title="Read" style="font-size: 10px;"></i>
+                                                           <?php else: ?>
+                                                               <i class="fas fa-check text-muted" title="Delivered" style="font-size: 10px;"></i>
+                                                           <?php endif; ?>
+                                                       </span>
                                                             </small>
                                                         </div>
                                                     </div>
 
                                                     <!-- Message Content -->
-                                                    <div class="comment-text fs-9">
+                                                    <div class="comment-text" style="font-size: 14px;">
                                                         <?php
                                                         $unescaped_comment = stripcslashes($comment['comment']);
                                                         $formatted_comment = nl2br(htmlspecialchars($unescaped_comment));
@@ -1399,245 +1604,177 @@ foreach ($comments as $comment) {
                                                         ?>
                                                     </div>
 
-                                                    <!-- Message Actions - Only show for active conversations -->
-                                                    <?php if (!in_array($taskStatus, ['Completed', 'Cancelled'])): ?>
-                                                        <div class="mt-2 d-flex justify-content-end">
-                                                            <small class="text-muted hover-actions" style="opacity: 0; transition: opacity 0.3s ease;">
-                                                                <i class="fas fa-reply me-2 cursor-pointer" title="Reply"></i>
-                                                                <i class="fas fa-heart me-2 cursor-pointer" title="Like"></i>
+                                                    <!-- File Attachment Display (if exists) -->
+                                                    <?php if (!empty($comment['file_url'])): ?>
+                                                        <div class="message-attachments mt-3 pt-3 border-top">
+                                                            <small class="text-muted d-block mb-2">
+                                                                <i class="fas fa-paperclip"></i> Attachments:
                                                             </small>
+
+                                                            <div class="attachments-grid">
+                                                                <?php
+                                                                // Get file extension
+                                                                $fileExt = strtolower(pathinfo($comment['file_url'], PATHINFO_EXTENSION));
+                                                                $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                                                                $isImage = in_array($fileExt, $imageExtensions);
+
+                                                                if ($isImage):
+                                                                    // Display as image with GLightbox
+                                                                    ?>
+                                                                    <a href="../taskfiles/<?php echo htmlspecialchars($comment['file_url']); ?>"
+                                                                       class="glightbox attachment-image"
+                                                                       data-gallery="message-<?php echo $comment['id']; ?>"
+                                                                       data-glightbox="description: Sent by <?php echo htmlspecialchars($comment['username']); ?>">
+                                                                        <img src="../taskfiles/<?php echo htmlspecialchars($comment['file_url']); ?>"
+                                                                             alt="Attachment"
+                                                                             class="img-thumbnail"
+                                                                             style="max-width: 200px; max-height: 200px; object-fit: cover; cursor: pointer; border-radius: 8px;">
+                                                                    </a>
+                                                                <?php else:
+                                                                    // Display as downloadable file
+                                                                    $fileIcon = getFileIconClass($fileExt);
+                                                                    ?>
+                                                                    <a href="../taskfiles/<?php echo htmlspecialchars($comment['file_url']); ?>"
+                                                                       class="attachment-file-badge"
+                                                                       download
+                                                                       target="_blank">
+                                                                        <i class="<?php echo $fileIcon; ?> me-2"></i>
+                                                                        <span><?php echo basename($comment['file_url']); ?></span>
+                                                                    </a>
+                                                                <?php endif; ?>
+
+                                                                <?php
+                                                                // Check for additional attachments from message_attachments table
+                                                                $attachQuery = "SELECT * FROM tbl_comment_attachments WHERE comment_id = " . $comment['id'];
+                                                                $attachResult = mysqli_query($con, $attachQuery);
+
+                                                                if ($attachResult && mysqli_num_rows($attachResult) > 0):
+                                                                    while ($attachment = mysqli_fetch_assoc($attachResult)):
+                                                                        $attachExt = strtolower(pathinfo($attachment['file_name'], PATHINFO_EXTENSION));
+                                                                        $isAttachImage = in_array($attachExt, $imageExtensions);
+
+                                                                        if ($isAttachImage):
+                                                                            // Clean the file path - remove any leading path components
+                                                                            $cleanFilePath = basename($attachment['file_path']);
+                                                                            ?>
+                                                                            <a href="../taskfiles/<?php echo htmlspecialchars($cleanFilePath); ?>"
+                                                                               class="glightbox attachment-image"
+                                                                               data-gallery="message-<?php echo $comment['id']; ?>"
+                                                                               data-glightbox="description: <?php echo htmlspecialchars($attachment['file_name']); ?>">
+                                                                                <img src="../taskfiles/<?php echo htmlspecialchars($cleanFilePath); ?>"
+                                                                                     alt="<?php echo htmlspecialchars($attachment['file_name']); ?>"
+                                                                                     class="img-thumbnail"
+                                                                                     style="max-width: 200px; max-height: 200px; object-fit: cover; cursor: pointer; border-radius: 8px;">
+                                                                            </a>
+                                                                        <?php else:
+                                                                            // Clean the file path - remove any leading path components
+                                                                            $cleanFilePath = basename($attachment['file_path']);
+                                                                            $attachIcon = getFileIconClass($attachExt);
+                                                                            ?>
+                                                                            <a href="../taskfiles/<?php echo htmlspecialchars($cleanFilePath); ?>"
+                                                                               class="attachment-file-badge"
+                                                                               download
+                                                                               target="_blank">
+                                                                                <i class="<?php echo $attachIcon; ?> me-2"></i>
+                                                                                <span><?php echo htmlspecialchars($attachment['file_name']); ?></span>
+                                                                                <small class="text-muted ms-2">(<?php echo formatFileSize($attachment['file_size']); ?>)</small>
+                                                                            </a>
+                                                                        <?php
+                                                                        endif;
+                                                                    endwhile;
+                                                                endif;
+                                                                ?>
+                                                            </div>
                                                         </div>
                                                     <?php endif; ?>
                                                 </div>
-
-                                                <!-- Message Status -->
-                                                <?php if ($isLastMessage): ?>
-                                                    <div class="mt-1 <?php echo $isAdmin ? 'text-start' : 'text-end'; ?>">
-                                                        <small class="text-muted" style="font-size: 10px;">
-                                                            <i class="fas fa-check-double text-success me-1"></i>Latest message
-                                                        </small>
-                                                    </div>
-                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
-
-                            <!-- Scroll to bottom indicator - Only for active conversations -->
-                            <?php if (!in_array($taskStatus, ['Completed', 'Cancelled'])): ?>
-                                <div class="text-center py-2" id="scrollIndicator" style="display: none;">
-                                    <button class="btn btn-sm btn-outline-primary" onclick="scrollToBottom()">
-                                        <i class="fas fa-chevron-down me-1"></i>Scroll to latest
-                                    </button>
-                                </div>
-                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
+
+                    <!-- Fixed Input Form at Bottom - Only show if conversation is active -->
+                    <?php if (!in_array($taskStatus, ['Completed', 'Cancelled'])): ?>
+                        <div class="border-top bg-info-subtle p-3" style="flex-shrink: 0;">
+                            <form id="addCommentForm" onsubmit="addComment(event)" enctype="multipart/form-data">
+                                <!-- File Preview Area -->
+                                <div id="filePreview" class="mb-2" style="display: none;">
+                                    <div class="alert alert-info d-flex align-items-center justify-content-between mb-2 py-2">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-file me-2"></i>
+                                            <span id="fileName" class="small"></span>
+                                            <span id="fileSize" class="small text-muted ms-2"></span>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="removeFile()">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Selected Files Preview -->
+                                <div id="selectedFilesPreview" style="display: none; margin-bottom: 15px;">
+                                    <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 12px; padding: 12px;">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <small class="text-muted fw-semibold">
+                                                <i class="fas fa-paperclip me-1"></i>
+                                                <span id="fileCount">0</span> file(s) attached
+                                            </small>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-link text-danger p-0"
+                                                    onclick="clearAllFiles()"
+                                                    style="text-decoration: none; font-size: 12px;">
+                                                <i class="fas fa-times-circle me-1"></i>Remove all
+                                            </button>
+                                        </div>
+                                        <div id="filesPreviewList" style="max-height: 200px; overflow-y: auto;">
+                                            <!-- Files will be added here dynamically -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex gap-2 align-items-end">
+                                    <!-- File Input (Hidden) -->
+                                    <input type="file"
+                                           id="fileInput"
+                                           name="attachments[]"
+                                           multiple
+                                           accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                                           style="display: none;" onchange="handleFileSelect(event)">
+                                    <!-- Attach Button -->
+                                    <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('fileInput').click()" title="Attach image">
+                                        <i class="fas fa-paperclip"></i>
+                                    </button>
+
+                                    <!-- Message Input -->
+                                    <div class="flex-grow-1">
+                                <textarea class="form-control"
+                                          id="commentText"
+                                          name="comment"
+                                          rows="2"
+                                          placeholder="Type your message... (Ctrl+Enter to send)"
+                                          style="resize: none; border-radius: 20px;"
+                                          onkeydown="handleKeyPress(event)"></textarea>
+                                    </div>
+
+                                    <!-- Send Button -->
+                                    <button type="submit" class="btn btn-primary px-4" style="border-radius: 20px;">
+                                        <i class="fas fa-paper-plane me-1"></i>Send
+                                    </button>
+                                </div>
+
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Press Ctrl+Enter to send quickly • (Max 10MB)
+                                </small>
+                            </form>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Analytics Dashboard Card -->
-    <div class="card mb-3">
-        <div class="card-header bg-body-tertiary d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center">
-                <i class="fas fa-chart-line me-2 text-primary"></i>
-                <h6 class="mb-0">Task Analytics & Insights</h6>
-            </div>
-            <button class="btn btn-sm btn-outline-primary" onclick="toggleAnalytics()">
-                <i class="fas fa-chevron-down" id="analytics-toggle-icon"></i>
-            </button>
-        </div>
-        <div class="card-body" id="analytics-content" style="display: none;">
-            <div class="row g-3">
-
-                <!-- Key Metrics Row -->
-                <div class="col-12">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <div class="card border-0 bg-primary-subtle h-100">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-clock fa-2x text-primary mb-2"></i>
-                                    <h5 class="text-primary mb-1"><?php echo $taskMetrics['progress_percentage']; ?>%</h5>
-                                    <small class="text-600">Timeline Progress</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card border-0 bg-<?php echo $complexityLevel['class']; ?>-subtle h-100">
-                                <div class="card-body text-center">
-                                    <i class="fas <?php echo $complexityLevel['icon']; ?> fa-2x text-<?php echo $complexityLevel['class']; ?> mb-2"></i>
-                                    <h5 class="text-<?php echo $complexityLevel['class']; ?> mb-1"><?php echo round($complexityScore); ?></h5>
-                                    <small class="text-600">Complexity Score</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card border-0 bg-info-subtle h-100">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-money-bill-wave fa-2x text-info mb-2"></i>
-                                    <h5 class="text-info mb-1">Ksh. <?php echo number_format($financialAnalytics['task_value']); ?></h5>
-                                    <small class="text-600">Task Value</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card border-0 bg-<?php echo $riskClass; ?>-subtle h-100">
-                                <div class="card-body text-center">
-                                    <i class="fas fa-shield-alt fa-2x text-<?php echo $riskClass; ?> mb-2"></i>
-                                    <h5 class="text-<?php echo $riskClass; ?> mb-1"><?php echo $riskLevel; ?></h5>
-                                    <small class="text-600">Risk Level</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Writer Performance -->
-                <?php if (!empty($writerAnalytics)): ?>
-                    <div class="col-md-6">
-                        <div class="card border border-300 h-100">
-                            <div class="card-header">
-                                <h6 class="mb-0"><i class="fas fa-user-graduate me-2"></i>Writer Performance</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="row g-2">
-                                    <div class="col-6">
-                                        <small class="text-600">Completion Rate</small>
-                                        <div class="d-flex align-items-center">
-                                            <div class="progress flex-1 me-2" style="height: 8px;">
-                                                <div class="progress-bar" role="progressbar"
-                                                     style="width: <?php echo isset($writerAnalytics['completion_rate']) ? $writerAnalytics['completion_rate'] : 0; ?>%"></div>
-                                            </div>
-                                            <small class="fw-bold"><?php echo isset($writerAnalytics['completion_rate']) ? $writerAnalytics['completion_rate'] : 0; ?>%</small>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <small class="text-600">Early Completion</small>
-                                        <div class="d-flex align-items-center">
-                                            <div class="progress flex-1 me-2" style="height: 8px;">
-                                                <div class="progress-bar bg-success" role="progressbar"
-                                                     style="width: <?php echo isset($writerAnalytics['early_completion_rate']) ? $writerAnalytics['early_completion_rate'] : 0; ?>%"></div>
-                                            </div>
-                                            <small class="fw-bold"><?php echo isset($writerAnalytics['early_completion_rate']) ? $writerAnalytics['early_completion_rate'] : 0; ?>%</small>
-                                        </div>
-                                    </div>
-                                    <div class="col-12 mt-2">
-                                        <small class="text-600">Total Tasks: <?php echo isset($writerAnalytics['total_tasks']) ? $writerAnalytics['total_tasks'] : 0; ?> |
-                                            Avg Completion: <?php echo isset($writerAnalytics['avg_completion_days']) ? round($writerAnalytics['avg_completion_days'], 1) : 'N/A'; ?> days</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                <?php endif; ?>
-
-                <!-- Communication & Files -->
-                <div class="col-md-6">
-                    <div class="card border border-300 h-100">
-                        <div class="card-header">
-                            <h6 class="mb-0"><i class="fas fa-comments me-2"></i>Activity Overview</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="text-600">Task Files:</span>
-                                <span class="fw-bold"><?php echo $fileAnalytics['task_files']; ?></span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="text-600">Submitted Files:</span>
-                                <span class="fw-bold"><?php echo $fileAnalytics['submitted_files']; ?></span>
-                            </div>
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="text-600">Total Messages:</span>
-                                <span class="fw-bold"><?php echo $fileAnalytics['total_comments']; ?></span>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span class="text-600">Communication Balance:</span>
-                                <span class="fw-bold"><?php echo $fileAnalytics['communication_ratio']; ?>% Admin</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Risk Assessment -->
-                <?php if (!empty($riskFactors)): ?>
-                    <div class="col-12">
-                        <div class="card border border-<?php echo $riskClass; ?> bg-<?php echo $riskClass; ?>-subtle">
-                            <div class="card-header bg-<?php echo $riskClass; ?> text-white">
-                                <h6 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Risk Assessment</h6>
-                            </div>
-                            <div class="card-body">
-                                <ul class="list-unstyled mb-0">
-                                    <?php foreach ($riskFactors as $risk): ?>
-                                        <li class="mb-1"><i class="fas fa-caret-right me-2 text-<?php echo $riskClass; ?>"></i><?php echo $risk; ?></li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                <?php endif; ?>
-
-                <!-- Recommendations -->
-                <?php if (!empty($recommendations)): ?>
-                    <div class="col-12">
-                        <div class="card border border-success bg-success-subtle">
-                            <div class="card-header bg-success text-white">
-                                <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Recommendations</h6>
-                            </div>
-                            <div class="card-body">
-                                <ul class="list-unstyled mb-0">
-                                    <?php foreach ($recommendations as $recommendation): ?>
-                                        <li class="mb-1"><i class="fas fa-arrow-right me-2 text-success"></i><?php echo $recommendation; ?></li>
-                                    <?php endforeach; ?>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                <?php endif; ?>
-
-                <!-- Detailed Breakdown -->
-                <div class="col-12">
-                    <div class="card border border-300">
-                        <div class="card-header">
-                            <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Detailed Analytics</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <h6 class="text-primary">Timeline Analysis</h6>
-                                    <small class="text-600">
-                                        Total Duration: <?php echo $totalTimeAllotted; ?> days<br>
-                                        Time Elapsed: <?php echo $timeElapsed; ?> days<br>
-                                        Urgency Level: <span class="badge badge-subtle-<?php echo $taskMetrics['urgency_level'] == 'critical' ? 'danger' : ($taskMetrics['urgency_level'] == 'high' ? 'warning' : 'success'); ?>"><?php echo ucfirst($taskMetrics['urgency_level']); ?></span>
-                                    </small>
-                                </div>
-                                <div class="col-md-4">
-                                    <h6 class="text-primary">Financial Analysis</h6>
-                                    <small class="text-600">
-                                        Pages: <?php echo $taskPages; ?> × Ksh. <?php echo $taskCPP; ?><br>
-                                        CPP vs Average: <?php echo $financialAnalytics['cpp_comparison'] > 0 ? '+' : ''; ?><?php echo $financialAnalytics['cpp_comparison']; ?>%<br>
-                                        Subject Average: Ksh. <?php echo isset($avgCppData['avg_cpp']) ? round($avgCppData['avg_cpp'], 2) : 'N/A'; ?>
-                                    </small>
-                                </div>
-                                <div class="col-md-4">
-                                    <h6 class="text-primary">Complexity Factors</h6>
-                                    <small class="text-600">
-                                        <?php foreach (array_slice($complexityFactors, 0, 3) as $factor): ?>
-                                            <?php echo $factor; ?><br>
-                                        <?php endforeach; ?>
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
     <!-- File Preview Modal -->
     <div class='modal fade' id='filePreviewModal' tabindex='-1' aria-labelledby='filePreviewModalLabel' aria-hidden='true'>
         <div class='modal-dialog' style='max-width: 100vw; width: 100vw; height: 100vh; margin: 0;'>
@@ -1659,12 +1796,165 @@ foreach ($comments as $comment) {
             </div>
         </div>
     </div>
+    <!-- Task Duplicate Modal-->
+    <div class="modal fade" id="duplicateModal" tabindex="-1" aria-labelledby="duplicateModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-info-subtle bg-gradient border-0 text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <h5 class="modal-title d-flex align-items-center" id="duplicateModalLabel">
+                        <div class="rounded-circle bg-white bg-opacity-25 p-2 me-3">
+                            <i class="fas fa-clone fa-lg"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold">Duplicate Task</div>
+                            <small class="opacity-75" style="font-size: 0.85rem;">Create a copy of this task</small>
+                        </div>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info border-0 d-flex align-items-start mb-4">
+                        <i class="fas fa-info-circle text-info me-3 mt-1"></i>
+                        <div class="flex-grow-1">
+                            <strong>Confirmation Required</strong>
+                            <p class="mb-0 small text-muted mt-1">You are about to create a duplicate of the following task. All task details will be copied.</p>
+                        </div>
+                    </div>
 
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body p-4">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
+                                            <i class="fas fa-hashtag text-primary"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <small class="text-muted text-uppercase fw-semibold d-block" style="font-size: 0.75rem; letter-spacing: 0.5px;">Task ID</small>
+                                            <span id="modalTaskId" class="fw-bold fs-6"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <hr class="my-2 opacity-25">
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex align-items-start">
+                                        <div class="rounded-circle bg-success bg-opacity-10 p-2 me-3 mt-1">
+                                            <i class="fas fa-tasks text-success"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <small class="text-muted text-uppercase fw-semibold d-block mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Task Title</small>
+                                            <span id="modalTaskTitle" class="fw-medium"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rounded p-3 border-start border-4 border-warning">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                            <small class="text-muted mb-0">The duplicated task will appear as a new entry in drafts task list.</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0  p-4">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary px-4 shadow-sm" id="confirmDuplicateBtn">
+                        <i class="fas fa-clone me-2"></i>Duplicate Task
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Delete File Confirmation Modal -->
+    <div class="modal fade" id="deleteFileModal" tabindex="-1" aria-labelledby="deleteFileModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger">
+                    <h5 class="modal-title text-white" id="deleteFileModalLabel">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Delete File
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-trash-alt text-danger" style="font-size: 48px;"></i>
+                    </div>
+                    <p class="text-center mb-3">Are you sure you want to delete this file?</p>
+                    <div class="bg-secondary-subtle rounded p-3 mb-3">
+                        <p class="mb-1 text-center">
+                            <strong id="deleteFileName"></strong>
+                        </p>
+                        <p class="mb-0 text-center text-muted fs-10">
+                            <i class="far fa-clock me-1"></i>Uploaded: <span id="deleteFileDate"></span>
+                        </p>
+                    </div>
+                    <div class="alert alert-warning d-flex align-items-center" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <div>
+                            <strong>Warning:</strong> This action cannot be undone. The file will be permanently removed and cannot be retrieved.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn" onclick="return deleteFile();">
+                        <i class="fas fa-trash-alt me-1"></i>Delete File
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        function confirmDuplicate() {
-            return confirm('Are you sure you want to duplicate this task?');
-        }
+        document.addEventListener('DOMContentLoaded', function() {
+            const duplicateModal = document.getElementById('duplicateModal');
+            const confirmBtn = document.getElementById('confirmDuplicateBtn');
+            const modalTaskId = document.getElementById('modalTaskId');
+            const modalTaskTitle = document.getElementById('modalTaskTitle');
+            let taskId = ''; // This will store the encoded ID
+
+            duplicateModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                taskId = button.getAttribute('data-task-id'); // Encoded ID
+                const taskTitle = button.getAttribute('data-task-title');
+
+                // Decode the task ID for display purposes only
+                const decodedTaskId = atob(taskId);
+
+                // Update modal content with animation
+                modalTaskId.style.opacity = '0';
+                modalTaskTitle.style.opacity = '0';
+
+                setTimeout(() => {
+                    modalTaskId.textContent = decodedTaskId; // Show decoded ID
+                    modalTaskTitle.textContent = taskTitle;
+
+                    modalTaskId.style.transition = 'opacity 0.3s ease-in';
+                    modalTaskTitle.style.transition = 'opacity 0.3s ease-in';
+                    modalTaskId.style.opacity = '1';
+                    modalTaskTitle.style.opacity = '1';
+                }, 100);
+            });
+
+            confirmBtn.addEventListener('click', function() {
+                // Add loading state
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Duplicating...';
+
+                // Redirect with the encoded task_id parameter
+                setTimeout(() => {
+                    window.location.href = 'duplicate-task.php?task_id=' + taskId; // Use encoded ID in URL
+                }, 300);
+            });
+        });
 
         function viewFile(taskId, fileIndex, fileType) {
             const url = `file-viewer.php?task_id=${taskId}&file=${fileIndex}&type=${fileType}`;
@@ -1785,7 +2075,7 @@ foreach ($comments as $comment) {
                         window.location.href = 'view-task?task_id=' + encodedId;
                     },
                     error: function() {
-                        alert('An error occurred while marking the task as paid.');
+                        showToast('An error occurred while marking the task as paid.');
                     }
                 });
             }
@@ -1912,14 +2202,18 @@ foreach ($comments as $comment) {
                 }, 100);
             }
         }
+        // Global variable to store selected files
+        let selectedFilesArray = [];
 
-        // Enhanced addComment function with better UX feedback
         function addComment(event) {
             event.preventDefault();
 
             const commentText = document.getElementById('commentText').value.trim();
-            if (!commentText) {
-                showCommentToast('Please enter a message before sending.', 'warning');
+            const fileInput = document.getElementById('fileInput');
+
+            // Check if message or files are provided
+            if (!commentText && selectedFilesArray.length === 0) {
+                showToast('Please enter a message or attach a file', 'warning');
                 return;
             }
 
@@ -1932,73 +2226,353 @@ foreach ($comments as $comment) {
             const formData = new FormData();
             formData.append('task_id', <?php echo $taskId; ?>);
             formData.append('comment', commentText);
-            formData.append('action', 'add_comment');
+            formData.append('csrf_token', '<?php echo $_SESSION['csrf_token'] ?? ''; ?>');
+            formData.append('receiver_id', '<?php echo $receiverId; ?>');
+            formData.append('receiver_type', '<?php echo $receiverType; ?>');
+
+            // Add all selected files
+            if (selectedFilesArray.length > 0) {
+                selectedFilesArray.forEach((file, index) => {
+                    formData.append('attachments[]', file);
+                });
+            }
 
             fetch('add-task-comment', {
                 method: 'POST',
                 body: formData
             })
                 .then(response => {
-                    // Check if response is ok
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-
-                    // Check content type to ensure it's JSON
                     const contentType = response.headers.get('content-type');
                     if (!contentType || !contentType.includes('application/json')) {
-                        // If it's not JSON, get the text to see what was returned
                         return response.text().then(text => {
                             console.error('Non-JSON response received:', text);
-                            throw new Error('Server returned HTML instead of JSON. Please check the add-task-comment endpoint.');
+                            throw new Error('Server returned HTML instead of JSON');
                         });
                     }
-
                     return response.json();
                 })
                 .then(data => {
                     if (data && data.success) {
-                        // Show success message
-                        showCommentToast('Message sent!', 'success');
+                        showToast('Message sent successfully!', 'success');
 
-                        // Reset form
-                        document.getElementById('commentText').value = '';
-                        toggleCommentForm();
 
-                        // Add smooth reload with animation
+                        // Scroll to bottom
+                        const container = document.getElementById('commentsContainer');
+                        if (container) {
+                            container.scrollTop = container.scrollHeight;
+                        }
+
+                        // Reload after short delay
                         setTimeout(() => {
                             window.location.reload();
                         }, 1000);
                     } else {
-                        // Handle API error response
                         const errorMessage = data && data.message ? data.message : 'Failed to send message';
-                        showCommentToast(errorMessage, 'danger');
-
-                        // Reset button state
+                        showToast(errorMessage, 'danger');
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = originalBtnText;
                     }
                 })
                 .catch(error => {
-                    console.error('Error details:', error);
-
-                    // Provide user-friendly error messages
-                    let userMessage = 'An error occurred while sending the message';
-
-                    if (error.message.includes('HTML instead of JSON')) {
-                        userMessage = 'Server configuration error. Please contact administrator.';
-                    } else if (error.message.includes('HTTP error')) {
-                        userMessage = 'Server error. Please try again later.';
-                    } else if (error.message.includes('Failed to fetch')) {
-                        userMessage = 'Network error. Please check your connection.';
-                    }
-
-                    showCommentToast(userMessage, 'danger');
-
-                    // Reset button state
+                    console.error('Error:', error);
+                    showToast('An error occurred while sending the message', 'danger');
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = originalBtnText;
                 });
+        }
+
+        function handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+
+            if (files.length === 0) return;
+
+            files.forEach(file => {
+                // Validate file size (10MB max)
+                if (file.size > 10 * 1024 * 1024) {
+                    showToast(`File "${file.name}" is too large. Maximum size is 10MB.`, 'warning');
+                    return;
+                }
+
+                // Check for duplicates
+                if (selectedFilesArray.some(f => f.name === file.name && f.size === file.size)) {
+                    showToast(`File "${file.name}" is already attached.`, 'info');
+                    return;
+                }
+
+                // Add to array
+                selectedFilesArray.push(file);
+            });
+
+            // Update preview
+            updateFilePreview();
+        }
+
+        function updateFilePreview() {
+            const previewContainer = document.getElementById('selectedFilesPreview');
+            const filesList = document.getElementById('filesPreviewList');
+            const fileCount = document.getElementById('fileCount');
+
+            if (!previewContainer || !filesList || !fileCount) return;
+
+            // Clear existing preview
+            filesList.innerHTML = '';
+
+            if (selectedFilesArray.length === 0) {
+                previewContainer.style.display = 'none';
+                return;
+            }
+
+            // Show preview container
+            previewContainer.style.display = 'block';
+
+            // Update count
+            fileCount.textContent = selectedFilesArray.length;
+
+            // Add each file to preview
+            selectedFilesArray.forEach((file, index) => {
+                const fileItem = createFilePreviewItem(file, index);
+                filesList.appendChild(fileItem);
+            });
+        }
+
+        function createFilePreviewItem(file, index) {
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            const isImage = imageExtensions.includes(fileExt);
+
+            const div = document.createElement('div');
+            div.className = 'file-preview-item';
+            div.style.cssText = 'display: flex; align-items: center; padding: 8px; background: white; border-radius: 8px; margin-bottom: 6px; border: 1px solid #e9ecef; transition: all 0.2s;';
+
+            // Create preview content
+            let previewHTML = '';
+
+            if (isImage) {
+                // For images, create thumbnail
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = div.querySelector('.file-thumbnail');
+                    if (img) {
+                        img.src = e.target.result;
+                    }
+                };
+                reader.readAsDataURL(file);
+
+                previewHTML = `
+            <img class="file-thumbnail"
+                 src=""
+                 alt="${escapeHtml(file.name)}"
+                 style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; margin-right: 10px; border: 1px solid #dee2e6;">
+        `;
+            } else {
+                // For documents, show icon
+                const iconClass = getFileIconClass(fileExt);
+                previewHTML = `
+            <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                <i class="${iconClass}" style="font-size: 24px;"></i>
+            </div>
+        `;
+            }
+
+            div.innerHTML = `
+        ${previewHTML}
+        <div style="flex-grow: 1; min-width: 0;">
+            <div style="font-size: 13px; font-weight: 500; color: #212529; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(file.name)}">
+                ${escapeHtml(file.name)}
+            </div>
+            <div style="font-size: 11px; color: #6c757d;">
+                ${formatFileSize(file.size)}
+            </div>
+        </div>
+        <button type="button"
+                class="btn btn-sm btn-link text-danger p-1"
+                onclick="removeFileByIndex(${index})"
+                style="text-decoration: none; font-size: 16px;"
+                title="Remove file">
+            <i class="fas fa-times-circle"></i>
+        </button>
+    `;
+
+            // Hover effect
+            div.onmouseenter = function() {
+                this.style.background = '#f8f9fa';
+                this.style.transform = 'translateX(3px)';
+            };
+            div.onmouseleave = function() {
+                this.style.background = 'white';
+                this.style.transform = 'translateX(0)';
+            };
+
+            return div;
+        }
+
+        function removeFileByIndex(index) {
+            if (index >= 0 && index < selectedFilesArray.length) {
+                const fileName = selectedFilesArray[index].name;
+                selectedFilesArray.splice(index, 1);
+                updateFileInput();
+                updateFilePreview();
+                showToast(`Removed: ${fileName}`, 'info');
+            }
+        }
+
+        function clearAllFiles() {
+            selectedFilesArray = [];
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) fileInput.value = '';
+            updateFilePreview();
+            showToast('All files removed', 'info');
+        }
+
+        function updateFileInput() {
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput) return;
+
+            const dataTransfer = new DataTransfer();
+            selectedFilesArray.forEach(file => {
+                dataTransfer.items.add(file);
+            });
+
+            fileInput.files = dataTransfer.files;
+        }
+
+        function getFileIconClass(ext) {
+            const iconMap = {
+                'pdf': 'fas fa-file-pdf text-danger',
+                'doc': 'fas fa-file-word text-primary',
+                'docx': 'fas fa-file-word text-primary',
+                'xls': 'fas fa-file-excel text-success',
+                'xlsx': 'fas fa-file-excel text-success',
+                'txt': 'fas fa-file-alt text-secondary',
+                'jpg': 'fas fa-file-image text-info',
+                'jpeg': 'fas fa-file-image text-info',
+                'png': 'fas fa-file-image text-info',
+                'gif': 'fas fa-file-image text-info',
+                'webp': 'fas fa-file-image text-info',
+            };
+            return iconMap[ext] || 'fas fa-file text-muted';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize GLightbox for image attachments
+        document.addEventListener('DOMContentLoaded', function() {
+            const lightbox = GLightbox({
+                touchNavigation: true,
+                loop: true,
+                autoplayVideos: true,
+                closeButton: true,
+                closeOnOutsideClick: true,
+                moreLength: 0
+            });
+
+            // Reinitialize after new messages are loaded
+            function reinitLightbox() {
+                if (typeof GLightbox !== 'undefined') {
+                    GLightbox({
+                        touchNavigation: true,
+                        loop: true,
+                        autoplayVideos: true
+                    });
+                }
+            }
+
+            // Call this after AJAX updates if needed
+            window.reinitLightbox = reinitLightbox;
+        });
+
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            // Map types to Bootstrap colors
+            const typeMap = {
+                'success': 'bg-success',
+                'danger': 'bg-danger',
+                'error': 'bg-danger',
+                'warning': 'bg-warning',
+                'info': 'bg-info',
+                'primary': 'bg-primary'
+            };
+
+            // Map types to icons
+            const iconMap = {
+                'success': 'fas fa-check-circle',
+                'danger': 'fas fa-exclamation-circle',
+                'error': 'fas fa-exclamation-circle',
+                'warning': 'fas fa-exclamation-triangle',
+                'info': 'fas fa-info-circle',
+                'primary': 'fas fa-bell'
+            };
+
+            const bgClass = typeMap[type] || 'bg-info';
+            const icon = iconMap[type] || 'fas fa-info-circle';
+
+            // Create unique ID for this toast
+            const toastId = 'toast-' + Date.now();
+
+            // Create toast HTML
+            const toastHTML = `
+        <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="5000">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="${icon} me-2"></i>
+                    ${escapeHtml(message)}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    `;
+
+            // Get or create toast container
+            let container = document.querySelector('.toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                container.style.zIndex = '9999';
+                document.body.appendChild(container);
+            }
+
+            // Add toast to container
+            container.insertAdjacentHTML('beforeend', toastHTML);
+
+            // Get the toast element
+            const toastElement = document.getElementById(toastId);
+
+            // Initialize and show toast
+            if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+                const bsToast = new bootstrap.Toast(toastElement);
+                bsToast.show();
+
+                // Remove toast from DOM after it's hidden
+                toastElement.addEventListener('hidden.bs.toast', function () {
+                    toastElement.remove();
+                });
+            } else {
+                // Fallback if Bootstrap is not available
+                toastElement.style.display = 'block';
+                toastElement.style.animation = 'slideInRight 0.3s ease';
+
+                setTimeout(() => {
+                    toastElement.style.animation = 'slideOutRight 0.3s ease';
+                    setTimeout(() => {
+                        toastElement.remove();
+                    }, 300);
+                }, 5000);
+            }
         }
 
         // Enhanced scroll to bottom function with smooth animation
@@ -2144,21 +2718,21 @@ foreach ($comments as $comment) {
         function markCommentsAsReadOnLoad() {
             const taskId = <?php echo $taskId; ?>;
 
-            fetch('mark-writer-comments-read', {
+            fetch('mark-admin-comments-read', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     task_id: taskId,
-                    action: 'mark_writer_comments_read'
+                    action: 'mark_admin_comments_read'
                 })
             })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.count > 0) {
                         // Show subtle notification
-                        showCommentToast(`Marked ${data.count} new messages as read`, 'info');
+                        //showCommentToast(`Marked ${data.count} new messages as read`, 'info');
 
                         // Update UI after delay
                         setTimeout(() => {
@@ -2197,8 +2771,8 @@ foreach ($comments as $comment) {
 
         // Enhanced UI update function
         function updateCommentsUI() {
-            // Remove "NEW" badges with smooth animation
-            const unreadBadges = document.querySelectorAll('.writer-comment .unread-badge, .admin-comment .unread-badge');
+            // Remove "NEW" badges with smooth animation - fixed selector
+            const unreadBadges = document.querySelectorAll('.unread-message-badge');
             unreadBadges.forEach(badge => {
                 // Add fade out animation
                 badge.style.transition = 'all 0.5s ease-out';
@@ -2210,7 +2784,14 @@ foreach ($comments as $comment) {
                     if (badge.parentNode) {
                         badge.remove();
                     }
-                }, 500);
+                }, 5000);
+            });
+
+            // Also remove any pulse animations from remaining unread elements
+            const pulseElements = document.querySelectorAll('.pulse-animation');
+            pulseElements.forEach(element => {
+                element.classList.remove('pulse-animation');
+                element.style.animation = 'none';
             });
         }
 
@@ -2684,89 +3265,726 @@ foreach ($comments as $comment) {
         });
     </script>
     <script>
-        function toggleAnalytics() {
-            const content = document.getElementById('analytics-content');
-            const icon = document.getElementById('analytics-toggle-icon');
+        const POLLING_INTERVAL = 5000; // 5 seconds
+        let lastTimestamp = null;
+        let pollingTimer = null;
+        let isPolling = false;
 
-            if (content.style.display === 'none') {
-                content.style.display = 'block';
-                icon.classList.remove('fa-chevron-down');
-                icon.classList.add('fa-chevron-up');
-            } else {
-                content.style.display = 'none';
-                icon.classList.remove('fa-chevron-up');
-                icon.classList.add('fa-chevron-down');
-            }
+        // Get task ID from existing variable or PHP
+        let pollingTaskId;
+        if (typeof taskId !== 'undefined') {
+            pollingTaskId = taskId; // Use existing taskId variable
+        } else {
+            pollingTaskId = <?php echo isset($taskId) ? $taskId : '0'; ?>; // Fallback to PHP
         }
 
-        // Auto-expand analytics if there are high-risk factors or recommendations
-        document.addEventListener('DOMContentLoaded', function() {
-            <?php if ($riskScore >= 50 || !empty($recommendations)): ?>
-            toggleAnalytics();
-            <?php endif; ?>
-        });
-    </script>
-    <script>
-        // Initialize tooltips for online indicators
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Bootstrap tooltips
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-        });
+        function initializePolling() {
+            // Verify task ID is valid
+            if (!pollingTaskId || pollingTaskId <= 0) {
+                console.error('❌ Invalid task ID - polling disabled');
+                return;
+            }
 
-        // Optional: Real-time status updates via AJAX (call this periodically)
-        function updateOnlineStatuses() {
-            const taskId = <?php echo $taskId; ?>;
+            // Get the latest comment timestamp from current page
+            const comments = document.querySelectorAll('.comment-item[data-timestamp]');
+            if (comments.length > 0) {
+                const lastComment = comments[comments.length - 1];
+                const timestamp = lastComment.dataset.timestamp;
+                if (timestamp) {
+                    lastTimestamp = timestamp;
+                }
+            }
 
-            fetch('get-online-status.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    task_id: taskId,
-                    action: 'get_user_statuses'
-                })
+            // Start polling
+            startPolling();
+
+        }
+
+        function startPolling() {
+            if (isPolling) return;
+
+            isPolling = true;
+            pollingTimer = setInterval(checkForNewComments, POLLING_INTERVAL);
+        }
+
+        function stopPolling() {
+            if (pollingTimer) {
+                clearInterval(pollingTimer);
+                pollingTimer = null;
+            }
+            isPolling = false;
+        }
+
+
+        function checkForNewComments() {
+            // Verify task ID
+            if (!pollingTaskId || pollingTaskId <= 0) {
+                console.error('Invalid task ID');
+                stopPolling();
+                return;
+            }
+
+            // Build URL with parameters
+            let url = 'get-new-comments?task_id=' + pollingTaskId;
+            if (lastTimestamp) {
+                url += '&last_timestamp=' + encodeURIComponent(lastTimestamp);
+            }
+
+            fetch(url, {
+                method: 'GET', // Changed to GET
+                credentials: 'same-origin' // Include session cookies
             })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    if (data.success) {
-                        updateStatusIndicators(data.statuses);
+
+                    // Show debug info if error
+                    if (!data.success && data.debug) {
+                        console.error('❌ Debug info:', data.debug);
+                    }
+
+                    if (data.success && data.comments && data.comments.length > 0) {
+                        // Add new comments to the page
+                        data.comments.forEach(comment => {
+                            addCommentToPage(comment, data.current_user_type);
+                        });
+
+                        // Update latest timestamp
+                        if (data.latest_timestamp) {
+                            lastTimestamp = data.latest_timestamp;
+                        }
+
+                        // Show notification
+                        showNewMessageNotification(data.comments.length);
+
+                        // Mark messages as read if they're visible
+                        setTimeout(markVisibleMessagesAsRead, 500);
+                    } else if (!data.success) {
+                        console.error('Poll error:', data.message);
                     }
                 })
                 .catch(error => {
-                    console.error('Error updating online statuses:', error);
+                    console.error('Polling error:', error);
+                    // Don't stop polling on error, just log it
                 });
         }
 
-        function updateStatusIndicators(statuses) {
-            Object.keys(statuses).forEach(userKey => {
-                const indicators = document.querySelectorAll(`[data-user-key="${userKey}"]`);
-                const status = statuses[userKey];
+        function addCommentToPage(comment, currentUserType) {
+            const container = document.getElementById('commentsContainer');
+            if (!container) {
+                console.error('Comments container not found');
+                return;
+            }
 
-                indicators.forEach(indicator => {
-                    // Update classes
-                    indicator.className = indicator.className.replace(/bg-(success|warning|info|secondary)/, status.status_class.replace('bg-', 'bg-'));
+            // Check if comment already exists (prevent duplicates)
+            const existingComment = document.querySelector(`[data-comment-id="${comment.id}"]`);
+            if (existingComment) {
+                console.log('Comment already exists, skipping:', comment.id);
+                return;
+            }
 
-                    // Update tooltip
-                    const tooltip = bootstrap.Tooltip.getInstance(indicator);
-                    if (tooltip) {
-                        tooltip.setContent({
-                            '.tooltip-inner': status.tooltip_content
-                        });
+            const isAdmin = comment.user_type === 'admin';
+            const isCurrentUser = comment.user_type === currentUserType;
+
+            // Create comment HTML
+            const commentHTML = createCommentHTML(comment, isAdmin, isCurrentUser);
+
+            // Add to container
+            container.insertAdjacentHTML('beforeend', commentHTML);
+
+            console.log('Added new comment:', comment.id);
+
+            // Scroll to bottom (smooth)
+            setTimeout(() => {
+                container.scrollTo({
+                    top: container.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 100);
+
+            // Animate new comment
+            const newCommentElement = container.lastElementChild;
+            if (newCommentElement) {
+                newCommentElement.style.animation = 'slideInUp 0.3s ease';
+            }
+
+            // Reinitialize GLightbox for new images
+            if (typeof GLightbox !== 'undefined') {
+                try {
+                    GLightbox().reload();
+                } catch (e) {
+                    console.log('GLightbox reload skipped');
+                }
+            }
+            // Reinitialize read tracking for new messages
+            if (typeof window.reinitializeReadTracking === 'function') {
+                setTimeout(() => {
+                    window.reinitializeReadTracking();
+                }, 500);
+            }
+        }
+
+        function createCommentHTML(comment, isAdmin, isCurrentUser) {
+            const alignment = isCurrentUser ? 'flex-row-reverse' : 'flex-row';
+            const bubbleColor = isCurrentUser ? 'bg-success-subtle border-success-subtle' : 'bg-primary-subtle border-primary-subtle';
+            const bubbleRadius = isCurrentUser ? '20px 20px 5px 20px' : '20px 20px 20px 5px';
+            const textColor = isCurrentUser ? 'text-success' : 'text-primary';
+            const userIcon = isCurrentUser ? 'fa-user-edit' : 'fa-user-shield';
+
+            // Avatar HTML
+            let avatarHTML = '';
+            if (comment.profile_image) {
+                avatarHTML = `<img class="rounded-circle" src="${escapeHtml(comment.profile_image)}"
+                          alt="${escapeHtml(comment.username)}"
+                          style="width: 45px; height: 45px; object-fit: cover;">`;
+            } else {
+                const initials = comment.username.substring(0, 2).toUpperCase();
+                const bgClass = isCurrentUser ? 'bg-success' : 'bg-primary';
+                avatarHTML = `<div class="avatar-name rounded-circle shadow-sm ${bgClass}"
+                          style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center;">
+                         <span class='fw-bold text-white' style="font-size: 14px;">${initials}</span>
+                      </div>`;
+            }
+
+            // Unread badge
+            let unreadBadge = '';
+            if (comment.is_unread && !isCurrentUser) {
+                unreadBadge = `<span class="badge bg-danger ms-2 pulse-animation" style="font-size: 9px;">
+                          <i class="fas fa-envelope me-1"></i>NEW
+                       </span>`;
+            }
+
+            // Attachments HTML
+            let attachmentsHTML = '';
+            if (comment.attachments && comment.attachments.length > 0) {
+                attachmentsHTML = '<div class="message-attachments mt-3 pt-3 border-top"><div class="attachments-grid">';
+
+                comment.attachments.forEach(file => {
+                    const ext = file.file_type.toLowerCase();
+                    const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                    const isImage = imageExts.includes(ext);
+
+                    if (isImage) {
+                        attachmentsHTML += `
+                    <a href="${escapeHtml(file.file_path)}" class="glightbox attachment-image"
+                       data-gallery="message-${comment.id}">
+                        <img src="${escapeHtml(file.file_path)}" alt="${escapeHtml(file.file_name)}"
+                             style="max-width: 200px; border-radius: 8px;">
+                    </a>`;
+                    } else {
+                        const iconClass = getFileIconClass(ext);
+                        attachmentsHTML += `
+                    <a href="${escapeHtml(file.file_path)}" class="attachment-file-badge" download>
+                        <i class="${iconClass}"></i>
+                        <span>${escapeHtml(file.file_name)}</span>
+                    </a>`;
                     }
                 });
+
+                attachmentsHTML += '</div></div>';
+            }
+
+            // Format comment text
+            const formattedComment = formatCommentText(comment.comment);
+
+            // Read status ticks
+            const readStatus = comment.is_read == 1
+                ? '<i class="fas fa-check-double text-primary" title="Read" style="font-size: 10px;"></i>'
+                : '<i class="fas fa-check text-muted" title="Delivered" style="font-size: 10px;"></i>';
+
+            return `
+    <div class="comment-item mb-3 new-message"
+         data-comment-id="${comment.id}"
+         data-timestamp="${comment.created_at}"
+         ${comment.is_unread ? 'data-unread="true"' : ''}>
+        <div class="d-flex ${alignment} align-items-start gap-2">
+            <!-- Avatar -->
+            <div class="flex-shrink-0">
+                <div class="position-relative">
+                    ${avatarHTML}
+                </div>
+            </div>
+
+            <!-- Message Bubble -->
+            <div class="flex-grow-1" style="max-width: 75%;">
+                <div class="comment-bubble position-relative p-3 shadow-sm ${bubbleColor} border"
+                     style="border-radius: ${bubbleRadius}; word-wrap: break-word;">
+
+                    <!-- Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                        <div class="comment-author fw-bold ${textColor}" style="font-size: 13px;">
+                            <i class="fas ${userIcon} me-1" style="font-size: 11px;"></i>
+                            ${escapeHtml(comment.username)}
+                            ${unreadBadge}
+                        </div>
+
+                        <div class="d-flex align-items-center flex-shrink-0">
+                            <small class="fw-medium text-muted d-flex align-items-center" style="font-size: 11px;">
+                                <i class="far fa-clock me-1"></i>
+                                ${comment.formatted_date}
+                                <span class="ms-2">${readStatus}</span>
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="comment-text fs-9">
+                        ${formattedComment}
+                    </div>
+
+                    <!-- Attachments -->
+                    ${attachmentsHTML}
+                </div>
+            </div>
+        </div>
+    </div>`;
+        }
+
+        function formatCommentText(text) {
+            if (!text) return '';
+
+            // Escape HTML
+            let formatted = escapeHtml(text);
+
+            // Convert newlines to <br>
+            formatted = formatted.replace(/\n/g, '<br>');
+
+            // Convert URLs to links
+            formatted = formatted.replace(
+                /(https?:\/\/[^\s]+)/g,
+                '<a href="$1" target="_blank" class="text-decoration-none fw-medium">$1 <i class="fas fa-external-link-alt" style="font-size: 10px;"></i></a>'
+            );
+
+            return formatted;
+        }
+
+        function getFileIconClass(ext) {
+            const iconMap = {
+                'pdf': 'fas fa-file-pdf text-danger',
+                'doc': 'fas fa-file-word text-primary',
+                'docx': 'fas fa-file-word text-primary',
+                'xls': 'fas fa-file-excel text-success',
+                'xlsx': 'fas fa-file-excel text-success',
+                'txt': 'fas fa-file-alt text-secondary',
+                'jpg': 'fas fa-file-image text-info',
+                'jpeg': 'fas fa-file-image text-info',
+                'png': 'fas fa-file-image text-info',
+                'gif': 'fas fa-file-image text-info',
+                'webp': 'fas fa-file-image text-info'
+            };
+            return iconMap[ext] || 'fas fa-file text-muted';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showNewMessageNotification(count) {
+            const message = count === 1 ? '1 new message' : `${count} new messages`;
+            if (typeof showToast === 'function') {
+                showToast(message, 'info');
+            } else {
+                console.log('📬', message);
+            }
+        }
+
+        function markVisibleMessagesAsRead() {
+            const unreadMessages = document.querySelectorAll('[data-unread="true"]');
+
+            unreadMessages.forEach(message => {
+                const rect = message.getBoundingClientRect();
+                const container = document.getElementById('commentsContainer');
+                const containerRect = container ? container.getBoundingClientRect() : { top: 0, bottom: window.innerHeight };
+
+                const isVisible = rect.top >= containerRect.top && rect.bottom <= containerRect.bottom;
+
+                if (isVisible) {
+                    const commentId = message.dataset.commentId;
+                    if (commentId) {
+                        // Mark as read via AJAX
+                        markMessageAsRead(commentId);
+                        message.removeAttribute('data-unread');
+
+                        // Update badge
+                        const badge = message.querySelector('.pulse-animation');
+                        if (badge) {
+                            badge.remove();
+                        }
+                    }
+                }
             });
         }
 
-        // Update statuses every 30 seconds for active conversations
-        <?php if (!in_array($taskStatus, ['Completed', 'Cancelled'])): ?>
-        setInterval(updateOnlineStatuses, 30000);
-        <?php endif; ?>
+        function setupMessageReadTracking() {
+            const container = document.getElementById('commentsContainer');
+            if (!container) return;
+
+            // Use Intersection Observer for efficient viewport detection
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const commentItem = entry.target;
+                        const commentId = commentItem.dataset.commentId;
+                        const isUnread = commentItem.dataset.unread === 'true';
+
+                        // Only mark if it's unread
+                        if (commentId && isUnread) {
+                            // Delay to ensure user actually sees it
+                            setTimeout(() => {
+                                // Check if still visible
+                                if (isElementInViewport(commentItem)) {
+                                    markSingleMessageAsRead(commentId, commentItem);
+                                }
+                            }, 1000); // 1 second delay
+                        }
+                    }
+                });
+            }, {
+                root: container,
+                rootMargin: '0px',
+                threshold: 0.5 // At least 50% visible
+            });
+
+            // Observe all unread messages
+            const unreadMessages = container.querySelectorAll('[data-unread="true"]');
+            unreadMessages.forEach(msg => observer.observe(msg));
+
+            // Store observer for later use
+            window.messageReadObserver = observer;
+
+            console.log('📖 Message read tracking initialized for', unreadMessages.length, 'unread messages');
+        }
+
+        function isElementInViewport(el) {
+            const rect = el.getBoundingClientRect();
+            const container = document.getElementById('commentsContainer');
+            const containerRect = container.getBoundingClientRect();
+
+            return (
+                rect.top >= containerRect.top &&
+                rect.bottom <= containerRect.bottom &&
+                rect.left >= containerRect.left &&
+                rect.right <= containerRect.right
+            );
+        }
+
+        function markSingleMessageAsRead(commentId, messageElement) {
+            // Don't mark our own messages as read
+            if (messageElement.classList.contains('message-sent')) {
+                return;
+            }
+
+            // Don't re-mark already read messages
+            if (messageElement.getAttribute('data-unread') !== 'true') {
+                return;
+            }
+
+            console.log('📧 Marking message as read:', commentId);
+
+            fetch('mark-comment-read', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'comment_id=' + commentId
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.marked_read) {
+                        console.log('✅ Message marked as read in database:', commentId);
+
+                        // Update UI immediately
+                        updateMessageReadUI(messageElement);
+
+                        // Update unread count
+                        updateUnreadCount();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error marking message as read:', error);
+                });
+        }
+
+        function updateMessageReadUI(messageElement) {
+            // Remove unread attribute
+            messageElement.removeAttribute('data-unread');
+
+            // Remove unread badge
+            const badge = messageElement.querySelector('.pulse-animation');
+            if (badge) {
+                badge.style.transition = 'opacity 0.3s ease';
+                badge.style.opacity = '0';
+                setTimeout(() => badge.remove(), 300);
+            }
+
+            // Update read status icon
+            const statusIcon = messageElement.querySelector('.fa-check');
+            if (statusIcon) {
+                statusIcon.classList.remove('fa-check', 'text-muted');
+                statusIcon.classList.add('fa-check-double', 'text-primary');
+                statusIcon.title = 'Read';
+            }
+
+            // Remove any highlight/glow effect
+            messageElement.classList.remove('unread-message-glow');
+            messageElement.style.animation = 'none';
+        }
+
+        function updateUnreadCount() {
+            // Only count unread messages that are NOT from the current user
+            const allMessages = document.querySelectorAll('[data-comment-id]');
+            let count = 0;
+
+            allMessages.forEach(msg => {
+                const isUnread = msg.getAttribute('data-unread') === 'true';
+                const isMine = msg.classList.contains('message-sent'); // Messages sent by current user
+
+                // Only count unread messages from others
+                if (isUnread && !isMine) {
+                    count++;
+                }
+            });
+
+            // Update any unread badges in the UI
+            const unreadBadges = document.querySelectorAll('.unread-count-badge, .badge.bg-danger');
+            unreadBadges.forEach(badge => {
+                if (count > 0) {
+                    badge.textContent = count;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            });
+
+            console.log('📊 Unread count updated:', count);
+        }
+
+        function markAllVisibleAsRead() {
+            const container = document.getElementById('commentsContainer');
+            if (!container) return;
+
+            const unreadMessages = container.querySelectorAll('[data-unread="true"]');
+            let markedCount = 0;
+
+            unreadMessages.forEach(messageElement => {
+                if (isElementInViewport(messageElement)) {
+                    const commentId = messageElement.dataset.commentId;
+                    if (commentId) {
+                        markSingleMessageAsRead(commentId, messageElement);
+                        markedCount++;
+                    }
+                }
+            });
+
+            if (markedCount > 0) {
+                console.log(`✅ Marked ${markedCount} visible messages as read`);
+            }
+        }
+
+        let scrollTimeout;
+        function handleCommentsScroll() {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                markAllVisibleAsRead();
+            }, 500); // Wait 500ms after scrolling stops
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Setup read tracking
+            setupMessageReadTracking();
+
+            // Add scroll listener
+            const container = document.getElementById('commentsContainer');
+            if (container) {
+                container.addEventListener('scroll', handleCommentsScroll);
+            }
+
+            // Mark visible messages after page loads
+            setTimeout(() => {
+                markAllVisibleAsRead();
+            }, 2000); // 2 second delay after page load
+
+            console.log('✅ Message read tracking system initialized');
+        });
+
+        function reinitializeReadTracking() {
+            if (window.messageReadObserver) {
+                // Observe new unread messages
+                const container = document.getElementById('commentsContainer');
+                const unreadMessages = container.querySelectorAll('[data-unread="true"]');
+
+                unreadMessages.forEach(msg => {
+                    window.messageReadObserver.observe(msg);
+                });
+
+                console.log('🔄 Read tracking reinitialized for new messages');
+            }
+        }
+
+        window.reinitializeReadTracking = reinitializeReadTracking;
+
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                stopPolling();
+                console.log('⏸️ Auto-update paused (tab hidden)');
+            } else {
+                startPolling();
+                console.log('▶️ Auto-update resumed');
+                // Check immediately when tab becomes visible
+                checkForNewComments();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait a bit for page to fully load
+            setTimeout(() => {
+                initializePolling();
+            }, 1000);
+        });
+
+        window.addEventListener('beforeunload', function() {
+            stopPolling();
+        });
+
+        // Add CSS animation for new messages
+        if (!document.getElementById('polling-animations')) {
+            const style = document.createElement('style');
+            style.id = 'polling-animations';
+            style.textContent = `
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .new-message {
+            animation: slideInUp 0.3s ease;
+        }
+
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.6;
+            }
+        }
+    `;
+            document.head.appendChild(style);
+        }
 
     </script>
+    <script>
+        // Delete file variables
+        let deleteFileId = null;
+        let deleteFileType = null;
+
+        function confirmDeleteFile(fileId, fileName, fileDate, fileType) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            deleteFileId = fileId;
+            deleteFileType = fileType;
+            document.getElementById('deleteFileName').textContent = fileName;
+            document.getElementById('deleteFileDate').textContent = fileDate;
+
+            var deleteModalEl = document.getElementById('deleteFileModal');
+            if (deleteModalEl) {
+                var deleteModal = new bootstrap.Modal(deleteModalEl);
+                deleteModal.show();
+            }
+
+            return false;
+        }
+
+        function deleteFile() {
+            if (event) {
+                event.preventDefault();
+            }
+
+            if (!deleteFileId) {
+                showToast('No file selected', 'warning');
+                return false;
+            }
+
+            const deleteBtn = document.getElementById('confirmDeleteBtn');
+            const originalText = deleteBtn.innerHTML;
+            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Deleting...';
+            deleteBtn.disabled = true;
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', 'delete-task-file', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    var modalEl = document.getElementById('deleteFileModal');
+                    var modalInstance = bootstrap.Modal.getInstance(modalEl);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+
+                    if (xhr.status === 200) {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            if (data.success) {
+                                showToast(data.message || 'File deleted successfully', 'success');
+                                setTimeout(function() {
+                                    location.reload();
+                                }, 1500);
+                            } else {
+                                showToast(data.message || 'Failed to delete file', 'danger');
+                                deleteBtn.innerHTML = originalText;
+                                deleteBtn.disabled = false;
+                            }
+                        } catch (e) {
+                            showToast('Error parsing server response', 'danger');
+                            deleteBtn.innerHTML = originalText;
+                            deleteBtn.disabled = false;
+                        }
+                    } else {
+                        showToast('Server error: ' + xhr.status, 'danger');
+                        deleteBtn.innerHTML = originalText;
+                        deleteBtn.disabled = false;
+                    }
+                }
+            };
+
+            xhr.onerror = function() {
+                showToast('Network error occurred', 'danger');
+                deleteBtn.innerHTML = originalText;
+                deleteBtn.disabled = false;
+            };
+
+            const params = 'file_id=' + encodeURIComponent(deleteFileId) +
+                '&file_type=' + encodeURIComponent(deleteFileType) +
+                '&task_id=' + encodeURIComponent('<?php echo $taskId; ?>');
+
+            xhr.send(params);
+
+            return false;
+        }
+</script>
+
+
 
 <?php
 include "footer.php";

@@ -117,7 +117,7 @@
                 <h6>Your session is about to expire!</h6>
                 <p class="mb-2">You will be automatically logged out in:</p>
                 <div class="countdown-display mb-3">
-                    <span id="countdownTimer" class="badge bg-danger fs-4">2:00</span>
+                    <span id="countdownTimer" class="badge bg-danger fs-4">5:00</span>
                 </div>
                 <p class="text-muted small">Click "Continue Session" to stay logged in, or "Logout Now" to end your session.</p>
             </div>
@@ -136,6 +136,7 @@
 <!-- ===============================================-->
 <!--    JavaScripts-->
 <!-- ===============================================-->
+
 
 <script src="../assets/js/urgent_reminders.js"></script>
 <script src="../vendors/select2/select2.min.js"></script>
@@ -184,8 +185,6 @@
     setInterval(updatetheTime, 1000);
     updatetheTime();
 </script>
-
-
 </body>
 
 </html>
