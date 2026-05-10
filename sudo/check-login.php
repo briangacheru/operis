@@ -1,5 +1,8 @@
 <?php
 ob_start();
+ini_set('session.gc_maxlifetime', 86400); // 24 hours in seconds
+ini_set('session.cookie_lifetime', 86400); // 24 hours in seconds
+session_set_cookie_params(86400); // 24 hours
 session_start();
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -7,9 +10,8 @@ error_reporting(E_ALL);
 ini_set('log_errors', 1); // Log errors to file
 ini_set('error_log', __DIR__ . '/php-errors.log');
 date_default_timezone_set('Africa/Nairobi');
-include('dbcon.php');
-include('functions.php');
-
+require_once('dbcon.php');
+require_once('functions.php');
 function check_login() {
     if (!isset($_SESSION['odmsaid']) || strlen($_SESSION['odmsaid']) == 0) {
         // Store current page for redirect
@@ -63,7 +65,7 @@ function logout() {
 }
 
 $self = $_SERVER["PHP_SELF"];
-$allowed_pages = ['login.php', 'reset-password.php', 'forgot-password.php'];
+$allowed_pages = ['login.php', 'reset-password.php', 'forgot-password.php', 'public-task-view.php'];
 
 // Get current script name
 $currentScript = basename($_SERVER['PHP_SELF']);
@@ -101,18 +103,18 @@ if (stripos($self, 'index.php') !== false) {
     }
 }
 
-// Define session timeout duration
-$session_timeout_duration = 3600; // 60 minutes
+// Define session timeout duration - 24 hours
+$session_timeout_duration = 86400; // 24 hours in seconds (24 * 60 * 60)
 
 // Check if last_activity is set
 if (isset($_SESSION['last_activity'])) {
-    // Check if the session is older than 60 minutes
+    // Check if the session is older than 24 hours
     if (time() - $_SESSION['last_activity'] > $session_timeout_duration) {
         // Get the last page before logout
         $last_page = $_SESSION['last_page'] ?? 'index';
 
         // Add session timeout logging
-       // error_log("Session timeout - Last activity: " . (time() - $_SESSION['last_activity']) . " seconds ago. Redirecting to: " . $last_page);
+        //error_log("Session timeout - Last activity: " . (time() - $_SESSION['last_activity']) . " seconds ago. Redirecting to: " . $last_page);
 
         // Store the redirect URL before destroying session
         $redirect_url = urlencode($last_page);

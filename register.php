@@ -59,12 +59,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Send a thank you email to the user
             $user_mail = new PHPMailer(true);
             $user_mail->isSMTP();
-            $user_mail->Host = 'mail.monkbrian.com';
+            $user_mail->Host = 'das121.truehost.cloud';
             $user_mail->SMTPAuth = true;
             $user_mail->Username = 'support@monkbrian.com';
             $user_mail->Password = 'EDU+pass.';
-            $user_mail->SMTPSecure = 'ssl';
-            $user_mail->Port = 465;
+            $user_mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $user_mail->Port = 587;
 
             $user_mail->setFrom('support@monkbrian.com', 'iTasker');
             $user_mail->addAddress($email, $username);
@@ -76,12 +76,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Send an email to the system admin
             $admin_mail = new PHPMailer(true);
             $admin_mail->isSMTP();
-            $admin_mail->Host = 'mail.monkbrian.com';
+            $admin_mail->Host = 'das121.truehost.cloud';
             $admin_mail->SMTPAuth = true;
             $admin_mail->Username = 'support@monkbrian.com';
             $admin_mail->Password = 'EDU+pass.';
-            $admin_mail->SMTPSecure = 'ssl';
-            $admin_mail->Port = 465;
+            $admin_mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $admin_mail->Port = 587;
 
             $admin_mail->setFrom('support@monkbrian.com', 'iTasker');
             $admin_mail->addAddress('bryo4419@gmail.com', 'iTasker Admin'); // Replace with admin's email

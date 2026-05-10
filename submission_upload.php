@@ -168,17 +168,19 @@ if (isset($_POST['action']) && $_POST['action'] == 'submitForm') {
 
             try {
                 $mail->isSMTP();
-                $mail->Host = 'mail.monkbrian.com';
+                $mail->Host = 'das121.truehost.cloud';
                 $mail->SMTPAuth = true;
                 $mail->Username = 'support@monkbrian.com';
                 $mail->Password = 'EDU+pass.';
-                $mail->SMTPSecure = 'ssl';
-                $mail->Port = 465;
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port = 587;
 
-                $mail->setFrom('support@monkbrian.com', 'itasker');
-                $mail->addReplyTo('bryo4419@gmail.com', 'Bryo Gacheru');
+                $mail->setFrom('support@monkbrian.com', 'iTasker');
                 $mail->addAddress($writerEmail);
-                $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin');
+                $mail->addBCC('bryo4419@gmail.com', 'iTasker Admin');
+                $mail->addCustomHeader('X-Priority', '3');
+                $mail->addCustomHeader('X-Mailer', 'iTasker v1.0');
+                $mail->addCustomHeader('List-Unsubscribe', '<mailto:support@monkbrian.com>');
 
                 $tempFiles = [];
                 foreach ($uploadedFiles as $file) {
@@ -196,7 +198,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'submitForm') {
 
                 // Content
                 $mail->isHTML(true);
-                $mail->Subject = 'Task ID: ' . $taskId . ' - ' . $topic . ' - [ ' . $account . ' ] ';
+                $mail->Subject = 'Task #' . $taskId . ': ' . $topic . ' (' . $account . ')';
                 $companyLogo = 'https://web.monkbrian.com/assets/img/team/itasker-email-header.png';
                 $taskDetailsUrl = 'https://web.monkbrian.com/view-task?task_id=' . $encodedId;
                 $mail->Body = "
@@ -211,7 +213,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'submitForm') {
                 }
                 .email-container {
                     max-width: 600px;
-                    background: #ffff;
+                    background: #ffffff;
                     margin: 0 auto;
                     padding: 20px;
                     border-radius: 8px;

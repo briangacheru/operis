@@ -435,43 +435,16 @@ function deleteAccount($db)
 
 function getGrowthData($db)
 {
-    try {
-        // Build growth data directly from balance_history grouped by month
-        $query = "SELECT 
-                    bh.month_year AS month,
-                    COALESCE(SUM(bh.balance), 0)         AS total_balance,
-                    COALESCE(SUM(bh.growth_amount), 0)   AS total_growth_amount,
-                    CASE 
-                        WHEN SUM(bh.balance) - SUM(bh.growth_amount) > 0
-                        THEN (SUM(bh.growth_amount) / (SUM(bh.balance) - SUM(bh.growth_amount))) * 100
-                        ELSE 0
-                    END                                   AS growth_percentage,
-                    COUNT(DISTINCT bh.account_id)         AS account_count
-                FROM balance_history bh
-                INNER JOIN accounts a ON bh.account_id = a.id
-                WHERE a.status = 'Active'
-                GROUP BY bh.month_year
-                ORDER BY bh.month_year DESC
-                LIMIT 12";
+    $query = 'SELECT * FROM monthly_growth_summary ORDER BY month DESC LIMIT 12';
+    $stmt = $db->prepare($query);
+    $stmt->execute();
 
-        $stmt = $db->prepare($query);
-        $stmt->execute();
-
-        $growth = array();
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $row['total_balance']       = floatval($row['total_balance']);
-            $row['total_growth_amount'] = floatval($row['total_growth_amount']);
-            $row['growth_percentage']   = round(floatval($row['growth_percentage']), 2);
-            $row['account_count']       = intval($row['account_count']);
-            $growth[] = $row;
-        }
-
-        echo json_encode($growth);
-
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
+    $growth = array();
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $growth[] = $row;
     }
+
+    echo json_encode($growth);
 }
 
 function getAccountBalanceHistory($db)

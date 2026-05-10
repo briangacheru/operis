@@ -11,10 +11,16 @@ $cnt = 1;
 if ($query->rowCount() > 0) {
     foreach ($results as $rowAdmin) {
         if ($rowAdmin->AdminName == "Admin") {
-            ?>
+
+?>
 <title>iTasker | Dashboard - <?php echo $rowAdmin->username; ?></title>
 <?php include "navi.php";?>
-
+            <?php
+            if (isset($_SESSION['alert'])) {
+                echo $_SESSION['alert'];
+                unset($_SESSION['alert']); // Clear the alert message
+            }
+            ?>
 <div class="row  g-3 mb-3">
     <div class="col">
         <div class="card h-lg-100 overflow-hidden">

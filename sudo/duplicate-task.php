@@ -1,6 +1,5 @@
 <?php
 include 'check-login.php'; // Ensure this includes your database connection settings
-require_once 'spaces-helper.php'; // Include the SpacesHelper class
 
 if (isset($_GET['task_id'])) {
     $taskId = base64_decode($_GET['task_id']);
@@ -15,105 +14,75 @@ if (isset($_GET['task_id'])) {
         $subject = mysqli_real_escape_string($con, $row['subject']);
         $account = mysqli_real_escape_string($con, $row['account']);
         $description = mysqli_real_escape_string($con, $row['description']);
-        $writer = mysqli_real_escape_string($con, $row['writer']);
-        $writerEmail = mysqli_real_escape_string($con, $row['email']);
         $due_date = mysqli_real_escape_string($con, $row['due_date']);
         $cpp = mysqli_real_escape_string($con, $row['cpp']);
         $pages = mysqli_real_escape_string($con, $row['pages']);
         $is_confirmed = mysqli_real_escape_string($con, $row['is_confirmed']);
-        $filesString = $row['task_files']; // Keep JSON format
-        $fileUrlsString = isset($row['file_urls']) ? $row['file_urls'] : ''; // Get file URLs
         $is_duplicate = 1; // Set the is_duplicate flag to 1
+        $status = 'Draft'; // Set status to Draft
+        $original_task_id = $taskId; // Store the original task ID
 
-        // Create a SpacesHelper instance
-        $spacesHelper = new SpacesHelper();
-
-        // If there are files in JSON format, duplicate them in Digital Ocean Spaces
-        $newFilesData = [];
-        $newFileUrls = [];
-
-        if (!empty($filesString)) {
-            $filesData = json_decode($filesString, true);
-
-            if (is_array($filesData)) {
-                foreach ($filesData as $fileData) {
-                    $filePath = $fileData['filePath'];
-                    $fileName = $fileData['fileName'];
-
-                    // Get the file URL from Digital Ocean
-                    $fileUrl = '';
-                    if (!empty($fileUrlsString)) {
-                        $fileUrlsData = json_decode($fileUrlsString, true);
-                        if (is_array($fileUrlsData)) {
-                            foreach ($fileUrlsData as $urlData) {
-                                if (isset($urlData['filePath']) && $urlData['filePath'] === $filePath) {
-                                    $fileUrl = $urlData['fileUrl'];
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    if (!empty($fileUrl)) {
-                        // Create a temporary file
-                        $tempFile = tempnam(sys_get_temp_dir(), 'duplicate_');
-
-                        // Download the file from Digital Ocean
-                        $fileContent = @file_get_contents($fileUrl);
-
-                        if ($fileContent !== false) {
-                            // Save to temporary file
-                            file_put_contents($tempFile, $fileContent);
-
-                            // Upload to Digital Ocean with a new name (add 'duplicate_' prefix)
-                            $newFileName = 'duplicate_' . $fileName;
-                            $result = $spacesHelper->uploadFile($tempFile, $newFileName, 'taskfiles');
-
-                            if ($result['success']) {
-                                // Add to new files data
-                                $newFilesData[] = [
-                                    'fileName' => $newFileName,
-                                    'filePath' => $result['key']
-                                ];
-
-                                // Add to new file URLs
-                                $newFileUrls[] = [
-                                    'filePath' => $result['key'],
-                                    'fileUrl' => $result['url']
-                                ];
-                            }
-
-                            // Clean up temporary file
-                            @unlink($tempFile);
-                        }
-                    } else {
-                        // If no URL found, just copy the original file data
-                        $newFilesData[] = $fileData;
-                    }
-                }
-            }
-        }
-
-        // Convert arrays to JSON strings
-        $newFilesString = !empty($newFilesData) ? json_encode($newFilesData) : $filesString;
-        $newFileUrlsString = !empty($newFileUrls) ? json_encode($newFileUrls) : $fileUrlsString;
-
-        // Escape JSON strings for SQL
-        $newFilesString = mysqli_real_escape_string($con, $newFilesString);
-        $newFileUrlsString = mysqli_real_escape_string($con, $newFileUrlsString);
-
-        // Insert the duplicate task
-        $duplicateQuery = "INSERT INTO tbltasks (topic, subject, account, description, writer, email, due_date, cpp, pages, is_confirmed, is_duplicate, task_files, file_urls) 
-                           VALUES ('$topic', '$subject', '$account', '$description', '$writer', '$writerEmail', '$due_date', '$cpp', '$pages', '$is_confirmed', '$is_duplicate', '$newFilesString', '$newFileUrlsString')";
+        // Insert the duplicate task with status set to Draft and original_task_id
+        // writer and email are intentionally set to NULL
+        $duplicateQuery = "INSERT INTO tbltasks (topic, subject, account, description, writer, email, due_date, cpp, pages, is_confirmed, is_duplicate, original_task_id, status) 
+                           VALUES ('$topic', '$subject', '$account', '$description', NULL, NULL, '$due_date', '$cpp', '$pages', '$is_confirmed', '$is_duplicate', '$original_task_id', '$status')";
 
         if (mysqli_query($con, $duplicateQuery)) {
             $newTaskId = mysqli_insert_id($con); // Get the ID of the new task
+
+            // Now duplicate the file records from tbl_task_files
+            $filesQuery = "SELECT * FROM tbl_task_files WHERE task_id = ? AND is_deleted = 0";
+            $stmt = mysqli_prepare($con, $filesQuery);
+            mysqli_stmt_bind_param($stmt, 'i', $taskId);
+            mysqli_stmt_execute($stmt);
+            $filesResult = mysqli_stmt_get_result($stmt);
+
+            $filesCopied = 0;
+            $filesErrors = 0;
+
+            while ($fileRow = mysqli_fetch_assoc($filesResult)) {
+                // Insert a duplicate file record with the new task_id
+                $insertFileQuery = "INSERT INTO tbl_task_files (task_id, file_name, original_file_name, file_path, file_url, file_size, file_type, upload_time, uploaded_by, is_deleted) 
+                                   VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?, 0)";
+
+                $fileStmt = mysqli_prepare($con, $insertFileQuery);
+                mysqli_stmt_bind_param($fileStmt, 'isssssss',
+                    $newTaskId,
+                    $fileRow['file_name'],
+                    $fileRow['original_file_name'],
+                    $fileRow['file_path'],
+                    $fileRow['file_url'],
+                    $fileRow['file_size'],
+                    $fileRow['file_type'],
+                    $fileRow['uploaded_by']
+                );
+
+                if (mysqli_stmt_execute($fileStmt)) {
+                    $filesCopied++;
+                } else {
+                    $filesErrors++;
+                }
+
+                mysqli_stmt_close($fileStmt);
+            }
+
+            mysqli_stmt_close($stmt);
+
             $encodedId = base64_encode($newTaskId);
+
+            // Build success message
+            $successMessage = "Task duplicated successfully!";
+            if ($filesCopied > 0) {
+                $successMessage .= " $filesCopied file(s) linked.";
+            }
+            if ($filesErrors > 0) {
+                $successMessage .= " However, $filesErrors file(s) could not be linked.";
+            }
 
             // Set success message
             $_SESSION['alert'] = '<div class="alert alert-success border-0 d-flex align-items-center" role="alert">
                 <div class="bg-success me-3 icon-item"><span class="fas fa-check-circle text-white fs-6"></span></div>
-                <p class="mb-0 flex-1">Task duplicated successfully!</p>
+                <p class="mb-0 flex-1">' . htmlspecialchars($successMessage) . '</p>
                 <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>';
 

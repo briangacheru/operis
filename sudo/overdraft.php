@@ -183,16 +183,110 @@ if (isset($_SESSION['alert'])) {
     unset($_SESSION['alert']); // Clear the alert message
 }
 ?>
+    <!-- Invoice Email Card -->
+    <div class="card shadow-none border mb-3" id="invoice-standalone-card">
+        <div class="card-header">
+            <div class="d-flex align-items-center justify-content-between">
+                <h5 class="mb-0 text-primary fw-bold">
+                    <span class="fas fa-file-invoice me-2"></span>Invoice Details
+                </h5>
+                <!-- Toggle switch -->
+                <div class="form-check form-switch mb-0 d-flex align-items-center gap-2">
+                    <input class="form-check-input" type="checkbox" id="invoice-toggle"
+                           onchange="toggleInvoiceBody(this)" style="width:2.5em; height:1.25em; cursor:pointer;">
+                </div>
+            </div>
+        </div>
+        <!-- Body — collapsed by default, toggle reveals it -->
+        <div class="card-body bg-body-tertiary" id="invoice-card-body" style="display:none;">
+            <!-- Writer selector -->
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label fw-semibold">Select Writer</label>
+                <div class="col-sm-9">
+                    <select class="form-select" id="invoice-writer-select" onchange="loadInvoiceData(this.value)">
+                        <option value="" selected disabled>— Select a writer —</option>
+                        <?php
+                        $invQuery = "SELECT username, email FROM tblwriters WHERE is_deleted = 0 AND is_verified = 1 ORDER BY username ASC";
+                        $invResult = mysqli_query($con, $invQuery);
+                        if ($invResult && mysqli_num_rows($invResult) > 0) {
+                            while ($invRow = mysqli_fetch_assoc($invResult)) {
+                                $invDisplay = htmlspecialchars($invRow['username'], ENT_QUOTES, 'UTF-8')
+                                    . ' | '
+                                    . htmlspecialchars($invRow['email'], ENT_QUOTES, 'UTF-8');
+                                echo "<option value='" . htmlspecialchars($invRow['username'], ENT_QUOTES, 'UTF-8') . "'"
+                                    . " data-email='" . htmlspecialchars($invRow['email'], ENT_QUOTES, 'UTF-8') . "'>"
+                                    . $invDisplay . "</option>";
+                            }
+                        }
+                        ?>
+                    </select>
+                </div>
+            </div>
+            <!-- Summary strip (hidden until writer chosen) -->
+            <div id="invoice-summary-strip" style="display:none;">
+                <div class="row g-2 mb-4">
+                    <div class="col-6 col-sm-3">
+                        <div class="p-3 rounded-3 text-center h-100" style="background:rgba(0,115,230,.07);border:1px solid rgba(0,115,230,.15);">
+                            <div class="text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;">Unpaid Tasks</div>
+                            <div class="fw-bold text-primary fs-6" id="inv-tasks-total">—</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <div class="p-3 rounded-3 text-center h-100" style="background:rgba(0,210,210,.07);border:1px solid rgba(0,210,210,.18);">
+                            <div class="text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;">Bonuses</div>
+                            <div class="fw-bold text-info fs-6" id="inv-bonus-total">—</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <div class="p-3 rounded-3 text-center h-100" style="background:rgba(229,83,83,.07);border:1px solid rgba(229,83,83,.18);">
+                            <div class="text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;">Overdraft</div>
+                            <div class="fw-bold text-danger fs-6" id="inv-overdraft-total">—</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <div class="p-3 rounded-3 text-center h-100" style="background:rgba(0,200,83,.07);border:1px solid rgba(0,200,83,.18);">
+                            <div class="text-muted mb-1" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;">Grand Total</div>
+                            <div class="fw-bold text-success fs-6" id="inv-grand-total">—</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Recipient -->
+                <div class="mb-3 row align-items-center">
+                    <label class="col-sm-3 col-form-label fw-semibold">Sending To</label>
+                    <div class="col-sm-9">
+                        <input type="email" class="form-control" id="invoice-email-addr" readonly>
+                        <small class="form-text text-muted">Pulled from the writer's profile.</small>
+                    </div>
+                </div>
+                <!-- Loading indicator -->
+                <div id="invoice-loading" class="text-center py-2" style="display:none;">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                    <span class="text-muted small">Loading totals…</span>
+                </div>
+                <!-- Action buttons -->
+                <div class="d-flex gap-2 mt-2">
+                    <button type="button" class="btn btn-falcon-default btn-sm" onclick="previewInvoice()">
+                        <span class="fas fa-eye me-1"></span> Preview Email
+                    </button>
+                    <button type="button" class="btn btn-falcon-primary btn-sm" id="send-invoice-btn" onclick="sendInvoiceEmail()">
+                        <span class="fas fa-paper-plane me-1"></span> Send Invoice
+                    </button>
+                </div>
+                <!-- Status feedback -->
+                <div id="invoice-status" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+    <!-- Add Record Card -->
     <div class="card mb-3">
         <div class="card-header">
             <div class="row flex-between-end">
                 <div class="col-auto align-self-center">
-                    <h5 class="mb-0" data-anchor="data-anchor" id="readonly-plain-text">Add/View Records<a class="anchorjs-link " aria-label="Anchor" data-anchorjs-icon="#" href="#readonly-plain-text" style="margin-left: 0.1875rem; padding-right: 0.1875rem; padding-left: 0.1875rem;"></a></h5>
+                    <h5 class="mb-0" data-anchor="data-anchor" id="readonly-plain-text">Add Record<a class="anchorjs-link " aria-label="Anchor" data-anchorjs-icon="#" href="#readonly-plain-text" style="margin-left: 0.1875rem; padding-right: 0.1875rem; padding-left: 0.1875rem;"></a></h5>
                 </div>
                 <div class="col-auto ms-auto">
                     <div class="nav nav-pills nav-pills-falcon flex-grow-1 mt-2" role="tablist">
                         <button class="btn btn-sm active" data-bs-toggle="pill" data-bs-target="#add-tab" type="button" role="tab" aria-controls="add-tab" aria-selected="true" id="tab-add">Add</button>
-                        <button class="btn btn-sm" data-bs-toggle="pill" data-bs-target="#view-tab" type="button" role="tab" aria-controls="view-tab" aria-selected="false" id="tab-view" tabindex="-1">View</button>
                     </div>
                 </div>
             </div>
@@ -279,53 +373,39 @@ if (isset($_SESSION['alert'])) {
                         </div>
                     </form>
                 </div>
-                <div class="tab-pane code-tab-pane" role="tabpanel" aria-labelledby="tab-view" id="view-tab">
-                    <form method="post" id="overdraftFormView">
-                        <div class="mb-3 row">
-                            <label class="col-sm-3 col-form-label" for="staticEmail">Select Writer</label>
-                            <div class="col-sm-9">
-                                <select name='writer' id='writer_view' class='form-select' onchange='updateFormFields(this.value);'>
-                                    <option value='' selected disabled>Select Writer</option>
-                                    <?php
-                                    $query = "SELECT username, email FROM tblwriters WHERE is_deleted = 0 AND is_verified = 1 ORDER BY created_at ASC";
-                                    $result = mysqli_query($con, $query);
-                                    if(mysqli_num_rows($result) > 0) {
-                                        while ($row = mysqli_fetch_assoc($result)) {
-                                            $displayText = htmlspecialchars($row['username'], ENT_QUOTES, 'UTF-8') . " | " . htmlspecialchars($row['email'], ENT_QUOTES, 'UTF-8');
-                                            echo "<option value='" . $row['username'] . "'>" . $displayText . "</option>";
-                                        }
-                                    } else {
-                                        echo "<p>No writers found.</p>";
-                                    }
-                                    ?>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="mb-3 row">
-                            <label class="col-sm-3 col-form-label" for="tasks_total">Unpaid Total</label>
-                            <div class="col-sm-9">
-                                <input type="number" name="tasks_total" class="form-control" id="tasks_total" readonly>
-                            </div>
-                        </div>
-                        <div class="mb-3 row">
-                            <label class="col-sm-3 col-form-label" for="bonus_total">Total Bonuses</label>
-                            <div class="col-sm-9">
-                                <input type="number" name="bonus_total" class="form-control" id="bonus_total" readonly>
-                            </div>
-                        </div>
-                        <div class="mb-3 row">
-                            <label class="col-sm-3 col-form-label" for="overdraft_total">Total Overdraft</label>
-                            <div class="col-sm-9">
-                                <input type="number" name="overdraft_total" class="form-control" id="overdraft_total" readonly>
-                            </div>
-                        </div>
-                        <div class="mb-3 row">
-                            <label class="col-sm-3 col-form-label" for="amount_due">Amount Due</label>
-                            <div class="col-sm-9">
-                                <input type="number" name="amount_due" class="form-control" id="amount_due" readonly>
-                                <small class="form-text text-success">Calculation: Unpaid Total + Total Bonuses - Total Overdraft</small>                            </div>
-                        </div>
-                    </form>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Preview Modal -->
+    <div class="modal fade" id="invoice-preview-modal" tabindex="-1" aria-labelledby="invoice-preview-label" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content border-0">
+                <div class="modal-header px-5 position-relative modal-shape-header bg-shape">
+                    <div class="position-relative z-1">
+                        <h5 class="mb-0 text-white" id="invoice-preview-label">
+                            <span class="fas fa-eye me-2"></span>Invoice Preview
+                        </h5>
+                        <p class="mb-0 fs-10 text-white opacity-75">This is exactly what the writer will receive.</p>
+                    </div>
+                    <button type="button" class="btn-close position-absolute top-0 end-0 mt-2 me-2 btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div id="invoice-preview-loading" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2 text-muted small">Building preview…</p>
+                    </div>
+                    <iframe id="invoice-preview-frame"
+                            style="width:100%; min-height:540px; border:none; display:none;"
+                            sandbox="allow-same-origin"></iframe>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary btn-sm"
+                            onclick="sendInvoiceEmail(); bootstrap.Modal.getInstance(document.getElementById('invoice-preview-modal')).hide();">
+                        <span class="fas fa-paper-plane me-1"></span> Send Now
+                    </button>
                 </div>
             </div>
         </div>
@@ -744,35 +824,162 @@ if (isset($_SESSION['alert'])) {
             });
         }
 
-        function updateFormFields(writerName) {
+        // ── Invoice globals ───────────────────────────────────────────────────
+        var currentWriterEmail = '';
+        var currentWriterName  = '';
+
+        // ── toggleInvoiceBody: show/hide card body via the header toggle ──
+        function toggleInvoiceBody(checkbox) {
+            var body = document.getElementById('invoice-card-body');
+            if (body) body.style.display = checkbox.checked ? 'block' : 'none';
+        }
+
+        // ── loadInvoiceData: triggered by the invoice card's own writer dropdown ──
+        function loadInvoiceData(writerName) {
+            var summaryStrip = document.getElementById('invoice-summary-strip');
+            var emailField   = document.getElementById('invoice-email-addr');
+            var invoiceStatus = document.getElementById('invoice-status');
+            var loadingEl    = document.getElementById('invoice-loading');
+            var btn          = document.getElementById('send-invoice-btn');
+
+            // Reset state
+            if (invoiceStatus) invoiceStatus.innerHTML = '';
+            ['inv-tasks-total','inv-bonus-total','inv-grand-total'].forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.textContent = '—';
+            });
+
             if (!writerName) {
-                clearViewFormFields();
+                if (summaryStrip) summaryStrip.style.display = 'none';
+                currentWriterEmail = '';
+                currentWriterName  = '';
                 return;
             }
 
+            // Extract email from the invoice dropdown's data-email attribute
+            var sel = document.getElementById('invoice-writer-select');
+            if (sel) {
+                var opt = sel.options[sel.selectedIndex];
+                currentWriterEmail = opt ? (opt.getAttribute('data-email') || '') : '';
+            }
+            currentWriterName = writerName;
+
+            // Show strip and fill email immediately
+            if (summaryStrip) summaryStrip.style.display = 'block';
+            if (emailField)   emailField.value = currentWriterEmail || 'Email not found';
+            if (loadingEl)    loadingEl.style.display = 'block';
+            if (btn) { btn.disabled = true; }
+
+            // Fetch totals
             $.ajax({
                 type: 'GET',
                 url: 'get_amount_due',
                 data: { writer_name: writerName },
                 dataType: 'json',
                 success: function(response) {
-                    console.log('Response received:', response);
+                    if (loadingEl) loadingEl.style.display = 'none';
+                    if (btn) { btn.disabled = false; }
 
-                    const tasksTotal = parseFloat(response.totalCompletedTasks) || 0;
-                    const overdraftTotal = parseFloat(response.totalOverdrafts) || 0;
-                    const bonusTotal = parseFloat(response.totalBonuses) || 0;
-                    const amountDue = tasksTotal + bonusTotal - overdraftTotal;
+                    var tasksTotal     = parseFloat(response.totalCompletedTasks) || 0;
+                    var overdraftTotal = parseFloat(response.totalOverdrafts)     || 0;
+                    var bonusTotal     = parseFloat(response.totalBonuses)        || 0;
+                    var amountDue      = tasksTotal + bonusTotal - overdraftTotal;
 
-                    // Use setTimeout to ensure DOM is ready
-                    setTimeout(function() {
-                        setFieldValue('tasks_total', tasksTotal);
-                        setFieldValue('overdraft_total', overdraftTotal);
-                        setFieldValue('bonus_total', bonusTotal);
-                        setFieldValue('amount_due', amountDue);
-                    }, 100);
+                    var elTasks     = document.getElementById('inv-tasks-total');
+                    var elBonus     = document.getElementById('inv-bonus-total');
+                    var elOverdraft = document.getElementById('inv-overdraft-total');
+                    var elGrand     = document.getElementById('inv-grand-total');
+                    if (elTasks)     elTasks.textContent     = 'Ksh ' + tasksTotal.toFixed(2);
+                    if (elBonus)     elBonus.textContent     = 'Ksh ' + bonusTotal.toFixed(2);
+                    if (elOverdraft) elOverdraft.textContent = 'Ksh ' + overdraftTotal.toFixed(2);
+                    if (elGrand)     elGrand.textContent     = 'Ksh ' + amountDue.toFixed(2);
                 },
                 error: function(xhr, status, error) {
-                    console.log('AJAX Error:', error);
+                    if (loadingEl) loadingEl.style.display = 'none';
+                    if (btn) { btn.disabled = false; }
+                    console.log('Invoice AJAX Error:', status, error);
+                }
+            });
+        }
+
+        // ── previewInvoice: fetch HTML preview from server and show in modal ──
+        function previewInvoice() {
+            if (!currentWriterName) {
+                var st = document.getElementById('invoice-status');
+                if (st) st.innerHTML = '<div class="alert alert-warning py-2 mb-0">Please select a writer first.</div>';
+                return;
+            }
+
+            var modal   = new bootstrap.Modal(document.getElementById('invoice-preview-modal'));
+            var frame   = document.getElementById('invoice-preview-frame');
+            var loading = document.getElementById('invoice-preview-loading');
+
+            // Reset modal state
+            frame.style.display   = 'none';
+            loading.style.display = 'block';
+            modal.show();
+
+            $.ajax({
+                type: 'POST',
+                url: 'send_invoice',
+                data: { writer_name: currentWriterName, preview_only: 1 },
+                success: function(html) {
+                    loading.style.display = 'none';
+                    frame.style.display   = 'block';
+                    // Write the HTML into the sandboxed iframe
+                    var doc = frame.contentDocument || frame.contentWindow.document;
+                    doc.open();
+                    doc.write(html);
+                    doc.close();
+                    // Adjust iframe height to content
+                    frame.style.minHeight = (doc.body.scrollHeight + 40) + 'px';
+                },
+                error: function() {
+                    loading.innerHTML = '<div class="alert alert-danger m-4">Failed to load preview. Please try again.</div>';
+                }
+            });
+        }
+
+        // ── sendInvoiceEmail: POST to send_invoice and show result ────────
+        function sendInvoiceEmail() {
+            var btn       = document.getElementById('send-invoice-btn');
+            var statusDiv = document.getElementById('invoice-status');
+
+            if (!currentWriterName) {
+                if (statusDiv) statusDiv.innerHTML = '<div class="alert alert-warning">Please select a writer first.</div>';
+                return;
+            }
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="fas fa-spinner fa-spin me-1"></span> Sending…';
+            }
+            if (statusDiv) statusDiv.innerHTML = '';
+
+            $.ajax({
+                type: 'POST',
+                url: 'send_invoice',
+                data: { writer_name: currentWriterName },
+                dataType: 'json',
+                success: function(response) {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<span class="fas fa-paper-plane me-1"></span> Send Invoice';
+                    }
+                    if (statusDiv) {
+                        if (response.success) {
+                            statusDiv.innerHTML = '<div class="alert alert-success"><span class="fas fa-check-circle me-1"></span>' + response.message + '</div>';
+                        } else {
+                            statusDiv.innerHTML = '<div class="alert alert-danger"><span class="fas fa-exclamation-circle me-1"></span>' + response.message + '</div>';
+                        }
+                    }
+                },
+                error: function() {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<span class="fas fa-paper-plane me-1"></span> Send Invoice';
+                    }
+                    if (statusDiv) statusDiv.innerHTML = '<div class="alert alert-danger">An error occurred. Please try again.</div>';
                 }
             });
         }
@@ -788,12 +995,6 @@ if (isset($_SESSION['alert'])) {
             }
         }
 
-        // Helper function to clear all view form fields
-        function clearViewFormFields() {
-            ['tasks_total', 'overdraft_total', 'bonus_total', 'amount_due'].forEach(fieldId => {
-                setFieldValue(fieldId, '');
-            });
-        }
     </script>
 <?php
 include "footer.php";

@@ -65,16 +65,21 @@
                                     </div>
                                     <div class="col-sm-4 mb-3">
                                         <label class="form-label" for="cpp">CPP: </label>
-                                        <select class="form-select" id="cpp" name="cpp" required="required">
+                                        <select class="form-select" id="cpp" name="cpp" required="required" onchange="toggleCustomCpp(this)">
+                                            <option selected disabled></option>
                                             <option value="375">375</option>
-                                            <option value="190">190 </option>
-                                            <option value="350">350 </option>
-                                            <option value="200">200 </option>
+                                            <option value="250">250</option>
+                                            <option value="300">300</option>
+                                            <option value="190">190</option>
+                                            <option value="350">350</option>
+                                            <option value="200">200</option>
                                             <option value="400">400</option>
                                             <option value="450">450</option>
                                             <option value="500">500</option>
                                             <option value="750">750</option>
+                                            <option value="custom">Custom...</option>
                                         </select>
+                                        <input type="number" class="form-control mt-2" id="cpp_custom" placeholder="Enter custom CPP value" min="1" style="display:none;">
                                     </div>
                                     <div class="col-sm-4 mb-3">
                                         <label class="form-label" for="cpp">Confirmed: </label>
@@ -272,6 +277,30 @@
                     writerError.style.display = 'none';
                 }
             });
+        });
+
+        function toggleCustomCpp(select) {
+            const customInput = document.getElementById('cpp_custom');
+            if (select.value === 'custom') {
+                customInput.style.display = 'block';
+                customInput.required = true;
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+                customInput.required = false;
+                customInput.value = '';
+            }
+        }
+
+        // Before form submit, swap "custom" select value with the typed number
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('taskForm').addEventListener('submit', function() {
+                const cppSelect = document.getElementById('cpp');
+                const customInput = document.getElementById('cpp_custom');
+                if (cppSelect.value === 'custom' && customInput.value) {
+                    cppSelect.value = customInput.value;
+                }
+            }, true); // capture phase so it runs before other submit listeners
         });
     </script>
     <script>

@@ -81,7 +81,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 'Key' => $key,
                 'Body' => fopen($tempFilePath, 'r'),
                 'ACL' => 'public-read',
-                'ContentType' => mime_content_type($tempFilePath),
+                'ContentType' => (function_exists('finfo_open')
+                    ? finfo_file(finfo_open(FILEINFO_MIME_TYPE), $tempFilePath)
+                    : (function_exists('mime_content_type')
+                        ? mime_content_type($tempFilePath)
+                        : $file['type'])),
             ]);
 
             // Use direct Spaces URL instead of CDN

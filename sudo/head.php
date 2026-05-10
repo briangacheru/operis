@@ -1,5 +1,5 @@
 <?php
-include('check-login.php');
+require_once('check-login.php');
 
 // Check if 'session' exists before using it
 if (isset($_SESSION['odmsaid'])) {

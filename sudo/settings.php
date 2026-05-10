@@ -1,5 +1,5 @@
 <?php include "head.php";?>
-<title>iTasker | Settings</title>
+    <title>iTasker | Settings</title>
 <?php include "navi.php";
 
 $error_message = ''; // Initialize an empty error message variable
@@ -235,65 +235,65 @@ $currentNotification = $row['description'];
 
 ?>
 
-<div class="row">
+    <div class="row">
     <div class="col-12">
-        <?php if ($message): ?>
-            <div class="alert alert-success border-0 d-flex align-items-center" role="alert">
-                <div class="bg-success me-3 icon-item"><span class="fas fa-check-circle text-white fs-6"></span></div>
-                <p class="mb-0 flex-1"><?php echo $message; ?></p>
-                <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+<?php if ($message): ?>
+    <div class="alert alert-success border-0 d-flex align-items-center" role="alert">
+        <div class="bg-success me-3 icon-item"><span class="fas fa-check-circle text-white fs-6"></span></div>
+        <p class="mb-0 flex-1"><?php echo $message; ?></p>
+        <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<?php endif; ?>
+<?php if ($error_message): ?>
+    <div class="alert alert-danger border-0 d-flex align-items-center" role="alert">
+        <div class="bg-danger me-3 icon-item"><span class="fas fa-times-circle text-white fs-6"></span></div>
+        <p class="mb-0 flex-1"><?php echo $error_message; ?></p>
+        <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<?php endif; ?>
+    <div class="card mb-3 btn-reveal-trigger">
+    <div class="card-header position-relative min-vh-25 mb-8">
+<?php
+$adminid = $_SESSION['odmsaid'];
+$sql = "SELECT * from tbladmin where email =:aid";
+$query = $dbh->prepare($sql);
+$query->bindParam(':aid', $adminid, PDO::PARAM_STR);
+$query->execute();
+$results = $query->fetchAll(PDO::FETCH_OBJ);
+if ($query->rowCount() > 0) {
+foreach ($results as $row) {
+    ?>
+    <div class="cover-image">
+        <?php if ($row->coverImage == "1.jpg") { ?>
+        <div class="bg-holder rounded-3 rounded-bottom-0" style="background-image:url(../profileimages/1.jpg);">
+            <?php } else { ?>
+            <div class="bg-holder rounded-3 rounded-bottom-0" style="background-image:url('../profileimages/<?php echo $row->coverImage; ?>');">
+                <?php } ?>
             </div>
-        <?php endif; ?>
-        <?php if ($error_message): ?>
-            <div class="alert alert-danger border-0 d-flex align-items-center" role="alert">
-                <div class="bg-danger me-3 icon-item"><span class="fas fa-times-circle text-white fs-6"></span></div>
-                <p class="mb-0 flex-1"><?php echo $error_message; ?></p>
-                <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        <?php endif; ?>
-        <div class="card mb-3 btn-reveal-trigger">
-            <div class="card-header position-relative min-vh-25 mb-8">
-                <?php
-                $adminid = $_SESSION['odmsaid'];
-                $sql = "SELECT * from tbladmin where email =:aid";
-                $query = $dbh->prepare($sql);
-                $query->bindParam(':aid', $adminid, PDO::PARAM_STR);
-                $query->execute();
-                $results = $query->fetchAll(PDO::FETCH_OBJ);
-                if ($query->rowCount() > 0) {
-                foreach ($results as $row) {
-                ?>
-                <div class="cover-image">
-                    <?php if ($row->coverImage == "1.jpg") { ?>
-                    <div class="bg-holder rounded-3 rounded-bottom-0" style="background-image:url(../profileimages/1.jpg);">
-                        <?php } else { ?>
-                        <div class="bg-holder rounded-3 rounded-bottom-0" style="background-image:url('../profileimages/<?php echo $row->coverImage; ?>');">
-                            <?php } ?>
-                        </div>
-                        <!--/.bg-holder-->
-                        <label class="cover-image-file-input" data-bs-toggle="modal" data-bs-target="#updateCoverModal" style="cursor: pointer;">
-                            <span class="fas fa-camera me-2"></span><span>Change cover photo</span>
-                        </label>
-                    </div>
-                    <div class="avatar avatar-5xl avatar-profile shadow-sm img-thumbnail rounded-circle">
-                        <div class="h-100 w-100 rounded-circle overflow-hidden position-relative">
-                            <?php if ($row->Photo == "avatar.png") { ?>
-                                <img src="../assets/img/team/avatar.png" width="200" alt="" data-dz-thumbnail="data-dz-thumbnail">
-                            <?php } else { ?>
-                                <img src="../profileimages/<?php echo $row->Photo; ?>" width="200" alt="" data-dz-thumbnail="data-dz-thumbnail">
-                            <?php } ?>
-                            <label class="mb-0 overlay-icon d-flex flex-center" data-bs-toggle="modal" data-bs-target="#updateModal">
-                                <span class="bg-holder overlay overlay-0"></span>
-                                <span class="z-1 text-white dark__text-white text-center fs-10">
+            <!--/.bg-holder-->
+            <label class="cover-image-file-input" data-bs-toggle="modal" data-bs-target="#updateCoverModal" style="cursor: pointer;">
+                <span class="fas fa-camera me-2"></span><span>Change cover photo</span>
+            </label>
+        </div>
+        <div class="avatar avatar-5xl avatar-profile shadow-sm img-thumbnail rounded-circle">
+            <div class="h-100 w-100 rounded-circle overflow-hidden position-relative">
+                <?php if ($row->Photo == "avatar.png") { ?>
+                    <img src="../assets/img/team/avatar.png" width="200" alt="" data-dz-thumbnail="data-dz-thumbnail">
+                <?php } else { ?>
+                    <img src="../profileimages/<?php echo $row->Photo; ?>" width="200" alt="" data-dz-thumbnail="data-dz-thumbnail">
+                <?php } ?>
+                <label class="mb-0 overlay-icon d-flex flex-center" data-bs-toggle="modal" data-bs-target="#updateModal">
+                    <span class="bg-holder overlay overlay-0"></span>
+                    <span class="z-1 text-white dark__text-white text-center fs-10">
                                 <span class="fas fa-camera"></span>
                                 <span class="d-block">Update</span>
                             </span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
+                </label>
             </div>
         </div>
+    </div>
+    </div>
+    </div>
     </div>
 
     <!-- Cover Image Modal -->
@@ -439,6 +439,90 @@ $currentNotification = $row['description'];
         </div>
         <div class="col-lg-4 ps-lg-2">
             <div class="sticky-sidebar">
+                <!-- ════════════════════════════════════════════════
+                     FINANCIAL DASHBOARD — PIN LOCK SETTINGS
+                     ════════════════════════════════════════════════ -->
+                <div class="card mb-3 overflow-hidden" id="pinLockSettingsCard">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <h5 class="mb-0 text-info">
+                            <i class="fas fa-shield-alt me-2"></i>PIN Lock
+                        </h5>
+                        <span class="badge" id="pinStatusBadge" style="font-size:.75rem;">
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                        </span>
+                    </div>
+                    <div class="card-body bg-body-tertiary">
+
+                        <!-- Description -->
+                        <p class="text-muted fs-10 mb-3">
+                            Protect <strong>Financial Dashboard</strong> with a numeric PIN.
+                            When a PIN is set, visitors must enter it before the page content is revealed.
+                        </p>
+
+                        <!-- ── Set / Change PIN form ── -->
+                        <div id="pinSetSection">
+                            <h6 class="mb-2 fw-bold" id="pinFormTitle">Set a New PIN</h6>
+                            <!-- Current PIN field — only shown when changing an existing PIN -->
+                            <div class="mb-2" id="currentPinField" style="display:none;">
+                                <label class="form-label fs-10">Current PIN <small class="text-muted">(required to change)</small></label>
+                                <input type="password" inputmode="numeric" pattern="[0-9]*"
+                                       class="form-control" id="currentPinInput" maxlength="8"
+                                       placeholder="Enter current PIN" autocomplete="current-password">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label fs-10">New PIN <small class="text-muted">(4–8 digits)</small></label>
+                                <input type="password" inputmode="numeric" pattern="[0-9]*"
+                                       class="form-control" id="newPinInput" maxlength="8"
+                                       placeholder="e.g. 1234" autocomplete="new-password">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fs-10">Confirm New PIN</label>
+                                <input type="password" inputmode="numeric" pattern="[0-9]*"
+                                       class="form-control" id="confirmPinInput" maxlength="8"
+                                       placeholder="Repeat new PIN" autocomplete="new-password">
+                            </div>
+                            <button class="btn btn-outline-primary w-100" id="savePinBtn" onclick="saveDashboardPin()">
+                                <i class="fas fa-save me-1"></i> Save PIN
+                            </button>
+                        </div>
+
+                        <!-- ── Remove PIN section (shown when PIN exists) ── -->
+                        <div id="pinRemoveSection" style="display:none;" class="mt-3 border-top pt-3">
+                            <h6 class="text-warning mb-2"><i class="fas fa-unlock-alt me-1"></i>Remove PIN</h6>
+                            <p class="text-muted fs-10">Enter your current PIN to disable the lock.</p>
+                            <div class="mb-2">
+                                <input type="password" inputmode="numeric" pattern="[0-9]*"
+                                       class="form-control" id="removePinInput" maxlength="8"
+                                       placeholder="Current PIN" autocomplete="current-password">
+                            </div>
+                            <button class="btn btn-outline-danger w-100" onclick="removeDashboardPin()">
+                                <i class="fas fa-trash me-1"></i> Remove PIN
+                            </button>
+                        </div>
+
+                        <!-- ── Status / feedback message ── -->
+                        <div id="pinSettingsMsg" class="mt-3" style="display:none;"></div>
+
+                        <!-- ── Info box ── -->
+                        <div class="alert alert-secondary mt-3 mb-0 fs-10">
+                            <i class="fas fa-info-circle me-1"></i>
+                            The PIN lock blurs the dashboard page and requires entry before any data is visible.
+                            Sessions auto-lock after <strong>30 minutes</strong> of inactivity.
+                        </div>
+
+                        <!-- ── Forgot PIN ── -->
+                        <div class="mt-3 text-center border-top pt-3">
+                            <p class="text-muted fs-10 mb-2">Forgot your PIN?</p>
+                            <button class="btn btn-sm btn-outline-warning w-100" id="forgotPinBtn" onclick="requestPinReset()">
+                                <i class="fas fa-envelope me-1"></i> Send Reset Link to My Email
+                            </button>
+                            <div id="forgotPinMsg" class="mt-2" style="display:none;"></div>
+                        </div>
+                    </div>
+
+                </div>
+                <!-- ════════════════════════════════════════════════ end PIN -->
+
                 <div class="card mb-3 overflow-hidden">
                     <div class="card-header">
                         <h5 class="mb-0 text-info">Change Password</h5>
@@ -474,7 +558,189 @@ $currentNotification = $row['description'];
         </div>
     </div>
     <?php
-    }
-    }
-    ?>
-    <?php include "footer.php"; ?>
+}
+}
+?>
+    <script>
+        window.requestPinReset = async function () {
+            const btn = document.getElementById('forgotPinBtn');
+            const msg = document.getElementById('forgotPinMsg');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sending…';
+
+            try {
+                const res  = await fetch('pin_reset', {
+                    method : 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body   : JSON.stringify({ action: 'request_reset' })
+                });
+                const data = await res.json();
+
+                msg.style.display = 'block';
+                msg.innerHTML = `<div class="alert alert-${data.success ? 'success' : 'danger'} py-2 mb-0 fs-10">${data.message}</div>`;
+
+                if (data.success) {
+                    // Disable button for 60 s to prevent spam
+                    let countdown = 60;
+                    const interval = setInterval(() => {
+                        countdown--;
+                        btn.innerHTML = `<i class="fas fa-envelope me-1"></i> Resend in ${countdown}s`;
+                        if (countdown <= 0) {
+                            clearInterval(interval);
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fas fa-envelope me-1"></i> Send Reset Link to My Email';
+                        }
+                    }, 1000);
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-envelope me-1"></i> Send Reset Link to My Email';
+                }
+            } catch (e) {
+                msg.style.display = 'block';
+                msg.innerHTML = '<div class="alert alert-danger py-2 mb-0 fs-10">Request failed. Please try again.</div>';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-envelope me-1"></i> Send Reset Link to My Email';
+            }
+        };
+    </script>
+    <script>
+        (function() {
+            const API = 'pin_api';
+
+            /* ── Load current PIN status on page load ── */
+            async function loadPinStatus() {
+                try {
+                    const res  = await fetch(API, {
+                        method:'POST',
+                        headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({action:'check_pin_status'})
+                    });
+                    const data = await res.json();
+                    applyPinStatus(data.pin_set);
+                } catch(e) {
+                    document.getElementById('pinStatusBadge').textContent = 'Unavailable';
+                    document.getElementById('pinStatusBadge').className   = 'badge bg-secondary';
+                }
+            }
+
+            function applyPinStatus(pinSet) {
+                const badge          = document.getElementById('pinStatusBadge');
+                const removeDiv      = document.getElementById('pinRemoveSection');
+                const titleEl        = document.getElementById('pinFormTitle');
+                const currentField   = document.getElementById('currentPinField');
+                const currentInput   = document.getElementById('currentPinInput');
+
+                if (pinSet) {
+                    badge.innerHTML   = '<i class="fas fa-lock me-1"></i> PIN Active';
+                    badge.className   = 'badge bg-success';
+                    removeDiv.style.display  = 'block';
+                    currentField.style.display = 'block';
+                    titleEl.textContent      = 'Change PIN';
+                } else {
+                    badge.innerHTML   = '<i class="fas fa-lock-open me-1"></i> No PIN';
+                    badge.className   = 'badge bg-secondary';
+                    removeDiv.style.display  = 'none';
+                    currentField.style.display = 'none';
+                    if (currentInput) currentInput.value = '';
+                    titleEl.textContent      = 'Set a New PIN';
+                }
+            }
+
+            /* ── Save / Change PIN ── */
+            window.saveDashboardPin = async function() {
+                const currentInput = document.getElementById('currentPinInput');
+                const currentPin   = currentInput ? currentInput.value : '';
+                const pin          = document.getElementById('newPinInput').value;
+                const confirm      = document.getElementById('confirmPinInput').value;
+                const isChanging   = currentInput && currentInput.closest('#currentPinField').style.display !== 'none';
+
+                // If changing an existing PIN, current PIN is required
+                if (isChanging && !currentPin) {
+                    showMsg('Please enter your current PIN first.', 'danger'); return;
+                }
+                if (isChanging && !/^\d{4,8}$/.test(currentPin)) {
+                    showMsg('Current PIN must be numeric digits.', 'danger'); return;
+                }
+                if (!/^\d{4,8}$/.test(pin)) {
+                    showMsg('New PIN must be 4–8 numeric digits.', 'danger'); return;
+                }
+                if (pin !== confirm) {
+                    showMsg('New PINs do not match.', 'danger'); return;
+                }
+
+                const btn = document.getElementById('savePinBtn');
+                btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving…';
+
+                try {
+                    const payload = {action: 'set_pin', pin, confirm};
+                    if (isChanging) payload.current_pin = currentPin;
+
+                    const res  = await fetch(API, {
+                        method:'POST',
+                        headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        showMsg('<i class="fas fa-check-circle me-1"></i>' + data.message, 'success');
+                        document.getElementById('currentPinInput').value = '';
+                        document.getElementById('newPinInput').value     = '';
+                        document.getElementById('confirmPinInput').value = '';
+                        applyPinStatus(true);
+                    } else {
+                        showMsg(data.message, 'danger');
+                    }
+                } catch(e) {
+                    showMsg('Request failed. Please try again.', 'danger');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save me-1"></i> Save PIN';
+                }
+            };
+
+            /* ── Remove PIN ── */
+            window.removeDashboardPin = async function() {
+                const pin = document.getElementById('removePinInput').value;
+                if (!pin) { showMsg('Enter your current PIN first.', 'danger'); return; }
+
+                if (!confirm('Remove the Financial Dashboard PIN lock?')) return;
+
+                try {
+                    const res  = await fetch(API, {
+                        method:'POST',
+                        headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({action:'remove_pin', pin})
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        showMsg('<i class="fas fa-check-circle me-1"></i>' + data.message, 'success');
+                        document.getElementById('removePinInput').value = '';
+                        applyPinStatus(false);
+                    } else {
+                        showMsg(data.message, 'danger');
+                    }
+                } catch(e) {
+                    showMsg('Request failed. Please try again.', 'danger');
+                }
+            };
+
+            function showMsg(html, type) {
+                const el = document.getElementById('pinSettingsMsg');
+                el.style.display = 'block';
+                el.innerHTML = `<div class="alert alert-${type} py-2 mb-0 fs-10">${html}</div>`;
+                setTimeout(() => { el.style.display = 'none'; }, 5000);
+            }
+
+            // Boot
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', loadPinStatus);
+            } else {
+                loadPinStatus();
+            }
+        })();
+    </script>
+
+<?php include "footer.php"; ?>

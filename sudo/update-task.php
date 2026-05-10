@@ -65,6 +65,14 @@ if ($_POST['action'] == 'submitForm') {
     $description = mysqli_real_escape_string($con, $_POST['description']);
     $writer = mysqli_real_escape_string($con, $_POST['writer']);
     $writerEmail = mysqli_real_escape_string($con, $_POST['email']);
+
+    // Fallback: if email is empty (e.g. hidden field not submitted), fetch from DB
+    if (empty($writerEmail) && !empty($writer)) {
+        $emailFallbackQuery = mysqli_query($con, "SELECT email FROM tblwriters WHERE username='" . mysqli_real_escape_string($con, $writer) . "' LIMIT 1");
+        if ($emailFallbackRow = mysqli_fetch_assoc($emailFallbackQuery)) {
+            $writerEmail = $emailFallbackRow['email'];
+        }
+    }
     $status = mysqli_real_escape_string($con, $_POST['status']);
     $due_date = mysqli_real_escape_string($con, $_POST['due_date']);
     $cpp = mysqli_real_escape_string($con, $_POST['cpp']);
@@ -133,17 +141,19 @@ if ($_POST['action'] == 'submitForm') {
 
                     try {
                         $mail->isSMTP();
-                        $mail->Host = 'mail.monkbrian.com';
+                        $mail->Host = 'das121.truehost.cloud';
                         $mail->SMTPAuth = true;
                         $mail->Username = 'support@monkbrian.com';
                         $mail->Password = 'EDU+pass.';
-                        $mail->SMTPSecure = 'ssl';
-                        $mail->Port = 465;
+                        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                        $mail->Port = 587;
 
-                        $mail->setFrom('support@monkbrian.com', 'itasker');
-                        $mail->addReplyTo('bryo4419@gmail.com', 'Bryo Gacheru');
+                        $mail->setFrom('support@monkbrian.com', 'iTasker');
                         $mail->addAddress($writerEmail);
-                        $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin');
+                        $mail->addBCC('bryo4419@gmail.com', 'iTasker Admin');
+                        $mail->addCustomHeader('X-Priority', '3');
+                        $mail->addCustomHeader('X-Mailer', 'iTasker v1.0');
+                        $mail->addCustomHeader('List-Unsubscribe', '<mailto:support@monkbrian.com>');
 
                         // Handle attachments
                         $tempFiles = [];
@@ -202,7 +212,8 @@ if ($_POST['action'] == 'submitForm') {
 
                         // Content
                         $mail->isHTML(true);
-                        $mail->Subject = 'Task ID: ' . $taskId . ' - ' . $topic . ' - [ ' . $account . ' ] ';
+                        $mail->Subject = 'Task #' . $taskId . ': ' . $topic . ' (' . $account . ')';
+
 
                         // Email Body with Logo and Modern Formatting
                         $companyLogo = 'https://web.monkbrian.com/assets/img/team/itasker-email-header.png';
@@ -220,7 +231,7 @@ if ($_POST['action'] == 'submitForm') {
                         }
                         .email-container {
                             max-width: 600px;
-                            background: #ffff;
+                            background: #ffffff;
                             margin: 0 auto;
                             padding: 20px;
                             border-radius: 8px;
@@ -256,7 +267,7 @@ if ($_POST['action'] == 'submitForm') {
                             display: block;
                             text-align: center;
                             background: #0073e6;
-                            color: #ffff;
+                            color: #ffffff;
                             padding: 12px;
                             border-radius: 5px;
                             text-decoration: none;
@@ -267,7 +278,7 @@ if ($_POST['action'] == 'submitForm') {
                         }
                         .btn:hover {
                             background: #005bb5;
-                            color: #ffff !important;
+                            color: #ffffff !important;
                         }
                         .footer {
                             text-align: center;
@@ -292,7 +303,7 @@ if ($_POST['action'] == 'submitForm') {
                                 <p><strong>Due Date:</strong> <span class='highlight'>$due_date</span></p>
                                 <p><strong>Pages:</strong> $pages</p>
                                 <p><strong>Price per Page:</strong> Ksh $cpp</p>
-                                <p><strong>Description:</strong> <span class='highlight'>$description</span></p>
+                                <p><strong>Description:</strong> $description</p>
                                 
                                 <a class='btn' href='$taskDetailsUrl'>View More Task Details</a>
                             </div>
@@ -304,18 +315,18 @@ if ($_POST['action'] == 'submitForm') {
                         </body>
                         </html>';
 
-                        $mail->AltBody = 'Task Updated - ' . ($status == 'Draft' ? 'Unconfirmed' : $status) . "\n\n
-                        Hello $writer,\n
-                        Your task has been updated.\n
-                        Status: " . ($status == 'Draft' ? 'Unconfirmed' : $status) . "\n
-                        Topic: $topic\n
-                        Subject: $subject\n
-                        Due Date: $due_date\n
-                        Pages: $pages\n
-                        Price per Page: Ksh $cpp\n
-                        Description: $description\n
-                        View Task Details: $taskDetailsUrl\n\n
-                        For any questions, contact bryo4419@gmail.com";
+                        $mail->AltBody = "Task Update: " . ($status == 'Draft' ? 'Unconfirmed' : $status) . "\n\n"
+                            . "Hello $writer,\n\n"
+                            . "Your task has been updated.\n\n"
+                            . "Status: " . ($status == 'Draft' ? 'Unconfirmed' : $status) . "\n"
+                            . "Topic: $topic\n"
+                            . "Subject: $subject\n"
+                            . "Due Date: $due_date\n"
+                            . "Pages: $pages\n"
+                            . "Price per Page: Ksh $cpp\n"
+                            . "Description: $description\n\n"
+                            . "View Task Details: $taskDetailsUrl\n\n"
+                            . "For any questions, contact bryo4419@gmail.com";
 
                         $mail->send();
                         $emailStatus = 'Email sent successfully.';
@@ -325,8 +336,9 @@ if ($_POST['action'] == 'submitForm') {
                             @unlink($tempFile);
                         }
                     } catch (Exception $e) {
-                        error_log('Email Error: ' . $mail->ErrorInfo);
-                        $emailStatus = "Email sending failed: {$mail->ErrorInfo}";
+                        $fullError = $mail->ErrorInfo ?: $e->getMessage();
+                        error_log('Email Error: ' . $fullError);
+                        $emailStatus = "Email sending failed: " . $fullError;
                     }
                 }
 

@@ -28,12 +28,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         try {
             // Server settings
             $mail->isSMTP();
-            $mail->Host = 'mail.monkbrian.com';
+            $mail->Host = 'das121.truehost.cloud';
             $mail->SMTPAuth = true;
             $mail->Username = 'support@monkbrian.com';
             $mail->Password = 'EDU+pass.';
-            $mail->SMTPSecure = 'ssl'; // Use 'tls' or 'ssl' based on your server configuration
-            $mail->Port = 465; // Adjust the port accordingly
+            $mail->SMTPSecure = 'tls'; // Use 'tls' or 'ssl' based on your server configuration
+            $mail->Port = 587; // Adjust the port accordingly
 
             // Recipients
             $mail->setFrom('support@monkbrian.com', 'Monk Freelancing Support');

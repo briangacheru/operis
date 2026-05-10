@@ -221,7 +221,7 @@ if (in_array($taskStatus, ['Completed', 'Cancelled'])) {
     $statusClass = 'text-secondary';
 } elseif (!empty($comments)) {
     $lastComment = end($comments);
-    $lastCommentTime = strtotime($lastComment['created_at'] . ' UTC');
+    $lastCommentTime = strtotime($lastComment['created_at']);
     $timeDiff = time() - $lastCommentTime;
 
     if ($timeDiff > 86400) { // More than 24 hours
@@ -1016,9 +1016,8 @@ function getUserOnlineStatus($con, $userType, $username, $userEmail = null) {
         $onlineData['status_text'] = 'Online';
         $onlineData['status_class'] = 'bg-success';
     } else if ($onlineData['last_seen']) {
-        $lastSeenTime = new DateTime($onlineData['last_seen'], new DateTimeZone('UTC'));
-        $lastSeenTime->setTimezone(new DateTimeZone('Africa/Nairobi'));
-        $currentTime = new DateTime('now', new DateTimeZone('Africa/Nairobi'));
+        $lastSeenTime = new DateTime($onlineData['last_seen']);
+        $currentTime = new DateTime();
         $timeDiff = $currentTime->diff($lastSeenTime);
 
         // Calculate time difference
@@ -1188,21 +1187,21 @@ foreach ($comments as $comment) {
                                 $lastDate = null;
                                 foreach ($comments as $index => $comment):
                                     $isAdmin = ($comment['user_type'] === 'admin');
-                                    $messageDate = date('Y-m-d', strtotime($comment['created_at'] . ' UTC'));
+                                    $messageDate = date('Y-m-d', strtotime($comment['created_at']));
 
                                     // Show date separator if date changed
                                     if ($messageDate !== $lastDate):
                                         $lastDate = $messageDate;
                                         $displayDate = '';
                                         $today = date('Y-m-d');
-                                        $yesterday = date('Y-m-d', strtotime('-1 day' . ' UTC'));
+                                        $yesterday = date('Y-m-d', strtotime('-1 day'));
 
                                         if ($messageDate === $today) {
                                             $displayDate = 'Today';
                                         } elseif ($messageDate === $yesterday) {
                                             $displayDate = 'Yesterday';
                                         } else {
-                                            $displayDate = date('F j, Y', strtotime($messageDate . ' UTC'));
+                                            $displayDate = date('F j, Y', strtotime($messageDate));
                                         }
                                         ?>
                                         <div class="text-center my-3">
@@ -1246,9 +1245,8 @@ foreach ($comments as $comment) {
                                                     $onlineThresholdMinutes = 1; // Consider online if active within last 5 minutes
 
                                                     if ($userStatus['last_seen']) {
-                                                        $lastSeenTime = new DateTime($userStatus['last_seen'], new DateTimeZone('UTC'));
-                                                        $lastSeenTime->setTimezone(new DateTimeZone('Africa/Nairobi'));
-                                                        $now = new DateTime('now', new DateTimeZone('Africa/Nairobi'));
+                                                        $lastSeenTime = new DateTime($userStatus['last_seen']);
+                                                        $now = new DateTime();
                                                         $timeDiff = $now->diff($lastSeenTime);
 
                                                         // Calculate total minutes since last seen
@@ -1319,7 +1317,7 @@ foreach ($comments as $comment) {
                         <i class='fas fa-circle'></i> <?php echo $statusText; ?>
                     </span>
                     <?php if ($userStatus['last_seen'] && $userStatus['is_online'] == 0): ?>
-                        <br><small class='text-muted mt-1 d-block'><?php echo date('M j, Y g:i A', strtotime($userStatus['last_seen'] . ' UTC')); ?></small>
+                        <br><small class='text-muted mt-1 d-block'><?php echo date('M j, Y g:i A', strtotime($userStatus['last_seen'])); ?></small>
                     <?php endif; ?>
                 </div>">
 
@@ -1370,7 +1368,7 @@ foreach ($comments as $comment) {
                                                         <div class="d-flex align-items-center flex-shrink-0">
                                                             <small class="fw-medium text-muted d-flex align-items-center" style="font-size: 11px;">
                                                                 <i class="far fa-clock me-1"></i>
-                                                                <?php echo date('g:i A', strtotime($comment['created_at'] . ' UTC')); ?>
+                                                                <?php echo date('g:i A', strtotime($comment['created_at'])); ?>
 
                                                                 <!-- Read Status Ticks -->
                                                                 <span class="ms-2">
@@ -1625,7 +1623,36 @@ foreach ($comments as $comment) {
     </div>
 
 
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const timeElement = document.getElementById('time-remaining');
+            let remainingSeconds = <?= $remainingSeconds ?>;
 
+            function updateTime() {
+                if (!timeElement) return;
+                if (remainingSeconds <= 0) {
+                    timeElement.style.color = 'red';
+                    timeElement.innerHTML = "Past Due";
+                    return;
+                }
+
+                const hours = Math.floor(remainingSeconds / 3600);
+                const minutes = Math.floor((remainingSeconds % 3600) / 60);
+                const seconds = remainingSeconds % 60;
+
+                timeElement.innerHTML = `Time Remaining: ${hours} hrs ${minutes} min ${seconds} sec`;
+                timeElement.style.color = 'green';
+
+                remainingSeconds--;
+            }
+
+            // Update every second
+            setInterval(updateTime, 1000);
+
+            // Initialize immediately
+            updateTime();
+        });
+    </script>
     <script>
         // Initialize tooltips for online indicators
         document.addEventListener('DOMContentLoaded', function() {

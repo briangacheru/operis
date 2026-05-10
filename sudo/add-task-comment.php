@@ -437,9 +437,12 @@ function handleFileUpload($file) {
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mimeType = finfo_file($finfo, $file['tmp_name']);
         finfo_close($finfo);
-    } else {
-        // Fallback for older PHP versions
+    } elseif (function_exists('mime_content_type')) {
+        // Fallback if finfo is not available
         $mimeType = mime_content_type($file['tmp_name']);
+    } else {
+        // Final fallback: use the browser-supplied MIME type
+        $mimeType = $file['type'];
     }
 
     // Define allowed file types - EXPANDED to include documents
