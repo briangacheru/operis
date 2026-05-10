@@ -14,18 +14,19 @@ function sendEmail($writer, $pages, $cpp, $due_date, $writerEmail, $taskId, $act
     $mail = new PHPMailer(true);
     try {
         $mail->isSMTP();
-        $mail->Host       = 'mail.monkbrian.com';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = 'support@monkbrian.com';
-        $mail->Password   = 'EDU+pass.';
-        $mail->SMTPSecure = 'ssl';
-        $mail->Port       = 465;
+        $mail->Host = 'das121.truehost.cloud';
+        $mail->SMTPAuth = true;
+        $mail->Username = 'support@monkbrian.com';
+        $mail->Password = 'EDU+pass.';
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = 587;
 
-        // Recipients
-        $mail->setFrom('support@monkbrian.com', 'itasker');
-        $mail->addReplyTo('bryo4419@gmail.com', 'Bryo Gacheru');
+        $mail->setFrom('support@monkbrian.com', 'iTasker');
         $mail->addAddress($writerEmail);
-        $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin');
+        $mail->addBCC('bryo4419@gmail.com', 'iTasker Admin');
+        $mail->addCustomHeader('X-Priority', '3');
+        $mail->addCustomHeader('X-Mailer', 'iTasker v1.0');
+        $mail->addCustomHeader('List-Unsubscribe', '<mailto:support@monkbrian.com>');
 
         // Content
         $status = $action == 'accept' ? 'ACCEPTED' : 'DECLINED';

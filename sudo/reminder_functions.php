@@ -18,7 +18,7 @@ require 'phpmailer/src/PHPMailer.php';
 require 'phpmailer/src/SMTP.php';
 // Email configuration
 $email_config = [
-    'smtp_host' => 'mail.monkbrian.com',
+    'smtp_host' => 'das121.truehost.cloud',
     'smtp_port' => 465,
     'smtp_username' => 'support@monkbrian.com',
     'smtp_password' => 'EDU+pass.',
@@ -39,7 +39,7 @@ function sendEmail($to, $subject, $htmlBody, $textBody = '') {
         $mail->SMTPAuth = true;
         $mail->Username = $email_config['smtp_username'];
         $mail->Password = $email_config['smtp_password'];
-        $mail->SMTPSecure = 'ssl';
+        $mail->SMTPSecure = 'tls';
         $mail->Port = $email_config['smtp_port'];
 
         // Recipients

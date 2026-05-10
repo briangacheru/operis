@@ -28,10 +28,10 @@ try {
     $userQuery = mysqli_query($con, "SELECT id FROM tblwriters WHERE email = '$aid'");
     $userResult = mysqli_fetch_assoc($userQuery);
     $userID = $userResult['id'];
-    $unreadMessagesCountQuery = mysqli_query($con, "SELECT * FROM chat_messages WHERE is_read = 0 AND receiver_id = '$userID' ");
+    $unreadMessagesCountQuery = mysqli_query($con, "SELECT COUNT(*) AS unread_count FROM chat_messages WHERE is_read = 0 AND receiver_id = '$userID'");
 
     $unreadMessagesCountResult = mysqli_fetch_assoc($unreadMessagesCountQuery);
-    $unreadMessagesCount = $unreadMessagesCountResult['unread_count'];
+    $unreadMessagesCount = $unreadMessagesCountResult['unread_count'] ?? 0;
 
     // Get unread comments count
     $unreadCommentsCountQuery = mysqli_query($con, "

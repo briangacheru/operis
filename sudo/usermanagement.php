@@ -14,12 +14,12 @@ function sendVerificationEmail($writerName, $writerEmail, $action, $writerId)
     $mail = new PHPMailer(true);
     try {
         $mail->isSMTP();
-        $mail->Host = 'mail.monkbrian.com';
+        $mail->Host = 'das121.truehost.cloud';
         $mail->SMTPAuth = true;
         $mail->Username = 'support@monkbrian.com';
         $mail->Password = 'EDU+pass.';
-        $mail->SMTPSecure = 'ssl';
-        $mail->Port = 465;
+        $mail->SMTPSecure = 'tls';
+        $mail->Port = 587;
 
         // Recipients
         $mail->setFrom('support@monkbrian.com', 'itasker');
@@ -178,12 +178,12 @@ function sendDeactivationEmailToAdmin($writerName, $writerEmail, $writerId, $rea
     $mail = new PHPMailer(true);
     try {
         $mail->isSMTP();
-        $mail->Host = 'mail.monkbrian.com';
+        $mail->Host = 'das121.truehost.cloud';
         $mail->SMTPAuth = true;
         $mail->Username = 'support@monkbrian.com';
         $mail->Password = 'EDU+pass.';
-        $mail->SMTPSecure = 'ssl';
-        $mail->Port = 465;
+        $mail->SMTPSecure = 'tls';
+        $mail->Port = 587;
 
         // Recipients - Admin only
         $mail->setFrom('support@monkbrian.com', 'itasker');
@@ -565,8 +565,9 @@ if (isset($_SESSION['alert'])) {
                                             $isActive = isset($row['is_active']) ? $row['is_active'] : 1; // Default to active if column doesn't exist
 
                                             // Check if registered less than a month ago and not verified
-                                            $registeredDate = new DateTime($row['created_at']);
-                                            $now = new DateTime();
+                                            $registeredDate = new DateTime($row['created_at'], new DateTimeZone('UTC'));
+                                            $registeredDate->setTimezone(new DateTimeZone('Africa/Nairobi'));
+                                            $now = new DateTime('now', new DateTimeZone('Africa/Nairobi'));
                                             $diff = $now->diff($registeredDate);
                                             $isNewAndUnverified = ($diff->m == 0 && $diff->y == 0) && $row['is_verified'] == 0;
                                             ?>
@@ -584,8 +585,9 @@ if (isset($_SESSION['alert'])) {
                                                             <p class="fw-semi-bold mb-0 text-500">
                                                                 <?php
                                                                 if (isset($row["last_seen"]) && !empty($row["last_seen"])) {
-                                                                    $lastSeen = new DateTime($row["last_seen"]);
-                                                                    $now = new DateTime();
+                                                                    $lastSeen = new DateTime($row["last_seen"], new DateTimeZone('UTC'));
+                                                                    $lastSeen->setTimezone(new DateTimeZone('Africa/Nairobi'));
+                                                                    $now = new DateTime('now', new DateTimeZone('Africa/Nairobi'));
                                                                     $diff = $now->diff($lastSeen);
 
                                                                     if ($diff->y > 0) {
@@ -614,7 +616,7 @@ if (isset($_SESSION['alert'])) {
                                                 </td>
                                                 <td class="align-middle white-space-nowrap text-900"><?php echo $row["email"];?></td>
                                                 <td class="align-middle white-space-nowrap text-900">
-                                                    <?php echo date("jS M, Y", strtotime($row['created_at'])); ?>
+                                                    <?php echo date("jS M, Y", strtotime($row['created_at'] . ' UTC')); ?>
                                                     <?php if ($isNewAndUnverified): ?>
                                                         <br><span class="badge badge-subtle-warning mt-1"><i class="fas fa-clock me-1"></i>New - Pending Activation</span>
                                                     <?php endif; ?>
@@ -666,7 +668,7 @@ if (isset($_SESSION['alert'])) {
                                                                     data-writer-username="<?php echo htmlspecialchars($row['username']); ?>"
                                                                     data-writer-email="<?php echo htmlspecialchars($row['email']); ?>"
                                                                     data-deactivation-reason="<?php echo htmlspecialchars($row['deactivation_reason'] ?? ''); ?>"
-                                                                    data-deactivated-at="<?php echo isset($row['deactivated_at']) ? date('F j, Y \a\t g:i A', strtotime($row['deactivated_at'])) : ''; ?>"
+                                                                    data-deactivated-at="<?php echo isset($row['deactivated_at']) ? : ''; ?>"
                                                                     data-bs-toggle="tooltip" data-bs-placement="top" title="Reactivate Account">
                                                                 <i class="fas fa-undo"></i>
                                                             </button>

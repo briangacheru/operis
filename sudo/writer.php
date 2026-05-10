@@ -114,8 +114,9 @@ if ($writerID) {
                         $lastSeenClass = 'secondary';
 
                         if (isset($rowWriter["last_seen"]) && !empty($rowWriter["last_seen"])) {
-                            $lastSeen = new DateTime($rowWriter["last_seen"]);
-                            $now = new DateTime();
+                            $lastSeen = new DateTime($rowWriter["last_seen"], new DateTimeZone('UTC'));
+                            $lastSeen->setTimezone(new DateTimeZone('Africa/Nairobi'));
+                            $now = new DateTime('now', new DateTimeZone('Africa/Nairobi'));
                             $diff = $now->diff($lastSeen);
 
                             if ($diff->y > 0) {
@@ -149,7 +150,7 @@ if ($writerID) {
                                 <div class="d-flex align-items-center mb-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Member Since">
                                     <span class="fas fa-calendar-alt fs-8 me-2 text-info" ></span>
                                     <div class="flex-1">
-                                        <h6 class="mb-0 text-primary" ><?php echo date("jS F, Y", strtotime($rowWriter['created_at'])); ?></h6>
+                                        <h6 class="mb-0 text-primary" ><?php echo date("jS F, Y", strtotime($rowWriter['created_at'] . ' UTC')); ?></h6>
                                     </div>
                                 </div>
                             </div>
@@ -183,7 +184,7 @@ if ($writerID) {
 
                             <!-- Last Seen -->
                             <div class="col-md-6">
-                                <div class="d-flex align-items-center mb-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Last seen: <?php echo isset($rowWriter['last_seen']) ? date('M j, Y g:i A', strtotime($rowWriter['last_seen'])) : 'Unknown'; ?>">
+                                <div class="d-flex align-items-center mb-2" data-bs-toggle="tooltip" data-bs-placement="top" title="Last seen: <?php echo isset($rowWriter['last_seen']) ? date('M j, Y g:i A', strtotime($rowWriter['last_seen'] . ' UTC')): 'Unknown'; ?>">
                                     <span class="fas fa-clock fs-8 me-2 text-<?php echo $lastSeenClass; ?>" ></span>
                                     <div class="flex-1">
                                         <h6 class="mb-0 text-<?php echo $lastSeenClass; ?>"><?php echo $lastSeenText; ?></h6>
@@ -217,7 +218,7 @@ if ($writerID) {
                                     <div class="flex-1">
                                         <strong>Account Deactivated</strong>
                                         <?php if ($deactivatedAt): ?>
-                                            <br><small>On: <?php echo date("F j, Y \a\\t g:i A", strtotime($deactivatedAt)); ?></small>
+                                            <br><small>On: <?php echo date("F j, Y \a\\t g:i A", strtotime($deactivatedAt . ' UTC')); ?></small>
                                         <?php endif; ?>
                                         <?php if ($deactivationReason): ?>
                                             <br><small>Reason: <?php echo htmlspecialchars($deactivationReason); ?></small>

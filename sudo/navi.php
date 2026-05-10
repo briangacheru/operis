@@ -1156,6 +1156,11 @@
                                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-stamp"></span></span><span class="nav-link-text ps-1">Settled</span>
                                 </div>
                             </a>
+
+                            <!-- parent pages--><a class="nav-link" href="invoice-logs" role="button">
+                                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-receipt"></span></span><span class="nav-link-text ps-1">Invoices</span>
+                                </div>
+                            </a>
                             <!-- label-->
                             <div class="row navbar-vertical-label-wrapper mt-3 mb-2">
                                 <div class="col-auto navbar-vertical-label">MANAGEMENT

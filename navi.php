@@ -480,6 +480,45 @@
                                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-stamp"></span></span><span class="nav-link-text ps-1">Settled</span>
                                 </div>
                             </a>
+                            <?php
+                            $_showInvoiceLink = false;
+                            if (!empty($_SESSION['sessionWriter'])) {
+                                $_invEmail = $_SESSION['sessionWriter'];
+                                $_invStmt  = mysqli_prepare($con,
+                                    "SELECT username FROM tblwriters WHERE email = ? AND is_deleted = 0 LIMIT 1"
+                                );
+                                if ($_invStmt) {
+                                    mysqli_stmt_bind_param($_invStmt, 's', $_invEmail);
+                                    mysqli_stmt_execute($_invStmt);
+                                    $_invResult = mysqli_stmt_get_result($_invStmt);
+                                    $_invRow    = mysqli_fetch_assoc($_invResult);
+                                    $_invWriter = $_invRow['username'] ?? '';
+                                    mysqli_stmt_close($_invStmt);
+
+                                    if (!empty($_invWriter)) {
+                                        $_invCheck = mysqli_prepare($con,
+                                            "SELECT id FROM tbl_invoice_logs WHERE writer_name = ? LIMIT 1"
+                                        );
+                                        if ($_invCheck) {
+                                            mysqli_stmt_bind_param($_invCheck, 's', $_invWriter);
+                                            mysqli_stmt_execute($_invCheck);
+                                            mysqli_stmt_store_result($_invCheck);
+                                            $_showInvoiceLink = (mysqli_stmt_num_rows($_invCheck) > 0);
+                                            mysqli_stmt_close($_invCheck);
+                                        }
+                                    }
+                                }
+                            }
+                            ?>
+                            <?php if ($_showInvoiceLink): ?>
+                                <!-- parent pages -->
+                                <a class="nav-link" href="invoice-logs" role="button">
+                                    <div class="d-flex align-items-center">
+                                        <span class="nav-link-icon"><span class="fas fa-receipt"></span></span>
+                                        <span class="nav-link-text ps-1">Invoices</span>
+                                    </div>
+                                </a>
+                            <?php endif; ?>
                             <!-- label-->
                             <div class="row navbar-vertical-label-wrapper mt-3 mb-2">
                                 <div class="col-auto navbar-vertical-label">MANAGEMENT

@@ -15,9 +15,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !empty($_POST['taskIds'])) {
     if (count($taskIds) > 0) {
         // Prepare a string of comma-separated task IDs for the SQL query
         $idsString = implode(',', array_map('intval', $taskIds));
+        $completed_on = date('Y-m-d H:i:s');
 
         // SQL query to update tasks status
-        $sql = "UPDATE tbltasks SET status = 'Completed', completed_on = NOW() WHERE id IN ($idsString) AND status IN ('In Progress', 'Submitted') AND is_paid = 0";
+        $sql = "UPDATE tbltasks SET status = 'Completed', completed_on = '$completed_on' WHERE id IN ($idsString) AND status IN ('In Progress', 'Submitted') AND is_paid = 0";
 
         if (mysqli_query($con, $sql)) {
             // Check if any rows were updated

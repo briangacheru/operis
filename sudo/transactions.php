@@ -469,6 +469,36 @@ if (isset($_SESSION['alert'])) {
     //echo '<meta http-equiv="refresh" content="10;url=' . htmlspecialchars($_SERVER['PHP_SELF']) . '">';
 }
 ?>
+    <div class="row mb-3">
+        <div class="col">
+            <div class="card shadow-none border ps-3">
+                <div class="row gx-0 flex-between-center">
+                    <div class="col-sm-auto d-flex align-items-center"><img class="ms-n2" src="../assets/img/illustrations/crm-bar-chart.png" alt="" width="90" />
+                        <div>
+                            <h4 class="text-primary fw-bold mb-0">Import <span class="text-info fw-medium">Transactions</span></h4>
+                        </div><img class="ms-n4 d-md-none d-lg-block" src="../assets/img/illustrations/crm-line-chart.png" alt="" width="150" />
+                    </div>
+                    <div class="col-sm-auto pt-lg-0">
+                        <form method="post" enctype="multipart/form-data" class="row flex-lg-column flex-xxl-row align-items-center align-items-lg-start align-items-xxl-center">
+                            <div class="card-body">
+                                <div class="mb-1">
+                                    <label for="transaction_file" class="form-label">Select CSV File</label>
+                                    <input type="file" class="form-control" id="transaction_file" name="csv_file" accept=".csv" required>
+                                    <div class="form-text">File must match the export format with columns: Category, Subcategory, Description, Amount, Cost, Tag, Date</div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" name="import_csv" class="btn btn-primary">Import CSV</button>
+                                <a href="#" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importHelpModal">
+                                    <i class="fas fa-question-circle me-1"></i> Import Help
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="row  g-3 mb-3">
         <div class="col">
@@ -713,36 +743,6 @@ if (isset($_SESSION['alert'])) {
         </div>
     </div>
 
-    <div class="row mb-3">
-        <div class="col">
-            <div class="card shadow-none border ps-3">
-                <div class="row gx-0 flex-between-center">
-                    <div class="col-sm-auto d-flex align-items-center"><img class="ms-n2" src="../assets/img/illustrations/crm-bar-chart.png" alt="" width="90" />
-                        <div>
-                            <h4 class="text-primary fw-bold mb-0">Import <span class="text-info fw-medium">Transactions</span></h4>
-                        </div><img class="ms-n4 d-md-none d-lg-block" src="../assets/img/illustrations/crm-line-chart.png" alt="" width="150" />
-                    </div>
-                    <div class="col-sm-auto pt-lg-0">
-                        <form method="post" enctype="multipart/form-data" class="row flex-lg-column flex-xxl-row align-items-center align-items-lg-start align-items-xxl-center">
-                            <div class="card-body">
-                                <div class="mb-1">
-                                    <label for="transaction_file" class="form-label">Select CSV File</label>
-                                    <input type="file" class="form-control" id="transaction_file" name="csv_file" accept=".csv" required>
-                                    <div class="form-text">File must match the export format with columns: Category, Subcategory, Description, Amount, Cost, Tag, Date</div>
-                                </div>
-                            </div>
-                            <div class="card-footer">
-                                <button type="submit" name="import_csv" class="btn btn-primary">Import CSV</button>
-                                <a href="#" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importHelpModal">
-                                    <i class="fas fa-question-circle me-1"></i> Import Help
-                                </a>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Add Transaction Modal -->
     <div class="modal fade" id="addTransactionModal" tabindex="-1" aria-labelledby="addTransactionModalLabel" aria-hidden="true">

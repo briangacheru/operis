@@ -135,18 +135,20 @@ try {
         try {
             // Server settings
             $mail->isSMTP();
-            $mail->Host = 'mail.monkbrian.com';
+            $mail->Host = 'das121.truehost.cloud';
             $mail->SMTPAuth = true;
             $mail->Username = 'support@monkbrian.com';
             $mail->Password = 'EDU+pass.';
-            $mail->SMTPSecure = 'ssl';
-            $mail->Port = 465;
+            $mail->SMTPSecure = 'tls';
+            $mail->Port = 587;
 
             // Recipients
             $mail->setFrom('support@monkbrian.com', 'itasker');
-            $mail->addReplyTo('bryo4419@gmail.com', 'Bryo Gacheru');
             $mail->addAddress($writerEmail);
-            $mail->addAddress('bryo4419@gmail.com', 'itasker Admin');
+            $mail->addBCC('bryo4419@gmail.com', 'iTasker Admin');
+            $mail->addCustomHeader('X-Priority', '3');
+            $mail->addCustomHeader('X-Mailer', 'iTasker v1.0');
+            $mail->addCustomHeader('List-Unsubscribe', '<mailto:support@monkbrian.com>');
 
             // Handle attachments
             $tempFiles = [];
@@ -205,7 +207,8 @@ try {
 
             // Email content
             $mail->isHTML(true);
-            $mail->Subject = 'Task ID: ' . $task_id . ' - ' . $topic . ' - [ ' . $account . ' ] ';
+            $mail->Subject = 'Task #' . $task_id . ': ' . $topic . ' (' . $account . ')';
+
 
             // Email Body with Logo and Modern Formatting
             $companyLogo = 'https://web.monkbrian.com/assets/img/team/itasker-email-header.png';
@@ -223,7 +226,7 @@ try {
             }
             .email-container {
                 max-width: 600px;
-                background: #ffff;
+                background: #ffffff;
                 margin: 0 auto;
                 padding: 20px;
                 border-radius: 8px;

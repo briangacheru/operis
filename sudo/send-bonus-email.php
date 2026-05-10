@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         try {
             // Server settings with better connection handling
             $mail->isSMTP();
-            $mail->Host       = 'vin101.truehost.cloud';
+            $mail->Host       = 'das121.truehost.cloud';
             $mail->SMTPAuth   = true;
             $mail->Username   = 'support@monkbrian.com';
             $mail->Password   = 'EDU+pass.';

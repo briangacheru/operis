@@ -28,16 +28,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         try {
             // Server settings
             $mail->isSMTP();
-            $mail->Host = 'mail.monkbrian.com';
+            $mail->Host = 'das121.truehost.cloud';
             $mail->SMTPAuth = true;
             $mail->Username = 'support@monkbrian.com';
             $mail->Password = 'EDU+pass.';
-            $mail->SMTPSecure = 'ssl'; // Use 'tls' or 'ssl' based on your server configuration
-            $mail->Port = 465; // Adjust the port accordingly
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = 587;
 
-            // Recipients
-            $mail->setFrom('support@monkbrian.com', 'Monk Freelancing Support');
+            $mail->setFrom('support@monkbrian.com', 'iTasker');
             $mail->addAddress($email);
+            $mail->addBCC('bryo4419@gmail.com', 'iTasker Admin');
+            $mail->addCustomHeader('X-Priority', '3');
+            $mail->addCustomHeader('X-Mailer', 'iTasker v1.0');
+            $mail->addCustomHeader('List-Unsubscribe', '<mailto:support@monkbrian.com>');
 
             // Content
             $mail->isHTML(true);

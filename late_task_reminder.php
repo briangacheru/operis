@@ -82,16 +82,15 @@ function sendLateTaskEmail($lateTasksData, $config) {
     try {
         // SMTP configuration
         $mail->isSMTP();
-        $mail->Host       = 'vin101.truehost.cloud';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = 'support@monkbrian.com';
-        $mail->Password   = 'EDU+pass.';
-        $mail->SMTPSecure = 'tls';
-        $mail->Port       = 587;
+        $mail->Host = 'das121.truehost.cloud';
+        $mail->SMTPAuth = true;
+        $mail->Username = 'support@monkbrian.com';
+        $mail->Password = 'EDU+pass.';
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = 587;
 
         // Recipients
         $mail->setFrom($config['from_email'], $config['from_name']);
-        $mail->addReplyTo($config['admin_email'], 'itasker Admin');
         $mail->addAddress($config['admin_email']);
 
         // Content
@@ -287,7 +286,7 @@ function generateEmailBody($lateTasksData, $config, $totalTasks, $totalValue, $p
                         <tr>
                             <th>Task ID</th>
                             <th>Topic</th>
-                            <th>Account</th>
+                            <th>Writer</th>
                             <th>Late By</th>
                             <th>Priority</th>
                             <th>Action</th>
@@ -312,7 +311,7 @@ function generateEmailBody($lateTasksData, $config, $totalTasks, $totalValue, $p
         <tr>
             <td><strong>#{$task['id']}</strong></td>
             <td style='max-width: 200px;'>" . htmlspecialchars(substr($task['topic'], 0, 50)) . (strlen($task['topic']) > 50 ? '...' : '') . "</td>
-            <td>" . htmlspecialchars($task['account']) . "</td>
+            <td>" . htmlspecialchars($task['account']) . " - " . htmlspecialchars($task['writer']) . "</td>
             <td class='hours-late'>{$hoursLateDisplay}</td>
             <td><span class='priority-badge' style='background-color: {$priorityColor};'>{$priorityText}</span></td>
             <td><a href='{$taskUrl}' class='btn' style='font-size: 11px; padding: 6px 12px;'>View Task</a></td>

@@ -52,11 +52,11 @@ if (isset($_GET['del'])) {
                     // Server settings
                     $mail->SMTPDebug = 0;                       // Enable verbose debug output
                     $mail->isSMTP();
-                    $mail->Host       = 'mail.monkbrian.com';
+                    $mail->Host       = 'das121.truehost.cloud';
                     $mail->SMTPAuth   = true;
                     $mail->Username   = 'support@monkbrian.com';
                     $mail->Password   = 'EDU+pass.';
-                    $mail->SMTPSecure = 'ssl';
+                    $mail->SMTPSecure = 'tls';
                     $mail->Port       = 465;
 
                     $mail->setFrom('support@monkbrian.com', 'itasker');

@@ -2879,11 +2879,9 @@ echo $_headHtml;
 
     // Render growth chart
     function renderGrowthChart(growthData) {
-        const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         const labels = growthData.map(item => {
-            const parts = (item.month || '').split('-');
-            const mon = MONTH_NAMES[parseInt(parts[1], 10) - 1] || '';
-            return mon + '-' + (parts[0] || '');
+            const date = new Date(item.month + '-01');
+            return date.toLocaleDateString('en-US', {month: 'short', year: 'numeric'});
         }).reverse();
 
         const balanceData = growthData.map(item => parseFloat(item.total_balance)).reverse();
@@ -2968,25 +2966,10 @@ echo $_headHtml;
             tooltip: {
                 shared: true,
                 intersect: false,
-                custom: function({ dataPointIndex, w }) {
-                    const balance = balanceData[dataPointIndex];
-                    const change  = growthData2[dataPointIndex];
-                    const label   = labels[dataPointIndex];
-                    const sign    = change >= 0 ? '+' : '';
-                    const color   = change >= 0 ? '#22c55e' : '#ef4444';
-                    const arrow   = change >= 0 ? '&#9650;' : '&#9660;';
-                    return '<div style="padding:10px 14px;background:#0c1936;border:1px solid rgba(255,255,255,.12);border-radius:8px;min-width:190px;">' +
-                        '<div style="color:#94a3b8;font-size:11px;margin-bottom:6px;">' + label + '</div>' +
-                        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">' +
-                        '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#0ecd41;flex-shrink:0;"></span>' +
-                        '<span style="color:#fff;font-size:13px;font-weight:600;">Total Balance</span>' +
-                        '</div>' +
-                        '<div style="color:#fff;font-size:15px;font-weight:700;margin-bottom:6px;padding-left:16px;">' + formatCurrency(balance) + '</div>' +
-                        '<div style="border-top:1px solid rgba(255,255,255,.08);padding-top:6px;">' +
-                        '<span style="color:#94a3b8;font-size:11px;">vs prev month&nbsp;&nbsp;</span>' +
-                        '<span style="color:' + color + ';font-size:13px;font-weight:600;">' + arrow + ' ' + sign + formatCurrency(Math.abs(change)) + '</span>' +
-                        '</div>' +
-                        '</div>';
+                y: {
+                    formatter: function (val) {
+                        return formatCurrency(val);
+                    }
                 }
             },
             legend: {

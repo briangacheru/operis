@@ -987,1023 +987,997 @@ while ($vw = mysqli_fetch_assoc($verifiedWritersResult)) {
         </div>
     </div>
 
-    <!-- ===== VIEW SWITCHER TABS ===== -->
-    <ul class="nav nav-tabs mb-3" id="taskViewTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active d-flex align-items-center gap-2" id="admin-view-tab"
-                    data-bs-toggle="tab" data-bs-target="#admin-view-pane"
-                    type="button" role="tab" aria-controls="admin-view-pane" aria-selected="true">
-                <i class="fas fa-user-shield text-primary" style="font-size:13px;"></i>
-                <span>Admin View</span>
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link d-flex align-items-center gap-2" id="writer-view-tab"
-                    data-bs-toggle="tab" data-bs-target="#writer-view-pane"
-                    type="button" role="tab" aria-controls="writer-view-pane" aria-selected="false">
-                <i class="fas fa-user-edit text-success" style="font-size:13px;"></i>
-                <span>Writer View</span>
-                <span class="badge rounded-pill bg-info-subtle text-info border border-info-subtle ms-1" style="font-size:10px;">Preview</span>
-            </button>
-        </li>
-    </ul>
+    <div class="row">
+        <div class="col-lg-12 order-1 order-lg-0">
+            <div class="card mb-3">
+                <div class="card-header d-flex bg-body-tertiary align-items-center gap-2">
+                    <i class="fas fa-align-left text-primary" style="font-size:13px;"></i>
+                    <h6 class="mb-0">Description</h6>
+                </div>
+                <div class="card-body">
+                    <div class="task-description-content">
+                        <?php
+                        $cleanText = stripslashes($taskDescription);
 
-    <div class="tab-content" id="taskViewTabsContent">
+                        if (strip_tags($cleanText) !== $cleanText) {
+                            // --- HTML content from Quill editor ---
+                            libxml_use_internal_errors(true);
+                            $dom = new DOMDocument();
+                            $dom->loadHTML('<?xml encoding="UTF-8">' . $cleanText, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+                            libxml_clear_errors();
+                            $xpath = new DOMXPath($dom);
 
-        <!-- ===== ADMIN VIEW TAB PANE ===== -->
-        <div class="tab-pane fade show active" id="admin-view-pane" role="tabpanel" aria-labelledby="admin-view-tab">
+                            // Nest indented Quill list items properly
+                            foreach ($xpath->query('//ol') as $ol) {
+                                $items = [];
+                                foreach ($ol->getElementsByTagName('li') as $li) {
+                                    $indent = 0;
+                                    if (preg_match('/ql-indent-(\d+)/', $li->getAttribute('class'), $m)) {
+                                        $indent = (int)$m[1];
+                                    }
+                                    $items[] = ['element' => $li, 'indent' => $indent];
+                                }
+                                if (!$items) continue;
 
-            <div class="row">
-                <div class="col-lg-12 order-1 order-lg-0">
-                    <div class="card mb-3">
-                        <div class="card-header d-flex bg-body-tertiary align-items-center gap-2">
-                            <i class="fas fa-align-left text-primary" style="font-size:13px;"></i>
-                            <h6 class="mb-0">Description</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="task-description-content">
-                                <?php
-                                $cleanText = stripslashes($taskDescription);
+                                while ($ol->firstChild) $ol->removeChild($ol->firstChild);
 
-                                if (strip_tags($cleanText) !== $cleanText) {
-                                    // --- HTML content from Quill editor ---
-                                    libxml_use_internal_errors(true);
-                                    $dom = new DOMDocument();
-                                    $dom->loadHTML('<?xml encoding="UTF-8">' . $cleanText, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-                                    libxml_clear_errors();
-                                    $xpath = new DOMXPath($dom);
+                                $currentLevel = 0;
+                                $parentStack  = [$ol];
 
-                                    // Nest indented Quill list items properly
-                                    foreach ($xpath->query('//ol') as $ol) {
-                                        $items = [];
-                                        foreach ($ol->getElementsByTagName('li') as $li) {
-                                            $indent = 0;
-                                            if (preg_match('/ql-indent-(\d+)/', $li->getAttribute('class'), $m)) {
-                                                $indent = (int)$m[1];
-                                            }
-                                            $items[] = ['element' => $li, 'indent' => $indent];
-                                        }
-                                        if (!$items) continue;
+                                foreach ($items as $item) {
+                                    $li     = $item['element'];
+                                    $indent = $item['indent'];
 
-                                        while ($ol->firstChild) $ol->removeChild($ol->firstChild);
+                                    $cls = preg_replace('/\s*ql-indent-\d+\s*/', ' ', $li->getAttribute('class'));
+                                    $cls = trim($cls);
+                                    $cls ? $li->setAttribute('class', $cls) : $li->removeAttribute('class');
 
+                                    if ($indent === 0) {
+                                        $parentStack[0]->appendChild($li);
                                         $currentLevel = 0;
-                                        $parentStack  = [$ol];
-
-                                        foreach ($items as $item) {
-                                            $li     = $item['element'];
-                                            $indent = $item['indent'];
-
-                                            $cls = preg_replace('/\s*ql-indent-\d+\s*/', ' ', $li->getAttribute('class'));
-                                            $cls = trim($cls);
-                                            $cls ? $li->setAttribute('class', $cls) : $li->removeAttribute('class');
-
-                                            if ($indent === 0) {
-                                                $parentStack[0]->appendChild($li);
-                                                $currentLevel = 0;
-                                                $parentStack  = [$parentStack[0]];
-                                            } else {
-                                                while ($currentLevel >= $indent && count($parentStack) > 1) {
-                                                    array_pop($parentStack);
-                                                    $currentLevel--;
-                                                }
-                                                if ($currentLevel < $indent) {
-                                                    $lastLi = $xpath->query('.//li[last()]', end($parentStack));
-                                                    if ($lastLi->length > 0) {
-                                                        $target   = $lastLi->item(0);
-                                                        $existing = $xpath->query('./ul', $target);
-                                                        $nested   = $existing->length > 0
-                                                            ? $existing->item(0)
-                                                            : $target->appendChild($dom->createElement('ul'));
-                                                        $nested->appendChild($li);
-                                                        $parentStack[] = $nested;
-                                                        $currentLevel  = $indent;
-                                                    }
-                                                }
+                                        $parentStack  = [$parentStack[0]];
+                                    } else {
+                                        while ($currentLevel >= $indent && count($parentStack) > 1) {
+                                            array_pop($parentStack);
+                                            $currentLevel--;
+                                        }
+                                        if ($currentLevel < $indent) {
+                                            $lastLi = $xpath->query('.//li[last()]', end($parentStack));
+                                            if ($lastLi->length > 0) {
+                                                $target   = $lastLi->item(0);
+                                                $existing = $xpath->query('./ul', $target);
+                                                $nested   = $existing->length > 0
+                                                    ? $existing->item(0)
+                                                    : $target->appendChild($dom->createElement('ul'));
+                                                $nested->appendChild($li);
+                                                $parentStack[] = $nested;
+                                                $currentLevel  = $indent;
                                             }
                                         }
                                     }
-
-                                    $html = $dom->saveHTML();
-                                    $html = preg_replace('/<\?xml[^>]*>/', '', $html);
-                                    $html = preg_replace('/<\!DOCTYPE[^>]*>/', '', $html);
-                                    $html = str_replace(['<html>', '</html>', '<body>', '</body>'], '', $html);
-
-                                    // Highlight all external links
-                                    $html = preg_replace_callback(
-                                        '/<a\s([^>]*)>/i',
-                                        function ($matches) {
-                                            $attrs = $matches[1];
-                                            if (!str_contains($attrs, 'class=')) $attrs .= ' class="highlighted-link"';
-                                            if (!str_contains($attrs, 'target=')) $attrs .= ' target="_blank"';
-                                            if (!str_contains($attrs, 'rel='))    $attrs .= ' rel="noopener noreferrer"';
-                                            return '<a ' . trim($attrs) . '>';
-                                        },
-                                        $html
-                                    );
-
-                                    echo $html;
-
-                                } else {
-                                    // --- Plain text ---
-                                    $escaped = htmlspecialchars($cleanText, ENT_QUOTES, 'UTF-8');
-                                    $linked  = preg_replace(
-                                        '/(https?:\/\/[^\s]+)/',
-                                        '<a href="$1" class="highlighted-link" target="_blank" rel="noopener noreferrer">$1</a>',
-                                        $escaped
-                                    );
-                                    echo nl2br($linked);
                                 }
-                                ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- Task Files card section -->
-            <div class='col mb-3'>
-                <div class='row g-3'>
-                    <div class='col-xxl-12'>
-                        <div class='card h-100 h-xxl-auto mt-xxl-3'>
-                            <div class='card-header d-flex bg-body-tertiary align-items-center'>
-                                <i class='far fa-folder-open me-2 text-primary'></i>
-                                <h6 class='mb-0'>Task Files</h6>
-                            </div>
-                            <div class='card-body position-relative'>
-                                <div class='bg-holder bg-card d-none d-md-block'
-                                     style='background-image:url(../assets/img/icons/spot-illustrations/corner-2.png);'></div>
-                                <?php
-                                // Get task files from new table
-                                $taskFilesQuery = "SELECT * FROM tbl_task_files WHERE task_id = ? AND file_type = 'task' AND is_deleted = 0 ORDER BY upload_time ASC";
-                                $stmt = mysqli_prepare($con, $taskFilesQuery);
-                                mysqli_stmt_bind_param($stmt, 'i', $taskId);
-                                mysqli_stmt_execute($stmt);
-                                $taskFilesResult = mysqli_stmt_get_result($stmt);
-
-                                if (mysqli_num_rows($taskFilesResult) > 0) {
-                                    $fileIndex = 0;
-                                    while ($fileRow = mysqli_fetch_assoc($taskFilesResult)) {
-                                        $fileName = $fileRow['original_file_name'];
-                                        $fileUrl = $fileRow['file_url'];
-                                        $fileSize = $fileRow['file_size'];
-                                        $uploadTime = $fileRow['upload_time'];
-                                        $formattedSize = formatFileSize($fileSize);
-                                        $formattedDate = date('d M Y, g:i A', strtotime($uploadTime));
-
-                                        // Determine thumbnail based on file extension
-                                        $thumbnailPath = '../assets/img/icons/docs.png';
-                                        $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
-                                        switch (strtolower($fileExtension)) {
-                                            case 'pdf':
-                                                $thumbnailPath = '../assets/img/icons/pdf.png';
-                                                break;
-                                            case 'doc':
-                                            case 'docx':
-                                            case 'rtf':
-                                                $thumbnailPath = '../assets/img/icons/word.png';
-                                                break;
-                                            case 'xls':
-                                            case 'xlsx':
-                                            case 'csv':
-                                                $thumbnailPath = '../assets/img/icons/excel.png';
-                                                break;
-                                            case 'ppt':
-                                            case 'pptx':
-                                                $thumbnailPath = '../assets/img/icons/powerpoint.png';
-                                                break;
-                                            case 'mp4':
-                                            case 'avi':
-                                            case 'mov':
-                                            case 'mkv':
-                                            case 'wmv':
-                                            case 'flv':
-                                            case 'mpeg':
-                                            case 'mpg':
-                                            case '3gp':
-                                            case 'webm':
-                                            case 'm4v':
-                                                $thumbnailPath = '../assets/img/icons/mp4.png';
-                                                break;
-                                            case 'jpg':
-                                            case 'jpeg':
-                                            case 'png':
-                                            case 'gif':
-                                                $thumbnailPath = '../assets/img/icons/image.png';
-                                                break;
-                                            case 'zip':
-                                            case 'rar':
-                                                $thumbnailPath = '../assets/img/icons/zip.png';
-                                                break;
-                                            default:
-                                                $thumbnailPath = '../assets/img/icons/docs.png';
-                                                break;
-                                        }
-                                        ?>
-                                        <div class="d-flex mb-3 hover-actions-trigger align-items-center">
-                                            <div class="file-thumbnail">
-                                                <img class="border h-100 w-100 object-fit-cover rounded-2"
-                                                     src="<?php echo $thumbnailPath; ?>" alt=""/>
-                                            </div>
-                                            <div class="ms-3 flex-shrink-1 flex-grow-1">
-                                                <h6 class="mb-1">
-                                                    <a class="stretched-link text-900 fw-semi-bold"
-                                                       href="<?php echo $fileUrl; ?>"><?php echo htmlspecialchars($fileName); ?></a>
-                                                </h6>
-                                                <div class="fs-10">
-                                                    <span class="fw-medium text-600 file-size"><?php echo $formattedSize; ?></span>
-                                                    <span class='fw-medium text-600 mx-1'>•</span>
-                                                    <span class="fw-medium text-600"><?php echo $formattedDate; ?></span>
-                                                </div>
-                                                <div class="hover-actions end-0 top-50 translate-middle-y">
-                                                    <button class="btn btn-tertiary border-300 btn-sm me-1 text-600"
-                                                            data-bs-toggle="tooltip" data-bs-placement="top" title="View File"
-                                                            onclick="previewFile('<?php echo $encodedId; ?>', <?php echo $fileIndex; ?>, 'task')">
-                                                        <img src="../assets/img/icons/eye.svg" alt="" width="15"/>
-                                                    </button>
-                                                    <a class="btn btn-tertiary border-300 btn-sm me-1 text-600"
-                                                       data-bs-toggle="tooltip" data-bs-placement="top" title="Download"
-                                                       href="<?php echo $fileUrl; ?>"
-                                                       download="<?php echo htmlspecialchars($fileName); ?>">
-                                                        <img src="../assets/img/icons/cloud-download.svg" alt="" width="15"/>
-                                                    </a>
-                                                    <button class="btn btn-tertiary border-300 btn-sm me-1 text-600"
-                                                            data-bs-toggle="tooltip" data-bs-placement="top" title="Delete File"
-                                                            onclick="confirmDeleteFile(<?php echo $fileRow['id']; ?>, '<?php echo htmlspecialchars($fileName, ENT_QUOTES); ?>', '<?php echo $formattedDate; ?>', 'task')">
-                                                        <img src="../assets/img/icons/delete.svg" alt="" width="15"/>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <hr class="text-200"/>
-                                        <?php
-                                        $fileIndex++;
-                                    }
-                                    mysqli_stmt_close($stmt);
-                                } else {
-                                    echo '<div>No task files attached.</div>';
-                                }
-                                ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Submitted Files card section -->
-            <div class='col mb-3'>
-                <div class='row g-3'>
-                    <div class='col-xxl-12'>
-                        <div class='card h-100 h-xxl-auto mt-xxl-3'>
-                            <div class='card-header d-flex bg-body-tertiary align-items-center'>
-                                <i class='far fa-folder me-2 text-primary'></i>
-                                <h6 class='mb-0'>Submitted Files</h6>
-                            </div>
-                            <div class='card-body position-relative'>
-                                <div class='bg-holder bg-card d-none d-md-block'
-                                     style='background-image:url(../assets/img/icons/spot-illustrations/corner-7.png);'></div>
-                                <?php
-                                // Get submitted files from new table
-                                $submittedFilesQuery = "SELECT * FROM tbl_task_files WHERE task_id = ? AND file_type = 'submitted' AND is_deleted = 0 ORDER BY upload_time ASC";
-                                $stmt = mysqli_prepare($con, $submittedFilesQuery);
-                                mysqli_stmt_bind_param($stmt, 'i', $taskId);
-                                mysqli_stmt_execute($stmt);
-                                $submittedFilesResult = mysqli_stmt_get_result($stmt);
-
-                                if (mysqli_num_rows($submittedFilesResult) > 0) {
-                                    $fileIndex = 0;
-                                    while ($fileRow = mysqli_fetch_assoc($submittedFilesResult)) {
-                                        $fileName = $fileRow['original_file_name'];
-                                        $fileUrl = $fileRow['file_url'];
-                                        $fileSize = $fileRow['file_size'];
-                                        $uploadTime = $fileRow['upload_time'];
-                                        $formattedSize = formatFileSize($fileSize);
-                                        $formattedDate = date('d M Y, g:i A', strtotime($uploadTime));
-
-                                        // Determine thumbnail based on file extension
-                                        $thumbnailPath = '../assets/img/icons/docs.png';
-                                        $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
-                                        switch (strtolower($fileExtension)) {
-                                            case 'pdf':
-                                                $thumbnailPath = '../assets/img/icons/pdf.png';
-                                                break;
-                                            case 'doc':
-                                            case 'docx':
-                                            case 'rtf':
-                                                $thumbnailPath = '../assets/img/icons/word.png';
-                                                break;
-                                            case 'xls':
-                                            case 'xlsx':
-                                            case 'csv':
-                                                $thumbnailPath = '../assets/img/icons/excel.png';
-                                                break;
-                                            case 'ppt':
-                                            case 'pptx':
-                                                $thumbnailPath = '../assets/img/icons/powerpoint.png';
-                                                break;
-                                            case 'mp4':
-                                            case 'avi':
-                                            case 'mov':
-                                            case 'mkv':
-                                            case 'wmv':
-                                            case 'flv':
-                                            case 'mpeg':
-                                            case 'mpg':
-                                            case '3gp':
-                                            case 'webm':
-                                            case 'm4v':
-                                                $thumbnailPath = '../assets/img/icons/mp4.png';
-                                                break;
-                                            case 'jpg':
-                                            case 'jpeg':
-                                            case 'png':
-                                            case 'gif':
-                                                $thumbnailPath = '../assets/img/icons/image.png';
-                                                break;
-                                            case 'zip':
-                                            case 'rar':
-                                                $thumbnailPath = '../assets/img/icons/zip.png';
-                                                break;
-                                            default:
-                                                $thumbnailPath = '../assets/img/icons/docs.png';
-                                                break;
-                                        }
-                                        ?>
-                                        <div class="d-flex mb-3 hover-actions-trigger align-items-center"
-                                             data-file-url="<?php echo $fileUrl; ?>">
-                                            <div class="file-thumbnail">
-                                                <img class="border h-100 w-100 object-fit-cover rounded-2"
-                                                     src="<?php echo $thumbnailPath; ?>" alt=""/>
-                                            </div>
-                                            <div class="ms-3 flex-shrink-1 flex-grow-1">
-                                                <h6 class="mb-1">
-                                                    <a class="stretched-link text-900 fw-semi-bold"
-                                                       href="<?php echo $fileUrl; ?>"><?php echo htmlspecialchars($fileName); ?></a>
-                                                </h6>
-                                                <div class="fs-10">
-                                                    <span class="fw-medium text-600"><?php echo $formattedSize; ?></span>
-                                                    <span class='fw-medium text-600 mx-1'>•</span>
-                                                    <span class="fw-medium text-600"><?php echo $formattedDate; ?></span>
-                                                </div>
-                                                <div class="hover-actions end-0 top-50 translate-middle-y">
-                                                    <button class="btn btn-tertiary border-300 btn-sm me-1 text-600"
-                                                            data-bs-toggle="tooltip" data-bs-placement="top" title="View File"
-                                                            onclick="previewFile('<?php echo $encodedId; ?>', <?php echo $fileIndex; ?>, 'submitted')">
-                                                        <img src="../assets/img/icons/eye.svg" alt="" width="15"/>
-                                                    </button>
-                                                    <a class="btn btn-tertiary border-300 btn-sm me-1 text-600"
-                                                       data-bs-toggle="tooltip" data-bs-placement="top" title="Download"
-                                                       href="<?php echo $fileUrl; ?>"
-                                                       download="<?php echo htmlspecialchars($fileName); ?>">
-                                                        <img src="../assets/img/icons/cloud-download.svg" alt="" width="15"/>
-                                                    </a>
-                                                    <button class="btn btn-tertiary border-300 btn-sm me-1 text-600"
-                                                            data-bs-toggle="tooltip" data-bs-placement="top" title="Delete File"
-                                                            onclick="confirmDeleteFile(<?php echo $fileRow['id']; ?>, '<?php echo htmlspecialchars($fileName, ENT_QUOTES); ?>', '<?php echo $formattedDate; ?>', 'submitted')">
-                                                        <img src="../assets/img/icons/delete.svg" alt="" width="15"/>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <hr class="text-200"/>
-                                        <?php
-                                        $fileIndex++;
-                                    }
-                                    mysqli_stmt_close($stmt);
-                                } else {
-                                    echo '<div>No submitted files.</div>';
-                                }
-                                ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <?php
-            // Fetch all comments for this task
-            $commentsQuery = 'SELECT * FROM tbl_task_comments WHERE task_id = ? ORDER BY created_at ASC';
-            $stmt = $con->prepare($commentsQuery);
-            $stmt->bind_param('i', $taskId);
-            $stmt->execute();
-            $commentsResult = $stmt->get_result();
-            $comments = $commentsResult->fetch_all(MYSQLI_ASSOC);
-
-            // Count unread messages (assuming admin is viewing - count unread writer messages)
-            $unreadQuery = 'SELECT COUNT(*) as unread_count FROM tbl_task_comments WHERE task_id = ? AND user_type = ? AND is_read = 0';
-            $unreadStmt = $con->prepare($unreadQuery);
-
-            // Determine which messages to count as unread based on current user type
-            if (isset($_SESSION['odmsaid'])) {
-                // Admin viewing - count unread writer messages
-                $countUserType = 'writer';
-            } else {
-                // Writer viewing - count unread admin messages
-                $countUserType = 'admin';
-            }
-
-            $unreadStmt->bind_param('is', $taskId, $countUserType);
-            $unreadStmt->execute();
-            $unreadResult = $unreadStmt->get_result();
-            $unreadData = $unreadResult->fetch_assoc();
-            $unreadCount = $unreadData['unread_count'];
-
-            // Determine conversation status based on task status
-            $conversationStatus = 'Active conversation';
-            $statusIcon = 'fa-comment-dots';
-            $statusClass = 'text-success';
-
-            if (in_array($taskStatus, ['Completed', 'Cancelled'])) {
-                $conversationStatus = 'Closed conversation';
-                $statusIcon = 'fa-comment-slash';
-                $statusClass = 'text-muted';
-            } elseif ($taskStatus === 'Draft') {
-                $conversationStatus = 'Draft conversation';
-                $statusIcon = 'fa-comment-alt';
-                $statusClass = 'text-warning';
-            } elseif ($taskStatus === 'In Revision') {
-                $conversationStatus = 'Under review';
-                $statusIcon = 'fa-comment-medical';
-                $statusClass = 'text-info';
-            }
-            ?>
-            <?php
-            // Function to get user online status and last seen
-            function getUserOnlineStatus($con, $userType, $username, $userEmail = null) {
-                $onlineData = [
-                    'is_online' => 0,
-                    'last_seen' => null,
-                    'status_text' => 'Offline',
-                    'status_class' => 'bg-secondary'
-                ];
-
-                if ($userType === 'admin') {
-                    // Check admin online status
-                    $adminQuery = "SELECT is_online, last_seen FROM tbladmin WHERE email = ? OR username = ? LIMIT 1";
-                    if ($stmt = mysqli_prepare($con, $adminQuery)) {
-                        $emailToCheck = $userEmail ?: $username;
-                        mysqli_stmt_bind_param($stmt, 'ss', $emailToCheck, $username);
-                        mysqli_stmt_execute($stmt);
-                        $result = mysqli_stmt_get_result($stmt);
-
-                        if ($row = mysqli_fetch_assoc($result)) {
-                            $onlineData['is_online'] = $row['is_online'];
-                            $onlineData['last_seen'] = $row['last_seen'];
-                        }
-                        mysqli_stmt_close($stmt);
-                    }
-                } else {
-                    // Check writer online status
-                    $writerQuery = "SELECT is_online, last_seen FROM tblwriters WHERE username = ? OR email = ? LIMIT 1";
-                    if ($stmt = mysqli_prepare($con, $writerQuery)) {
-                        $emailToCheck = $userEmail ?: $username;
-                        mysqli_stmt_bind_param($stmt, 'ss', $username, $emailToCheck);
-                        mysqli_stmt_execute($stmt);
-                        $result = mysqli_stmt_get_result($stmt);
-
-                        if ($row = mysqli_fetch_assoc($result)) {
-                            $onlineData['is_online'] = $row['is_online'];
-                            $onlineData['last_seen'] = $row['last_seen'];
-                        }
-                        mysqli_stmt_close($stmt);
-                    }
-                }
-
-                // Determine status based on online flag and last seen
-                if ($onlineData['is_online'] == 1) {
-                    $onlineData['status_text'] = 'Online';
-                    $onlineData['status_class'] = 'bg-success';
-                } else if ($onlineData['last_seen']) {
-                    $lastSeenTime = new DateTime($onlineData['last_seen'], new DateTimeZone('UTC'));
-                    $lastSeenTime->setTimezone(new DateTimeZone('Africa/Nairobi'));
-                    $currentTime = new DateTime('now', new DateTimeZone('Africa/Nairobi'));
-                    $timeDiff = $currentTime->diff($lastSeenTime);
-
-                    // Calculate time difference
-                    if ($timeDiff->days > 0) {
-                        $onlineData['status_text'] = $timeDiff->days == 1 ? '1 day ago' : $timeDiff->days . ' days ago';
-                        $onlineData['status_class'] = 'bg-secondary';
-                    } else if ($timeDiff->h > 0) {
-                        $onlineData['status_text'] = $timeDiff->h == 1 ? '1 hour ago' : $timeDiff->h . ' hours ago';
-                        $onlineData['status_class'] = 'bg-warning';
-                    } else if ($timeDiff->i > 0) {
-                        $onlineData['status_text'] = $timeDiff->i == 1 ? '1 minute ago' : $timeDiff->i . ' minutes ago';
-                        $onlineData['status_class'] = 'bg-info';
-                    } else {
-                        $onlineData['status_text'] = 'Just now';
-                        $onlineData['status_class'] = 'bg-success';
-                    }
-                } else {
-                    $onlineData['status_text'] = 'Unknown';
-                    $onlineData['status_class'] = 'bg-secondary';
-                }
-
-                return $onlineData;
-            }
-
-            // Cache online status for all users in the conversation to avoid repeated queries
-            $userOnlineStatuses = [];
-            $userEmails = []; // Cache emails for profile image lookup
-
-            foreach ($comments as $comment) {
-                $userKey = $comment['user_type'] . '_' . $comment['username'];
-
-                if (!isset($userOnlineStatuses[$userKey])) {
-                    // Get actual user email and data based on user type
-                    $userEmailForStatus = null;
-
-                    if ($comment['user_type'] === 'writer') {
-                        // Get writer email from writers table first, then fallback to tasks
-                        $writerEmailQuery = "SELECT email FROM tblwriters WHERE username = ? LIMIT 1";
-                        if ($writerEmailStmt = mysqli_prepare($con, $writerEmailQuery)) {
-                            mysqli_stmt_bind_param($writerEmailStmt, 's', $comment['username']);
-                            mysqli_stmt_execute($writerEmailStmt);
-                            mysqli_stmt_bind_result($writerEmailStmt, $userEmailForStatus);
-                            mysqli_stmt_fetch($writerEmailStmt);
-                            mysqli_stmt_close($writerEmailStmt);
-                        }
-
-                        // Fallback: try to get from tasks table if not found in writers
-                        if (!$userEmailForStatus) {
-                            $taskEmailQuery = "SELECT email FROM tbltasks WHERE writer = ? LIMIT 1";
-                            if ($taskEmailStmt = mysqli_prepare($con, $taskEmailQuery)) {
-                                mysqli_stmt_bind_param($taskEmailStmt, 's', $comment['username']);
-                                mysqli_stmt_execute($taskEmailStmt);
-                                mysqli_stmt_bind_result($taskEmailStmt, $userEmailForStatus);
-                                mysqli_stmt_fetch($taskEmailStmt);
-                                mysqli_stmt_close($taskEmailStmt);
                             }
-                        }
-                    } else {
-                        // For admin, get email from admin table using the username from comments
-                        $adminEmailQuery = "SELECT email FROM tbladmin WHERE username = ? OR AdminName = ? OR CONCAT(FirstName, ' ', LastName) = ? LIMIT 1";
-                        if ($adminEmailStmt = mysqli_prepare($con, $adminEmailQuery)) {
-                            $fullName = $comment['username']; // In case the username is actually the full name
-                            mysqli_stmt_bind_param($adminEmailStmt, 'sss', $comment['username'], $comment['username'], $fullName);
-                            mysqli_stmt_execute($adminEmailStmt);
-                            mysqli_stmt_bind_result($adminEmailStmt, $userEmailForStatus);
-                            mysqli_stmt_fetch($adminEmailStmt);
-                            mysqli_stmt_close($adminEmailStmt);
-                        }
-                    }
 
-                    // Cache the email for profile image lookup
-                    $userEmails[$userKey] = $userEmailForStatus;
+                            $html = $dom->saveHTML();
+                            $html = preg_replace('/<\?xml[^>]*>/', '', $html);
+                            $html = preg_replace('/<\!DOCTYPE[^>]*>/', '', $html);
+                            $html = str_replace(['<html>', '</html>', '<body>', '</body>'], '', $html);
 
-                    // Get online status
-                    $userOnlineStatuses[$userKey] = getUserOnlineStatus($con, $comment['user_type'], $comment['username'], $userEmailForStatus);
+                            // Highlight all external links
+                            $html = preg_replace_callback(
+                                '/<a\s([^>]*)>/i',
+                                function ($matches) {
+                                    $attrs = $matches[1];
+                                    if (!str_contains($attrs, 'class=')) $attrs .= ' class="highlighted-link"';
+                                    if (!str_contains($attrs, 'target=')) $attrs .= ' target="_blank"';
+                                    if (!str_contains($attrs, 'rel='))    $attrs .= ' rel="noopener noreferrer"';
+                                    return '<a ' . trim($attrs) . '>';
+                                },
+                                $html
+                            );
+
+                            echo $html;
+
+                        } else {
+                            // --- Plain text ---
+                            $escaped = htmlspecialchars($cleanText, ENT_QUOTES, 'UTF-8');
+                            $linked  = preg_replace(
+                                '/(https?:\/\/[^\s]+)/',
+                                '<a href="$1" class="highlighted-link" target="_blank" rel="noopener noreferrer">$1</a>',
+                                $escaped
+                            );
+                            echo nl2br($linked);
+                        }
+                        ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Task Files card section -->
+    <div class='col mb-3'>
+        <div class='row g-3'>
+            <div class='col-xxl-12'>
+                <div class='card h-100 h-xxl-auto mt-xxl-3'>
+                    <div class='card-header d-flex bg-body-tertiary align-items-center'>
+                        <i class='far fa-folder-open me-2 text-primary'></i>
+                        <h6 class='mb-0'>Task Files</h6>
+                    </div>
+                    <div class='card-body position-relative'>
+                        <div class='bg-holder bg-card d-none d-md-block'
+                             style='background-image:url(../assets/img/icons/spot-illustrations/corner-2.png);'></div>
+                        <?php
+                        // Get task files from new table
+                        $taskFilesQuery = "SELECT * FROM tbl_task_files WHERE task_id = ? AND file_type = 'task' AND is_deleted = 0 ORDER BY upload_time ASC";
+                        $stmt = mysqli_prepare($con, $taskFilesQuery);
+                        mysqli_stmt_bind_param($stmt, 'i', $taskId);
+                        mysqli_stmt_execute($stmt);
+                        $taskFilesResult = mysqli_stmt_get_result($stmt);
+
+                        if (mysqli_num_rows($taskFilesResult) > 0) {
+                            $fileIndex = 0;
+                            while ($fileRow = mysqli_fetch_assoc($taskFilesResult)) {
+                                $fileName = $fileRow['original_file_name'];
+                                $fileUrl = $fileRow['file_url'];
+                                $fileSize = $fileRow['file_size'];
+                                $uploadTime = $fileRow['upload_time'];
+                                $formattedSize = formatFileSize($fileSize);
+                                $formattedDate = date('d M Y, g:i A', strtotime($uploadTime));
+
+                                // Determine thumbnail based on file extension
+                                $thumbnailPath = '../assets/img/icons/docs.png';
+                                $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
+                                switch (strtolower($fileExtension)) {
+                                    case 'pdf':
+                                        $thumbnailPath = '../assets/img/icons/pdf.png';
+                                        break;
+                                    case 'doc':
+                                    case 'docx':
+                                    case 'rtf':
+                                        $thumbnailPath = '../assets/img/icons/word.png';
+                                        break;
+                                    case 'xls':
+                                    case 'xlsx':
+                                    case 'csv':
+                                        $thumbnailPath = '../assets/img/icons/excel.png';
+                                        break;
+                                    case 'ppt':
+                                    case 'pptx':
+                                        $thumbnailPath = '../assets/img/icons/powerpoint.png';
+                                        break;
+                                    case 'mp4':
+                                    case 'avi':
+                                    case 'mov':
+                                    case 'mkv':
+                                    case 'wmv':
+                                    case 'flv':
+                                    case 'mpeg':
+                                    case 'mpg':
+                                    case '3gp':
+                                    case 'webm':
+                                    case 'm4v':
+                                        $thumbnailPath = '../assets/img/icons/mp4.png';
+                                        break;
+                                    case 'jpg':
+                                    case 'jpeg':
+                                    case 'png':
+                                    case 'gif':
+                                        $thumbnailPath = '../assets/img/icons/image.png';
+                                        break;
+                                    case 'zip':
+                                    case 'rar':
+                                        $thumbnailPath = '../assets/img/icons/zip.png';
+                                        break;
+                                    default:
+                                        $thumbnailPath = '../assets/img/icons/docs.png';
+                                        break;
+                                }
+                                ?>
+                                <div class="d-flex mb-3 hover-actions-trigger align-items-center">
+                                    <div class="file-thumbnail">
+                                        <img class="border h-100 w-100 object-fit-cover rounded-2"
+                                             src="<?php echo $thumbnailPath; ?>" alt=""/>
+                                    </div>
+                                    <div class="ms-3 flex-shrink-1 flex-grow-1">
+                                        <h6 class="mb-1">
+                                            <a class="stretched-link text-900 fw-semi-bold"
+                                               href="<?php echo $fileUrl; ?>"><?php echo htmlspecialchars($fileName); ?></a>
+                                        </h6>
+                                        <div class="fs-10">
+                                            <span class="fw-medium text-600 file-size"><?php echo $formattedSize; ?></span>
+                                            <span class='fw-medium text-600 mx-1'>•</span>
+                                            <span class="fw-medium text-600"><?php echo $formattedDate; ?></span>
+                                        </div>
+                                        <div class="hover-actions end-0 top-50 translate-middle-y">
+                                            <button class="btn btn-tertiary border-300 btn-sm me-1 text-600"
+                                                    data-bs-toggle="tooltip" data-bs-placement="top" title="View File"
+                                                    onclick="previewFile('<?php echo $encodedId; ?>', <?php echo $fileIndex; ?>, 'task')">
+                                                <img src="../assets/img/icons/eye.svg" alt="" width="15"/>
+                                            </button>
+                                            <a class="btn btn-tertiary border-300 btn-sm me-1 text-600"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" title="Download"
+                                               href="<?php echo $fileUrl; ?>"
+                                               download="<?php echo htmlspecialchars($fileName); ?>">
+                                                <img src="../assets/img/icons/cloud-download.svg" alt="" width="15"/>
+                                            </a>
+                                            <button class="btn btn-tertiary border-300 btn-sm me-1 text-600"
+                                                    data-bs-toggle="tooltip" data-bs-placement="top" title="Delete File"
+                                                    onclick="confirmDeleteFile(<?php echo $fileRow['id']; ?>, '<?php echo htmlspecialchars($fileName, ENT_QUOTES); ?>', '<?php echo $formattedDate; ?>', 'task')">
+                                                <img src="../assets/img/icons/delete.svg" alt="" width="15"/>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr class="text-200"/>
+                                <?php
+                                $fileIndex++;
+                            }
+                            mysqli_stmt_close($stmt);
+                        } else {
+                            echo '<div>No task files attached.</div>';
+                        }
+                        ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submitted Files card section -->
+    <div class='col mb-3'>
+        <div class='row g-3'>
+            <div class='col-xxl-12'>
+                <div class='card h-100 h-xxl-auto mt-xxl-3'>
+                    <div class='card-header d-flex bg-body-tertiary align-items-center'>
+                        <i class='far fa-folder me-2 text-primary'></i>
+                        <h6 class='mb-0'>Submitted Files</h6>
+                    </div>
+                    <div class='card-body position-relative'>
+                        <div class='bg-holder bg-card d-none d-md-block'
+                             style='background-image:url(../assets/img/icons/spot-illustrations/corner-7.png);'></div>
+                        <?php
+                        // Get submitted files from new table
+                        $submittedFilesQuery = "SELECT * FROM tbl_task_files WHERE task_id = ? AND file_type = 'submitted' AND is_deleted = 0 ORDER BY upload_time ASC";
+                        $stmt = mysqli_prepare($con, $submittedFilesQuery);
+                        mysqli_stmt_bind_param($stmt, 'i', $taskId);
+                        mysqli_stmt_execute($stmt);
+                        $submittedFilesResult = mysqli_stmt_get_result($stmt);
+
+                        if (mysqli_num_rows($submittedFilesResult) > 0) {
+                            $fileIndex = 0;
+                            while ($fileRow = mysqli_fetch_assoc($submittedFilesResult)) {
+                                $fileName = $fileRow['original_file_name'];
+                                $fileUrl = $fileRow['file_url'];
+                                $fileSize = $fileRow['file_size'];
+                                $uploadTime = $fileRow['upload_time'];
+                                $formattedSize = formatFileSize($fileSize);
+                                $formattedDate = date('d M Y, g:i A', strtotime($uploadTime));
+
+                                // Determine thumbnail based on file extension
+                                $thumbnailPath = '../assets/img/icons/docs.png';
+                                $fileExtension = pathinfo($fileName, PATHINFO_EXTENSION);
+                                switch (strtolower($fileExtension)) {
+                                    case 'pdf':
+                                        $thumbnailPath = '../assets/img/icons/pdf.png';
+                                        break;
+                                    case 'doc':
+                                    case 'docx':
+                                    case 'rtf':
+                                        $thumbnailPath = '../assets/img/icons/word.png';
+                                        break;
+                                    case 'xls':
+                                    case 'xlsx':
+                                    case 'csv':
+                                        $thumbnailPath = '../assets/img/icons/excel.png';
+                                        break;
+                                    case 'ppt':
+                                    case 'pptx':
+                                        $thumbnailPath = '../assets/img/icons/powerpoint.png';
+                                        break;
+                                    case 'mp4':
+                                    case 'avi':
+                                    case 'mov':
+                                    case 'mkv':
+                                    case 'wmv':
+                                    case 'flv':
+                                    case 'mpeg':
+                                    case 'mpg':
+                                    case '3gp':
+                                    case 'webm':
+                                    case 'm4v':
+                                        $thumbnailPath = '../assets/img/icons/mp4.png';
+                                        break;
+                                    case 'jpg':
+                                    case 'jpeg':
+                                    case 'png':
+                                    case 'gif':
+                                        $thumbnailPath = '../assets/img/icons/image.png';
+                                        break;
+                                    case 'zip':
+                                    case 'rar':
+                                        $thumbnailPath = '../assets/img/icons/zip.png';
+                                        break;
+                                    default:
+                                        $thumbnailPath = '../assets/img/icons/docs.png';
+                                        break;
+                                }
+                                ?>
+                                <div class="d-flex mb-3 hover-actions-trigger align-items-center"
+                                     data-file-url="<?php echo $fileUrl; ?>">
+                                    <div class="file-thumbnail">
+                                        <img class="border h-100 w-100 object-fit-cover rounded-2"
+                                             src="<?php echo $thumbnailPath; ?>" alt=""/>
+                                    </div>
+                                    <div class="ms-3 flex-shrink-1 flex-grow-1">
+                                        <h6 class="mb-1">
+                                            <a class="stretched-link text-900 fw-semi-bold"
+                                               href="<?php echo $fileUrl; ?>"><?php echo htmlspecialchars($fileName); ?></a>
+                                        </h6>
+                                        <div class="fs-10">
+                                            <span class="fw-medium text-600"><?php echo $formattedSize; ?></span>
+                                            <span class='fw-medium text-600 mx-1'>•</span>
+                                            <span class="fw-medium text-600"><?php echo $formattedDate; ?></span>
+                                        </div>
+                                        <div class="hover-actions end-0 top-50 translate-middle-y">
+                                            <button class="btn btn-tertiary border-300 btn-sm me-1 text-600"
+                                                    data-bs-toggle="tooltip" data-bs-placement="top" title="View File"
+                                                    onclick="previewFile('<?php echo $encodedId; ?>', <?php echo $fileIndex; ?>, 'submitted')">
+                                                <img src="../assets/img/icons/eye.svg" alt="" width="15"/>
+                                            </button>
+                                            <a class="btn btn-tertiary border-300 btn-sm me-1 text-600"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" title="Download"
+                                               href="<?php echo $fileUrl; ?>"
+                                               download="<?php echo htmlspecialchars($fileName); ?>">
+                                                <img src="../assets/img/icons/cloud-download.svg" alt="" width="15"/>
+                                            </a>
+                                            <button class="btn btn-tertiary border-300 btn-sm me-1 text-600"
+                                                    data-bs-toggle="tooltip" data-bs-placement="top" title="Delete File"
+                                                    onclick="confirmDeleteFile(<?php echo $fileRow['id']; ?>, '<?php echo htmlspecialchars($fileName, ENT_QUOTES); ?>', '<?php echo $formattedDate; ?>', 'submitted')">
+                                                <img src="../assets/img/icons/delete.svg" alt="" width="15"/>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr class="text-200"/>
+                                <?php
+                                $fileIndex++;
+                            }
+                            mysqli_stmt_close($stmt);
+                        } else {
+                            echo '<div>No submitted files.</div>';
+                        }
+                        ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php
+// Fetch all comments for this task
+$commentsQuery = 'SELECT * FROM tbl_task_comments WHERE task_id = ? ORDER BY created_at ASC';
+$stmt = $con->prepare($commentsQuery);
+$stmt->bind_param('i', $taskId);
+$stmt->execute();
+$commentsResult = $stmt->get_result();
+$comments = $commentsResult->fetch_all(MYSQLI_ASSOC);
+
+// Count unread messages (assuming admin is viewing - count unread writer messages)
+$unreadQuery = 'SELECT COUNT(*) as unread_count FROM tbl_task_comments WHERE task_id = ? AND user_type = ? AND is_read = 0';
+$unreadStmt = $con->prepare($unreadQuery);
+
+// Determine which messages to count as unread based on current user type
+if (isset($_SESSION['odmsaid'])) {
+    // Admin viewing - count unread writer messages
+    $countUserType = 'writer';
+} else {
+    // Writer viewing - count unread admin messages
+    $countUserType = 'admin';
+}
+
+$unreadStmt->bind_param('is', $taskId, $countUserType);
+$unreadStmt->execute();
+$unreadResult = $unreadStmt->get_result();
+$unreadData = $unreadResult->fetch_assoc();
+$unreadCount = $unreadData['unread_count'];
+
+// Determine conversation status based on task status
+$conversationStatus = 'Active conversation';
+$statusIcon = 'fa-comment-dots';
+$statusClass = 'text-success';
+
+if (in_array($taskStatus, ['Completed', 'Cancelled'])) {
+    $conversationStatus = 'Closed conversation';
+    $statusIcon = 'fa-comment-slash';
+    $statusClass = 'text-muted';
+} elseif ($taskStatus === 'Draft') {
+    $conversationStatus = 'Draft conversation';
+    $statusIcon = 'fa-comment-alt';
+    $statusClass = 'text-warning';
+} elseif ($taskStatus === 'In Revision') {
+    $conversationStatus = 'Under review';
+    $statusIcon = 'fa-comment-medical';
+    $statusClass = 'text-info';
+}
+?>
+<?php
+// Function to get user online status and last seen
+function getUserOnlineStatus($con, $userType, $username, $userEmail = null) {
+    $onlineData = [
+        'is_online' => 0,
+        'last_seen' => null,
+        'status_text' => 'Offline',
+        'status_class' => 'bg-secondary'
+    ];
+
+    if ($userType === 'admin') {
+        // Check admin online status
+        $adminQuery = "SELECT is_online, last_seen FROM tbladmin WHERE email = ? OR username = ? LIMIT 1";
+        if ($stmt = mysqli_prepare($con, $adminQuery)) {
+            $emailToCheck = $userEmail ?: $username;
+            mysqli_stmt_bind_param($stmt, 'ss', $emailToCheck, $username);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+
+            if ($row = mysqli_fetch_assoc($result)) {
+                $onlineData['is_online'] = $row['is_online'];
+                $onlineData['last_seen'] = $row['last_seen'];
+            }
+            mysqli_stmt_close($stmt);
+        }
+    } else {
+        // Check writer online status
+        $writerQuery = "SELECT is_online, last_seen FROM tblwriters WHERE username = ? OR email = ? LIMIT 1";
+        if ($stmt = mysqli_prepare($con, $writerQuery)) {
+            $emailToCheck = $userEmail ?: $username;
+            mysqli_stmt_bind_param($stmt, 'ss', $username, $emailToCheck);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+
+            if ($row = mysqli_fetch_assoc($result)) {
+                $onlineData['is_online'] = $row['is_online'];
+                $onlineData['last_seen'] = $row['last_seen'];
+            }
+            mysqli_stmt_close($stmt);
+        }
+    }
+
+    // Determine status based on online flag and last seen
+    if ($onlineData['is_online'] == 1) {
+        $onlineData['status_text'] = 'Online';
+        $onlineData['status_class'] = 'bg-success';
+    } else if ($onlineData['last_seen']) {
+        $lastSeenTime = new DateTime($onlineData['last_seen'], new DateTimeZone('UTC'));
+        $lastSeenTime->setTimezone(new DateTimeZone('Africa/Nairobi'));
+        $currentTime = new DateTime('now', new DateTimeZone('Africa/Nairobi'));
+        $timeDiff = $currentTime->diff($lastSeenTime);
+
+        // Calculate time difference
+        if ($timeDiff->days > 0) {
+            $onlineData['status_text'] = $timeDiff->days == 1 ? '1 day ago' : $timeDiff->days . ' days ago';
+            $onlineData['status_class'] = 'bg-secondary';
+        } else if ($timeDiff->h > 0) {
+            $onlineData['status_text'] = $timeDiff->h == 1 ? '1 hour ago' : $timeDiff->h . ' hours ago';
+            $onlineData['status_class'] = 'bg-warning';
+        } else if ($timeDiff->i > 0) {
+            $onlineData['status_text'] = $timeDiff->i == 1 ? '1 minute ago' : $timeDiff->i . ' minutes ago';
+            $onlineData['status_class'] = 'bg-info';
+        } else {
+            $onlineData['status_text'] = 'Just now';
+            $onlineData['status_class'] = 'bg-success';
+        }
+    } else {
+        $onlineData['status_text'] = 'Unknown';
+        $onlineData['status_class'] = 'bg-secondary';
+    }
+
+    return $onlineData;
+}
+
+// Cache online status for all users in the conversation to avoid repeated queries
+$userOnlineStatuses = [];
+$userEmails = []; // Cache emails for profile image lookup
+
+foreach ($comments as $comment) {
+    $userKey = $comment['user_type'] . '_' . $comment['username'];
+
+    if (!isset($userOnlineStatuses[$userKey])) {
+        // Get actual user email and data based on user type
+        $userEmailForStatus = null;
+
+        if ($comment['user_type'] === 'writer') {
+            // Get writer email from writers table first, then fallback to tasks
+            $writerEmailQuery = "SELECT email FROM tblwriters WHERE username = ? LIMIT 1";
+            if ($writerEmailStmt = mysqli_prepare($con, $writerEmailQuery)) {
+                mysqli_stmt_bind_param($writerEmailStmt, 's', $comment['username']);
+                mysqli_stmt_execute($writerEmailStmt);
+                mysqli_stmt_bind_result($writerEmailStmt, $userEmailForStatus);
+                mysqli_stmt_fetch($writerEmailStmt);
+                mysqli_stmt_close($writerEmailStmt);
+            }
+
+            // Fallback: try to get from tasks table if not found in writers
+            if (!$userEmailForStatus) {
+                $taskEmailQuery = "SELECT email FROM tbltasks WHERE writer = ? LIMIT 1";
+                if ($taskEmailStmt = mysqli_prepare($con, $taskEmailQuery)) {
+                    mysqli_stmt_bind_param($taskEmailStmt, 's', $comment['username']);
+                    mysqli_stmt_execute($taskEmailStmt);
+                    mysqli_stmt_bind_result($taskEmailStmt, $userEmailForStatus);
+                    mysqli_stmt_fetch($taskEmailStmt);
+                    mysqli_stmt_close($taskEmailStmt);
                 }
             }
-            ?>
-            <!-- Task Discussion Card -->
-            <div class='row'>
-                <div class='col-md-12 col-xxl-12 mb-3'>
-                    <div class='card shadow-sm border-0 overflow-hidden h-100' style='border-radius: 15px;'>
-                        <div class='card-header text-white position-relative overflow-hidden bg-body-tertiary'
-                            <?php if (empty($comments)): ?>
-                                data-bs-toggle="collapse"
-                                data-bs-target="#discussionBody"
-                                aria-expanded="false"
-                                aria-controls="discussionBody"
-                                style="cursor: pointer;"
-                            <?php endif; ?>>
-                            <div class='d-flex justify-content-between align-items-center position-relative' style='z-index: 2;'>
-                                <div class='d-flex align-items-center'>
-                                    <div class="me-2 text-primary">
-                                        <i class="fas fa-comments"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class='mb-0'>Task Discussion</h6>
-                                        <small class="text-1000">
-                                            <i class="fas <?php echo $statusIcon; ?> me-1"></i>
-                                            <?php if ($unreadCount > 0): ?>
-                                                <span class="badge bg-danger me-2 pulse-animation" style="font-size: 10px;">
+        } else {
+            // For admin, get email from admin table using the username from comments
+            $adminEmailQuery = "SELECT email FROM tbladmin WHERE username = ? OR AdminName = ? OR CONCAT(FirstName, ' ', LastName) = ? LIMIT 1";
+            if ($adminEmailStmt = mysqli_prepare($con, $adminEmailQuery)) {
+                $fullName = $comment['username']; // In case the username is actually the full name
+                mysqli_stmt_bind_param($adminEmailStmt, 'sss', $comment['username'], $comment['username'], $fullName);
+                mysqli_stmt_execute($adminEmailStmt);
+                mysqli_stmt_bind_result($adminEmailStmt, $userEmailForStatus);
+                mysqli_stmt_fetch($adminEmailStmt);
+                mysqli_stmt_close($adminEmailStmt);
+            }
+        }
+
+        // Cache the email for profile image lookup
+        $userEmails[$userKey] = $userEmailForStatus;
+
+        // Get online status
+        $userOnlineStatuses[$userKey] = getUserOnlineStatus($con, $comment['user_type'], $comment['username'], $userEmailForStatus);
+    }
+}
+?>
+    <!-- Task Discussion Card -->
+    <div class='row'>
+        <div class='col-md-12 col-xxl-12 mb-3'>
+            <div class='card shadow-sm border-0 overflow-hidden h-100' style='border-radius: 15px;'>
+                <div class='card-header text-white position-relative overflow-hidden bg-body-tertiary'
+                    <?php if (empty($comments)): ?>
+                        data-bs-toggle="collapse"
+                        data-bs-target="#discussionBody"
+                        aria-expanded="false"
+                        aria-controls="discussionBody"
+                        style="cursor: pointer;"
+                    <?php endif; ?>>
+                    <div class='d-flex justify-content-between align-items-center position-relative' style='z-index: 2;'>
+                        <div class='d-flex align-items-center'>
+                            <div class="me-2 text-primary">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <div>
+                                <h6 class='mb-0'>Task Discussion</h6>
+                                <small class="text-1000">
+                                    <i class="fas <?php echo $statusIcon; ?> me-1"></i>
+                                    <?php if ($unreadCount > 0): ?>
+                                        <span class="badge bg-danger me-2 pulse-animation" style="font-size: 10px;">
                                         <?php echo $unreadCount; ?> unread
                                     </span>
-                                            <?php else: ?>
-                                                <?php echo count($comments); ?> messages •
-                                            <?php endif; ?>
-                                            <span class="<?php echo $statusClass; ?>"><?php echo $conversationStatus; ?></span>
-                                        </small>
-                                    </div>
-                                </div>
-
-                                <div class="d-flex align-items-center gap-2">
-                                    <?php if (in_array($taskStatus, ['Completed', 'Cancelled'])): ?>
-                                        <span class="badge bg-secondary bg-opacity-75 text-white px-3 py-2">
-                                <i class="fas fa-lock me-1"></i>Conversation Closed
-                            </span>
+                                    <?php else: ?>
+                                        <?php echo count($comments); ?> messages •
                                     <?php endif; ?>
-
-                                    <!-- Collapse chevron — only shown when empty -->
-                                    <?php if (empty($comments)): ?>
-                                        <span class="text-muted" id="discussionChevron">
-                                <i class="fas fa-chevron-down" style="font-size: 12px; transition: transform .2s;"></i>
-                            </span>
-                                    <?php endif; ?>
-                                </div>
+                                    <span class="<?php echo $statusClass; ?>"><?php echo $conversationStatus; ?></span>
+                                </small>
                             </div>
                         </div>
 
-                        <!-- Card Body with Comments -->
-                        <div id="discussionBody" class="<?php echo empty($comments) ? 'collapse' : ''; ?>">
-                            <div class='card-body p-0 d-flex flex-column' style='height: 650px;'>
-                                <!-- Comments Container (Scrollable) -->
-                                <div id="commentsContainer" class="flex-grow-1 px-3 py-3" style='overflow-y: auto; overflow-x: hidden;'>
-                                    <?php if (empty($comments)): ?>
-                                        <!-- Empty State -->
-                                        <div class="text-center py-5">
-                                            <div class="mb-4">
-                                                <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 80px; height: 80px;">
-                                                    <i class="fas fa-comment-alt text-muted fa-2x"></i>
-                                                </div>
-                                            </div>
-                                            <h6 class="text-muted mb-2">No messages yet</h6>
-                                            <?php if (!in_array($taskStatus, ['Completed', 'Cancelled'])): ?>
-                                                <p class="text-muted small mb-3">Start the conversation by sharing your thoughts or asking questions.</p>
-                                            <?php else: ?>
-                                                <p class="text-muted small">This conversation is closed as the task has been <?php echo strtolower($taskStatus); ?>.</p>
-                                            <?php endif; ?>
+                        <div class="d-flex align-items-center gap-2">
+                            <?php if (in_array($taskStatus, ['Completed', 'Cancelled'])): ?>
+                                <span class="badge bg-secondary bg-opacity-75 text-white px-3 py-2">
+                                <i class="fas fa-lock me-1"></i>Conversation Closed
+                            </span>
+                            <?php endif; ?>
+
+                            <!-- Collapse chevron — only shown when empty -->
+                            <?php if (empty($comments)): ?>
+                                <span class="text-muted" id="discussionChevron">
+                                <i class="fas fa-chevron-down" style="font-size: 12px; transition: transform .2s;"></i>
+                            </span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Body with Comments -->
+                <div id="discussionBody" class="<?php echo empty($comments) ? 'collapse' : ''; ?>">
+                    <div class='card-body p-0 d-flex flex-column' style='height: 650px;'>
+                        <!-- Comments Container (Scrollable) -->
+                        <div id="commentsContainer" class="flex-grow-1 px-3 py-3" style='overflow-y: auto; overflow-x: hidden;'>
+                            <?php if (empty($comments)): ?>
+                                <!-- Empty State -->
+                                <div class="text-center py-5">
+                                    <div class="mb-4">
+                                        <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 80px; height: 80px;">
+                                            <i class="fas fa-comment-alt text-muted fa-2x"></i>
                                         </div>
+                                    </div>
+                                    <h6 class="text-muted mb-2">No messages yet</h6>
+                                    <?php if (!in_array($taskStatus, ['Completed', 'Cancelled'])): ?>
+                                        <p class="text-muted small mb-3">Start the conversation by sharing your thoughts or asking questions.</p>
                                     <?php else: ?>
-                                        <!-- Unread Messages Summary -->
-                                        <?php if ($unreadCount > 0): ?>
-                                            <div class="alert alert-warning border-0 d-flex align-items-center mb-3" role="alert" style="background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);">
-                                                <div class="me-3">
-                                                    <i class="fas fa-bell fa-lg"></i>
-                                                </div>
-                                                <div class="flex-grow-1">
-                                                    <strong>You have <?php echo $unreadCount; ?> unread message<?php echo $unreadCount > 1 ? 's' : ''; ?></strong>
-                                                </div>
-                                                <button class="btn btn-sm btn-outline-dark" onclick="scrollToFirstUnread()">
-                                                    <i class="fas fa-arrow-down me-1"></i>Jump to first
-                                                </button>
-                                            </div>
-                                        <?php endif; ?>
+                                        <p class="text-muted small">This conversation is closed as the task has been <?php echo strtolower($taskStatus); ?>.</p>
+                                    <?php endif; ?>
+                                </div>
+                            <?php else: ?>
+                                <!-- Unread Messages Summary -->
+                                <?php if ($unreadCount > 0): ?>
+                                    <div class="alert alert-warning border-0 d-flex align-items-center mb-3" role="alert" style="background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);">
+                                        <div class="me-3">
+                                            <i class="fas fa-bell fa-lg"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <strong>You have <?php echo $unreadCount; ?> unread message<?php echo $unreadCount > 1 ? 's' : ''; ?></strong>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-dark" onclick="scrollToFirstUnread()">
+                                            <i class="fas fa-arrow-down me-1"></i>Jump to first
+                                        </button>
+                                    </div>
+                                <?php endif; ?>
 
-                                        <!-- Messages Loop -->
-                                        <div class="messages-list">
-                                            <?php
-                                            $lastDate = null;
-                                            foreach ($comments as $index => $comment):
-                                                $isAdmin = ($comment['user_type'] === 'admin');
-                                                $messageDate = date('Y-m-d', strtotime($comment['created_at'] . ' UTC'));
+                                <!-- Messages Loop -->
+                                <div class="messages-list">
+                                    <?php
+                                    $lastDate = null;
+                                    foreach ($comments as $index => $comment):
+                                        $isAdmin = ($comment['user_type'] === 'admin');
+                                        $messageDate = date('Y-m-d', strtotime($comment['created_at'] . ' UTC'));
 
-                                                // Show date separator if date changed
-                                                if ($messageDate !== $lastDate):
-                                                    $lastDate = $messageDate;
-                                                    $displayDate = '';
-                                                    $today = date('Y-m-d');
-                                                    $yesterday = date('Y-m-d', strtotime('-1 day' . ' UTC'));
+                                        // Show date separator if date changed
+                                        if ($messageDate !== $lastDate):
+                                            $lastDate = $messageDate;
+                                            $displayDate = '';
+                                            $today = date('Y-m-d');
+                                            $yesterday = date('Y-m-d', strtotime('-1 day' . ' UTC'));
 
-                                                    if ($messageDate === $today) {
-                                                        $displayDate = 'Today';
-                                                    } elseif ($messageDate === $yesterday) {
-                                                        $displayDate = 'Yesterday';
-                                                    } else {
-                                                        $displayDate = date('F j, Y', strtotime($messageDate . ' UTC'));
-                                                    }
-                                                    ?>
-                                                    <div class="text-center my-3">
+                                            if ($messageDate === $today) {
+                                                $displayDate = 'Today';
+                                            } elseif ($messageDate === $yesterday) {
+                                                $displayDate = 'Yesterday';
+                                            } else {
+                                                $displayDate = date('F j, Y', strtotime($messageDate . ' UTC'));
+                                            }
+                                            ?>
+                                            <div class="text-center my-3">
                                 <span class="badge bg-info-subtle text-muted px-3 py-2">
                                     <i class="far fa-calendar me-1"></i><?php echo $displayDate; ?>
                                 </span>
-                                                    </div>
-                                                <?php endif; ?>
+                                            </div>
+                                        <?php endif; ?>
 
-                                                <!-- Message Item -->
-                                                <div class="comment-item mb-3 <?php echo $firstUnreadIndex === $index ? 'first-unread-message' : ''; ?>"
-                                                     id="<?php echo $firstUnreadIndex === $index ? 'first-unread-message' : 'comment-' . $comment['id']; ?>"
-                                                     data-comment-id="<?php echo $comment['id']; ?>"
-                                                     data-timestamp="<?php echo $comment['created_at']; ?>"
-                                                    <?php
-                                                    // Add unread indicator
-                                                    $isUnread = false;
-                                                    if ($currentUserType === 'admin' && $comment['user_type'] === 'writer' && $comment['is_read'] == 0) {
-                                                        $isUnread = true;
-                                                    } elseif ($currentUserType === 'writer' && $comment['user_type'] === 'admin' && $comment['is_read'] == 0) {
-                                                        $isUnread = true;
-                                                    }
-                                                    if ($isUnread): ?>
-                                                        data-unread="true"
-                                                    <?php endif; ?>
-                                                     style="animation: <?php echo $isUnread ? 'fadeInUp 0.5s ease' : 'none'; ?>;">
+                                        <!-- Message Item -->
+                                        <div class="comment-item mb-3 <?php echo $firstUnreadIndex === $index ? 'first-unread-message' : ''; ?>"
+                                             id="<?php echo $firstUnreadIndex === $index ? 'first-unread-message' : 'comment-' . $comment['id']; ?>"
+                                             data-comment-id="<?php echo $comment['id']; ?>"
+                                             data-timestamp="<?php echo $comment['created_at']; ?>"
+                                            <?php
+                                            // Add unread indicator
+                                            $isUnread = false;
+                                            if ($currentUserType === 'admin' && $comment['user_type'] === 'writer' && $comment['is_read'] == 0) {
+                                                $isUnread = true;
+                                            } elseif ($currentUserType === 'writer' && $comment['user_type'] === 'admin' && $comment['is_read'] == 0) {
+                                                $isUnread = true;
+                                            }
+                                            if ($isUnread): ?>
+                                                data-unread="true"
+                                            <?php endif; ?>
+                                             style="animation: <?php echo $isUnread ? 'fadeInUp 0.5s ease' : 'none'; ?>;">
 
-                                                    <div class="d-flex <?php echo ($comment['user_type'] === $currentUserType) ? 'flex-row-reverse' : 'flex-row'; ?> align-items-start gap-2">
+                                            <div class="d-flex <?php echo ($comment['user_type'] === $currentUserType) ? 'flex-row-reverse' : 'flex-row'; ?> align-items-start gap-2">
 
-                                                        <!-- User Avatar -->
-                                                        <div class="flex-shrink-0">
-                                                            <div class="position-relative">
-                                                                <?php
-                                                                // Get online status for this user
-                                                                $userKey = $comment['user_type'] . '_' . $comment['username'];
-                                                                $userStatus = $userOnlineStatuses[$userKey] ?? getUserOnlineStatus($con, $comment['user_type'], $comment['username'], '');
+                                                <!-- User Avatar -->
+                                                <div class="flex-shrink-0">
+                                                    <div class="position-relative">
+                                                        <?php
+                                                        // Get online status for this user
+                                                        $userKey = $comment['user_type'] . '_' . $comment['username'];
+                                                        $userStatus = $userOnlineStatuses[$userKey] ?? getUserOnlineStatus($con, $comment['user_type'], $comment['username'], '');
 
-                                                                // Determine status color and text based on last_seen
+                                                        // Determine status color and text based on last_seen
+                                                        $statusColor = 'secondary';
+                                                        $statusText = 'Offline';
+                                                        $timeDiff = null;
+                                                        $onlineThresholdMinutes = 1; // Consider online if active within last 5 minutes
+
+                                                        if ($userStatus['last_seen']) {
+                                                            $lastSeenTime = new DateTime($userStatus['last_seen'], new DateTimeZone('UTC'));
+                                                            $lastSeenTime->setTimezone(new DateTimeZone('Africa/Nairobi'));
+                                                            $now = new DateTime('now', new DateTimeZone('Africa/Nairobi'));
+                                                            $timeDiff = $now->diff($lastSeenTime);
+
+                                                            // Calculate total minutes since last seen
+                                                            $totalMinutes = ($timeDiff->days * 24 * 60) + ($timeDiff->h * 60) + $timeDiff->i;
+
+                                                            if ($totalMinutes <= $onlineThresholdMinutes) {
+                                                                // Active within threshold - consider online
+                                                                $statusColor = 'success';
+                                                                $statusText = 'Online';
+                                                            } elseif ($timeDiff->days > 0) {
                                                                 $statusColor = 'secondary';
-                                                                $statusText = 'Offline';
-                                                                $timeDiff = null;
-                                                                $onlineThresholdMinutes = 1; // Consider online if active within last 5 minutes
+                                                                $statusText = 'Last seen ' . ($timeDiff->days == 1 ? '1 day ago' : $timeDiff->days . ' days ago');
+                                                            } elseif ($timeDiff->h > 0) {
+                                                                $statusColor = 'warning';
+                                                                $statusText = 'Last seen ' . ($timeDiff->h == 1 ? '1 hour ago' : $timeDiff->h . ' hours ago');
+                                                            } else {
+                                                                $statusColor = 'info';
+                                                                $statusText = 'Last seen ' . ($timeDiff->i == 1 ? '1 minute ago' : $timeDiff->i . ' minutes ago');
+                                                            }
+                                                        } else {
+                                                            // No last_seen recorded
+                                                            $statusColor = 'secondary';
+                                                            $statusText = 'Offline';
+                                                        }
 
-                                                                if ($userStatus['last_seen']) {
-                                                                    $lastSeenTime = new DateTime($userStatus['last_seen'], new DateTimeZone('UTC'));
-                                                                    $lastSeenTime->setTimezone(new DateTimeZone('Africa/Nairobi'));
-                                                                    $now = new DateTime('now', new DateTimeZone('Africa/Nairobi'));
-                                                                    $timeDiff = $now->diff($lastSeenTime);
+                                                        // Get profile image
+                                                        $profileImage = null;
+                                                        if ($comment['user_type'] === 'admin') {
+                                                            $imgQuery = 'SELECT Photo FROM tbladmin WHERE email = ? OR username = ? LIMIT 1';
+                                                            if ($imgStmt = mysqli_prepare($con, $imgQuery)) {
+                                                                $userEmailForStatus = isset($_SESSION['odmsaid']) ? $_SESSION['odmsaid'] : '';
+                                                                $emailToCheck = $userEmailForStatus ? $userEmailForStatus : $comment['username'];
+                                                                mysqli_stmt_bind_param($imgStmt, 'ss', $comment['username'], $emailToCheck);
+                                                                mysqli_stmt_execute($imgStmt);
+                                                                mysqli_stmt_bind_result($imgStmt, $profileImage);
+                                                                mysqli_stmt_fetch($imgStmt);
+                                                                mysqli_stmt_close($imgStmt);
+                                                            }
+                                                        } else {
+                                                            $imgQuery = 'SELECT Photo FROM tblwriters WHERE username = ? OR email = ? LIMIT 1';
+                                                            if ($imgStmt = mysqli_prepare($con, $imgQuery)) {
+                                                                $userEmailForStatus = isset($_SESSION['sessionWriter']) ? $_SESSION['sessionWriter'] : '';
+                                                                $emailToCheck = $userEmailForStatus ? $userEmailForStatus : $comment['username'];
+                                                                mysqli_stmt_bind_param($imgStmt, 'ss', $comment['username'], $emailToCheck);
+                                                                mysqli_stmt_execute($imgStmt);
+                                                                mysqli_stmt_bind_result($imgStmt, $profileImage);
+                                                                mysqli_stmt_fetch($imgStmt);
+                                                                mysqli_stmt_close($imgStmt);
+                                                            }
+                                                        }
 
-                                                                    // Calculate total minutes since last seen
-                                                                    $totalMinutes = ($timeDiff->days * 24 * 60) + ($timeDiff->h * 60) + $timeDiff->i;
+                                                        $imageExists = false;
+                                                        if ($profileImage) {
+                                                            $imagePath = "../profileimages/" . $profileImage;
+                                                            if (file_exists($imagePath)) {
+                                                                $imageExists = true;
+                                                            }
+                                                        }
+                                                        ?>
 
-                                                                    if ($totalMinutes <= $onlineThresholdMinutes) {
-                                                                        // Active within threshold - consider online
-                                                                        $statusColor = 'success';
-                                                                        $statusText = 'Online';
-                                                                    } elseif ($timeDiff->days > 0) {
-                                                                        $statusColor = 'secondary';
-                                                                        $statusText = 'Last seen ' . ($timeDiff->days == 1 ? '1 day ago' : $timeDiff->days . ' days ago');
-                                                                    } elseif ($timeDiff->h > 0) {
-                                                                        $statusColor = 'warning';
-                                                                        $statusText = 'Last seen ' . ($timeDiff->h == 1 ? '1 hour ago' : $timeDiff->h . ' hours ago');
-                                                                    } else {
-                                                                        $statusColor = 'info';
-                                                                        $statusText = 'Last seen ' . ($timeDiff->i == 1 ? '1 minute ago' : $timeDiff->i . ' minutes ago');
-                                                                    }
-                                                                } else {
-                                                                    // No last_seen recorded
-                                                                    $statusColor = 'secondary';
-                                                                    $statusText = 'Offline';
-                                                                }
-
-                                                                // Get profile image
-                                                                $profileImage = null;
-                                                                if ($comment['user_type'] === 'admin') {
-                                                                    $imgQuery = 'SELECT Photo FROM tbladmin WHERE email = ? OR username = ? LIMIT 1';
-                                                                    if ($imgStmt = mysqli_prepare($con, $imgQuery)) {
-                                                                        $userEmailForStatus = isset($_SESSION['odmsaid']) ? $_SESSION['odmsaid'] : '';
-                                                                        $emailToCheck = $userEmailForStatus ? $userEmailForStatus : $comment['username'];
-                                                                        mysqli_stmt_bind_param($imgStmt, 'ss', $comment['username'], $emailToCheck);
-                                                                        mysqli_stmt_execute($imgStmt);
-                                                                        mysqli_stmt_bind_result($imgStmt, $profileImage);
-                                                                        mysqli_stmt_fetch($imgStmt);
-                                                                        mysqli_stmt_close($imgStmt);
-                                                                    }
-                                                                } else {
-                                                                    $imgQuery = 'SELECT Photo FROM tblwriters WHERE username = ? OR email = ? LIMIT 1';
-                                                                    if ($imgStmt = mysqli_prepare($con, $imgQuery)) {
-                                                                        $userEmailForStatus = isset($_SESSION['sessionWriter']) ? $_SESSION['sessionWriter'] : '';
-                                                                        $emailToCheck = $userEmailForStatus ? $userEmailForStatus : $comment['username'];
-                                                                        mysqli_stmt_bind_param($imgStmt, 'ss', $comment['username'], $emailToCheck);
-                                                                        mysqli_stmt_execute($imgStmt);
-                                                                        mysqli_stmt_bind_result($imgStmt, $profileImage);
-                                                                        mysqli_stmt_fetch($imgStmt);
-                                                                        mysqli_stmt_close($imgStmt);
-                                                                    }
-                                                                }
-
-                                                                $imageExists = false;
-                                                                if ($profileImage) {
-                                                                    $imagePath = "../profileimages/" . $profileImage;
-                                                                    if (file_exists($imagePath)) {
-                                                                        $imageExists = true;
-                                                                    }
-                                                                }
-                                                                ?>
-
-                                                                <!-- Avatar with Tooltip -->
-                                                                <div data-bs-toggle="tooltip"
-                                                                     data-bs-placement="<?php echo $isAdmin ? 'right' : 'left'; ?>"
-                                                                     data-bs-html="true"
-                                                                     title="<div class='text-center'>
+                                                        <!-- Avatar with Tooltip -->
+                                                        <div data-bs-toggle="tooltip"
+                                                             data-bs-placement="<?php echo $isAdmin ? 'right' : 'left'; ?>"
+                                                             data-bs-html="true"
+                                                             title="<div class='text-center'>
                     <strong><?php echo htmlspecialchars($comment['username']); ?></strong><br>
                     <span class='badge bg-<?php echo $statusColor; ?> mt-1'>
                         <i class='fas fa-circle'></i> <?php echo $statusText; ?>
                     </span>
                     <?php if ($userStatus['last_seen'] && $userStatus['is_online'] == 0): ?>
-                        <br><small class='text-muted mt-1 d-block'><?php echo date('M j, Y g:i A', strtotime($userStatus['last_seen'] . ' UTC')); ?></small>
+                        <br><small class='text-muted mt-1 d-block'><?php echo date('M j, Y g:i A', strtotime($userStatus['last_seen'])); ?></small>
                     <?php endif; ?>
                 </div>">
 
-                                                                    <?php if ($imageExists): ?>
-                                                                        <img class="rounded-circle"
-                                                                             src="<?php echo $imagePath; ?>"
-                                                                             alt="<?php echo htmlspecialchars($comment['username']); ?>"
-                                                                             style="width: 45px; height: 45px; object-fit: cover; cursor: pointer; transition: transform 0.2s;">
-                                                                    <?php else: ?>
-                                                                        <div class="avatar-name rounded-circle shadow-sm <?php echo $isAdmin ? 'bg-primary' : 'bg-success'; ?>"
-                                                                             style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s;">
+                                                            <?php if ($imageExists): ?>
+                                                                <img class="rounded-circle"
+                                                                     src="<?php echo $imagePath; ?>"
+                                                                     alt="<?php echo htmlspecialchars($comment['username']); ?>"
+                                                                     style="width: 45px; height: 45px; object-fit: cover; cursor: pointer; transition: transform 0.2s;">
+                                                            <?php else: ?>
+                                                                <div class="avatar-name rounded-circle shadow-sm <?php echo $isAdmin ? 'bg-primary' : 'bg-success'; ?>"
+                                                                     style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s;">
                 <span class='fw-bold text-white' style="font-size: 14px;">
                     <?php echo strtoupper(substr($comment['username'], 0, 2)); ?>
                 </span>
-                                                                        </div>
-                                                                    <?php endif; ?>
+                                                                </div>
+                                                            <?php endif; ?>
 
-                                                                    <!-- Status Indicator Dot -->
-                                                                    <span class="position-absolute bottom-0 end-0
+                                                            <!-- Status Indicator Dot -->
+                                                            <span class="position-absolute bottom-0 end-0
                      badge rounded-pill bg-<?php echo $statusColor; ?>
                      border border-white border-2
                      <?php echo $userStatus['is_online'] == 1 ? 'pulse-ring' : ''; ?>"
-                                                                          style="width: 12px; height: 12px; padding: 0; transform: translate(25%, 25%);">
+                                                                  style="width: 12px; height: 12px; padding: 0; transform: translate(25%, 25%);">
         </span>
-                                                                </div>
-                                                            </div>
                                                         </div>
+                                                    </div>
+                                                </div>
 
-                                                        <!-- Message Bubble -->
-                                                        <div class="flex-grow-1" style="max-width: 75%;">
-                                                            <div class="comment-bubble position-relative p-3 shadow-sm <?php echo ($comment['user_type'] === $currentUserType) ? 'bg-success-subtle border border-success-subtle' : 'bg-primary-subtle border border-primary-subtle'; ?>"
-                                                                 style="border-radius: <?php echo ($comment['user_type'] === $currentUserType) ? '20px 20px 5px 20px' : '20px 20px 20px 5px'; ?>; word-wrap: break-word;">
+                                                <!-- Message Bubble -->
+                                                <div class="flex-grow-1" style="max-width: 75%;">
+                                                    <div class="comment-bubble position-relative p-3 shadow-sm <?php echo ($comment['user_type'] === $currentUserType) ? 'bg-success-subtle border border-success-subtle' : 'bg-primary-subtle border border-primary-subtle'; ?>"
+                                                         style="border-radius: <?php echo ($comment['user_type'] === $currentUserType) ? '20px 20px 5px 20px' : '20px 20px 20px 5px'; ?>; word-wrap: break-word;">
 
-                                                                <!-- Message Header -->
-                                                                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
-                                                                    <div class="comment-author fw-bold <?php echo ($comment['user_type'] === $currentUserType) ? 'text-success' : 'text-primary'; ?>" style="font-size: 13px;">
-                                                                        <i class="fas <?php echo ($comment['user_type'] === $currentUserType) ? 'fa-user-shield' : 'fa-user-edit'; ?> me-1" style="font-size: 11px;"></i>
-                                                                        <?php echo htmlspecialchars($comment['username']); ?>
+                                                        <!-- Message Header -->
+                                                        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+                                                            <div class="comment-author fw-bold <?php echo ($comment['user_type'] === $currentUserType) ? 'text-success' : 'text-primary'; ?>" style="font-size: 13px;">
+                                                                <i class="fas <?php echo ($comment['user_type'] === $currentUserType) ? 'fa-user-shield' : 'fa-user-edit'; ?> me-1" style="font-size: 11px;"></i>
+                                                                <?php echo htmlspecialchars($comment['username']); ?>
 
-                                                                        <?php if ($isUnread): ?>
-                                                                            <span class="badge bg-danger ms-2 pulse-animation" style="font-size: 9px;">
+                                                                <?php if ($isUnread): ?>
+                                                                    <span class="badge bg-danger ms-2 pulse-animation" style="font-size: 9px;">
                                                             <i class="fas fa-envelope me-1"></i>UNREAD
                                                         </span>
-                                                                        <?php endif; ?>
-                                                                    </div>
+                                                                <?php endif; ?>
+                                                            </div>
 
-                                                                    <!-- Timestamp -->
-                                                                    <div class="d-flex align-items-center flex-shrink-0">
-                                                                        <small class="fw-medium text-muted d-flex align-items-center" style="font-size: 11px;">
-                                                                            <i class="far fa-clock me-1"></i>
-                                                                            <?php echo date('g:i A', strtotime($comment['created_at'] . ' UTC')); ?>
+                                                            <!-- Timestamp -->
+                                                            <div class="d-flex align-items-center flex-shrink-0">
+                                                                <small class="fw-medium text-muted d-flex align-items-center" style="font-size: 11px;">
+                                                                    <i class="far fa-clock me-1"></i>
+                                                                    <?php echo date('g:i A', strtotime($comment['created_at'] . ' UTC')); ?>
 
-                                                                            <!-- Read Status Ticks -->
-                                                                            <span class="ms-2">
+                                                                    <!-- Read Status Ticks -->
+                                                                    <span class="ms-2">
                                                            <?php if ($comment['is_read'] == 1): ?>
                                                                <i class="fas fa-check-double text-primary" title="Read" style="font-size: 10px;"></i>
                                                            <?php else: ?>
                                                                <i class="fas fa-check text-muted" title="Delivered" style="font-size: 10px;"></i>
                                                            <?php endif; ?>
                                                        </span>
-                                                                        </small>
-                                                                    </div>
-                                                                </div>
+                                                                </small>
+                                                            </div>
+                                                        </div>
 
-                                                                <!-- Message Content -->
-                                                                <div class="comment-text" style="font-size: 14px;">
+                                                        <!-- Message Content -->
+                                                        <div class="comment-text" style="font-size: 14px;">
+                                                            <?php
+                                                            $unescaped_comment = stripcslashes($comment['comment']);
+                                                            $formatted_comment = nl2br(htmlspecialchars($unescaped_comment));
+
+                                                            // Add link detection
+                                                            $formatted_comment = preg_replace(
+                                                                '/(https?:\/\/[^\s]+)/',
+                                                                '<a href="$1" target="_blank" class="text-decoration-none fw-medium">$1 <i class="fas fa-external-link-alt" style="font-size: 10px;"></i></a>',
+                                                                $formatted_comment
+                                                            );
+
+                                                            echo $formatted_comment;
+                                                            ?>
+                                                        </div>
+
+                                                        <!-- File Attachment Display (if exists) -->
+                                                        <?php if (!empty($comment['file_url'])): ?>
+                                                            <div class="message-attachments mt-3 pt-3 border-top">
+                                                                <small class="text-muted d-block mb-2">
+                                                                    <i class="fas fa-paperclip"></i> Attachments:
+                                                                </small>
+
+                                                                <div class="attachments-grid">
                                                                     <?php
-                                                                    $unescaped_comment = stripcslashes($comment['comment']);
-                                                                    $formatted_comment = nl2br(htmlspecialchars($unescaped_comment));
+                                                                    // Get file extension
+                                                                    $fileExt = strtolower(pathinfo($comment['file_url'], PATHINFO_EXTENSION));
+                                                                    $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                                                                    $isImage = in_array($fileExt, $imageExtensions);
 
-                                                                    // Add link detection
-                                                                    $formatted_comment = preg_replace(
-                                                                        '/(https?:\/\/[^\s]+)/',
-                                                                        '<a href="$1" target="_blank" class="text-decoration-none fw-medium">$1 <i class="fas fa-external-link-alt" style="font-size: 10px;"></i></a>',
-                                                                        $formatted_comment
-                                                                    );
+                                                                    if ($isImage):
+                                                                        // Display as image with GLightbox
+                                                                        ?>
+                                                                        <a href="../taskfiles/<?php echo htmlspecialchars($comment['file_url']); ?>"
+                                                                           class="glightbox attachment-image"
+                                                                           data-gallery="message-<?php echo $comment['id']; ?>"
+                                                                           data-glightbox="description: Sent by <?php echo htmlspecialchars($comment['username']); ?>">
+                                                                            <img src="../taskfiles/<?php echo htmlspecialchars($comment['file_url']); ?>"
+                                                                                 alt="Attachment"
+                                                                                 class="img-thumbnail"
+                                                                                 style="max-width: 200px; max-height: 200px; object-fit: cover; cursor: pointer; border-radius: 8px;">
+                                                                        </a>
+                                                                    <?php else:
+                                                                        // Display as downloadable file
+                                                                        $fileIcon = getFileIconClass($fileExt);
+                                                                        ?>
+                                                                        <a href="../taskfiles/<?php echo htmlspecialchars($comment['file_url']); ?>"
+                                                                           class="attachment-file-badge"
+                                                                           download
+                                                                           target="_blank">
+                                                                            <i class="<?php echo $fileIcon; ?> me-2"></i>
+                                                                            <span><?php echo basename($comment['file_url']); ?></span>
+                                                                        </a>
+                                                                    <?php endif; ?>
 
-                                                                    echo $formatted_comment;
-                                                                    ?>
-                                                                </div>
+                                                                    <?php
+                                                                    // Check for additional attachments from message_attachments table
+                                                                    $attachQuery = "SELECT * FROM tbl_comment_attachments WHERE comment_id = " . $comment['id'];
+                                                                    $attachResult = mysqli_query($con, $attachQuery);
 
-                                                                <!-- File Attachment Display (if exists) -->
-                                                                <?php if (!empty($comment['file_url'])): ?>
-                                                                    <div class="message-attachments mt-3 pt-3 border-top">
-                                                                        <small class="text-muted d-block mb-2">
-                                                                            <i class="fas fa-paperclip"></i> Attachments:
-                                                                        </small>
+                                                                    if ($attachResult && mysqli_num_rows($attachResult) > 0):
+                                                                        while ($attachment = mysqli_fetch_assoc($attachResult)):
+                                                                            $attachExt = strtolower(pathinfo($attachment['file_name'], PATHINFO_EXTENSION));
+                                                                            $isAttachImage = in_array($attachExt, $imageExtensions);
 
-                                                                        <div class="attachments-grid">
-                                                                            <?php
-                                                                            // Get file extension
-                                                                            $fileExt = strtolower(pathinfo($comment['file_url'], PATHINFO_EXTENSION));
-                                                                            $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-                                                                            $isImage = in_array($fileExt, $imageExtensions);
-
-                                                                            if ($isImage):
-                                                                                // Display as image with GLightbox
+                                                                            if ($isAttachImage):
+                                                                                // Clean the file path - remove any leading path components
+                                                                                $cleanFilePath = basename($attachment['file_path']);
                                                                                 ?>
-                                                                                <a href="../taskfiles/<?php echo htmlspecialchars($comment['file_url']); ?>"
+                                                                                <a href="../taskfiles/<?php echo htmlspecialchars($cleanFilePath); ?>"
                                                                                    class="glightbox attachment-image"
                                                                                    data-gallery="message-<?php echo $comment['id']; ?>"
-                                                                                   data-glightbox="description: Sent by <?php echo htmlspecialchars($comment['username']); ?>">
-                                                                                    <img src="../taskfiles/<?php echo htmlspecialchars($comment['file_url']); ?>"
-                                                                                         alt="Attachment"
+                                                                                   data-glightbox="description: <?php echo htmlspecialchars($attachment['file_name']); ?>">
+                                                                                    <img src="../taskfiles/<?php echo htmlspecialchars($cleanFilePath); ?>"
+                                                                                         alt="<?php echo htmlspecialchars($attachment['file_name']); ?>"
                                                                                          class="img-thumbnail"
                                                                                          style="max-width: 200px; max-height: 200px; object-fit: cover; cursor: pointer; border-radius: 8px;">
                                                                                 </a>
                                                                             <?php else:
-                                                                                // Display as downloadable file
-                                                                                $fileIcon = getFileIconClass($fileExt);
+                                                                                // Clean the file path - remove any leading path components
+                                                                                $cleanFilePath = basename($attachment['file_path']);
+                                                                                $attachIcon = getFileIconClass($attachExt);
                                                                                 ?>
-                                                                                <a href="../taskfiles/<?php echo htmlspecialchars($comment['file_url']); ?>"
+                                                                                <a href="../taskfiles/<?php echo htmlspecialchars($cleanFilePath); ?>"
                                                                                    class="attachment-file-badge"
                                                                                    download
                                                                                    target="_blank">
-                                                                                    <i class="<?php echo $fileIcon; ?> me-2"></i>
-                                                                                    <span><?php echo basename($comment['file_url']); ?></span>
+                                                                                    <i class="<?php echo $attachIcon; ?> me-2"></i>
+                                                                                    <span><?php echo htmlspecialchars($attachment['file_name']); ?></span>
+                                                                                    <small class="text-muted ms-2">(<?php echo formatFileSize($attachment['file_size']); ?>)</small>
                                                                                 </a>
-                                                                            <?php endif; ?>
-
                                                                             <?php
-                                                                            // Check for additional attachments from message_attachments table
-                                                                            $attachQuery = "SELECT * FROM tbl_comment_attachments WHERE comment_id = " . $comment['id'];
-                                                                            $attachResult = mysqli_query($con, $attachQuery);
-
-                                                                            if ($attachResult && mysqli_num_rows($attachResult) > 0):
-                                                                                while ($attachment = mysqli_fetch_assoc($attachResult)):
-                                                                                    $attachExt = strtolower(pathinfo($attachment['file_name'], PATHINFO_EXTENSION));
-                                                                                    $isAttachImage = in_array($attachExt, $imageExtensions);
-
-                                                                                    if ($isAttachImage):
-                                                                                        // Clean the file path - remove any leading path components
-                                                                                        $cleanFilePath = basename($attachment['file_path']);
-                                                                                        ?>
-                                                                                        <a href="../taskfiles/<?php echo htmlspecialchars($cleanFilePath); ?>"
-                                                                                           class="glightbox attachment-image"
-                                                                                           data-gallery="message-<?php echo $comment['id']; ?>"
-                                                                                           data-glightbox="description: <?php echo htmlspecialchars($attachment['file_name']); ?>">
-                                                                                            <img src="../taskfiles/<?php echo htmlspecialchars($cleanFilePath); ?>"
-                                                                                                 alt="<?php echo htmlspecialchars($attachment['file_name']); ?>"
-                                                                                                 class="img-thumbnail"
-                                                                                                 style="max-width: 200px; max-height: 200px; object-fit: cover; cursor: pointer; border-radius: 8px;">
-                                                                                        </a>
-                                                                                    <?php else:
-                                                                                        // Clean the file path - remove any leading path components
-                                                                                        $cleanFilePath = basename($attachment['file_path']);
-                                                                                        $attachIcon = getFileIconClass($attachExt);
-                                                                                        ?>
-                                                                                        <a href="../taskfiles/<?php echo htmlspecialchars($cleanFilePath); ?>"
-                                                                                           class="attachment-file-badge"
-                                                                                           download
-                                                                                           target="_blank">
-                                                                                            <i class="<?php echo $attachIcon; ?> me-2"></i>
-                                                                                            <span><?php echo htmlspecialchars($attachment['file_name']); ?></span>
-                                                                                            <small class="text-muted ms-2">(<?php echo formatFileSize($attachment['file_size']); ?>)</small>
-                                                                                        </a>
-                                                                                    <?php
-                                                                                    endif;
-                                                                                endwhile;
                                                                             endif;
-                                                                            ?>
-                                                                        </div>
-                                                                    </div>
-                                                                <?php endif; ?>
+                                                                        endwhile;
+                                                                    endif;
+                                                                    ?>
+                                                                </div>
                                                             </div>
-                                                        </div>
+                                                        <?php endif; ?>
                                                     </div>
                                                 </div>
-                                            <?php endforeach; ?>
+                                            </div>
                                         </div>
-                                    <?php endif; ?>
+                                    <?php endforeach; ?>
                                 </div>
+                            <?php endif; ?>
+                        </div>
 
-                                <!-- Fixed Input Form at Bottom - Only show if conversation is active -->
-                                <?php if (!in_array($taskStatus, ['Completed', 'Cancelled'])): ?>
-                                    <div class="border-top bg-info-subtle p-3" style="flex-shrink: 0;">
-                                        <form id="addCommentForm" onsubmit="addComment(event)" enctype="multipart/form-data">
-                                            <!-- File Preview Area -->
-                                            <div id="filePreview" class="mb-2" style="display: none;">
-                                                <div class="alert alert-info d-flex align-items-center justify-content-between mb-2 py-2">
-                                                    <div class="d-flex align-items-center">
-                                                        <i class="fas fa-file me-2"></i>
-                                                        <span id="fileName" class="small"></span>
-                                                        <span id="fileSize" class="small text-muted ms-2"></span>
-                                                    </div>
-                                                    <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="removeFile()">
-                                                        <i class="fas fa-times"></i>
-                                                    </button>
-                                                </div>
+                        <!-- Fixed Input Form at Bottom - Only show if conversation is active -->
+                        <?php if (!in_array($taskStatus, ['Completed', 'Cancelled'])): ?>
+                            <div class="border-top bg-info-subtle p-3" style="flex-shrink: 0;">
+                                <form id="addCommentForm" onsubmit="addComment(event)" enctype="multipart/form-data">
+                                    <!-- File Preview Area -->
+                                    <div id="filePreview" class="mb-2" style="display: none;">
+                                        <div class="alert alert-info d-flex align-items-center justify-content-between mb-2 py-2">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-file me-2"></i>
+                                                <span id="fileName" class="small"></span>
+                                                <span id="fileSize" class="small text-muted ms-2"></span>
                                             </div>
-                                            <!-- Selected Files Preview -->
-                                            <div id="selectedFilesPreview" style="display: none; margin-bottom: 15px;">
-                                                <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 12px; padding: 12px;">
-                                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                                        <small class="text-muted fw-semibold">
-                                                            <i class="fas fa-paperclip me-1"></i>
-                                                            <span id="fileCount">0</span> file(s) attached
-                                                        </small>
-                                                        <button type="button"
-                                                                class="btn btn-sm btn-link text-danger p-0"
-                                                                onclick="clearAllFiles()"
-                                                                style="text-decoration: none; font-size: 12px;">
-                                                            <i class="fas fa-times-circle me-1"></i>Remove all
-                                                        </button>
-                                                    </div>
-                                                    <div id="filesPreviewList" style="max-height: 200px; overflow-y: auto;">
-                                                        <!-- Files will be added here dynamically -->
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div class="d-flex gap-2 align-items-end">
-                                                <!-- File Input (Hidden) -->
-                                                <input type="file"
-                                                       id="fileInput"
-                                                       name="attachments[]"
-                                                       multiple
-                                                       accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-                                                       style="display: none;" onchange="handleFileSelect(event)">
-                                                <!-- Attach Button -->
-                                                <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('fileInput').click()" title="Attach image">
-                                                    <i class="fas fa-paperclip"></i>
+                                            <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="removeFile()">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <!-- Selected Files Preview -->
+                                    <div id="selectedFilesPreview" style="display: none; margin-bottom: 15px;">
+                                        <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 12px; padding: 12px;">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <small class="text-muted fw-semibold">
+                                                    <i class="fas fa-paperclip me-1"></i>
+                                                    <span id="fileCount">0</span> file(s) attached
+                                                </small>
+                                                <button type="button"
+                                                        class="btn btn-sm btn-link text-danger p-0"
+                                                        onclick="clearAllFiles()"
+                                                        style="text-decoration: none; font-size: 12px;">
+                                                    <i class="fas fa-times-circle me-1"></i>Remove all
                                                 </button>
+                                            </div>
+                                            <div id="filesPreviewList" style="max-height: 200px; overflow-y: auto;">
+                                                <!-- Files will be added here dynamically -->
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                                <!-- Message Input -->
-                                                <div class="flex-grow-1">
+                                    <div class="d-flex gap-2 align-items-end">
+                                        <!-- File Input (Hidden) -->
+                                        <input type="file"
+                                               id="fileInput"
+                                               name="attachments[]"
+                                               multiple
+                                               accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                                               style="display: none;" onchange="handleFileSelect(event)">
+                                        <!-- Attach Button -->
+                                        <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('fileInput').click()" title="Attach image">
+                                            <i class="fas fa-paperclip"></i>
+                                        </button>
+
+                                        <!-- Message Input -->
+                                        <div class="flex-grow-1">
                                 <textarea class="form-control"
                                           id="commentText"
                                           name="comment"
@@ -2011,751 +1985,163 @@ while ($vw = mysqli_fetch_assoc($verifiedWritersResult)) {
                                           placeholder="Type your message... (Ctrl+Enter to send)"
                                           style="resize: none; border-radius: 20px;"
                                           onkeydown="handleKeyPress(event)"></textarea>
-                                                </div>
+                                        </div>
 
-                                                <!-- Send Button -->
-                                                <button type="submit" class="btn btn-primary px-4" style="border-radius: 20px;">
-                                                    <i class="fas fa-paper-plane me-1"></i>Send
-                                                </button>
-                                            </div>
-
-                                            <small class="text-muted d-block mt-2">
-                                                <i class="fas fa-info-circle me-1"></i>
-                                                Press Ctrl+Enter to send quickly • (Max 10MB)
-                                            </small>
-                                        </form>
+                                        <!-- Send Button -->
+                                        <button type="submit" class="btn btn-primary px-4" style="border-radius: 20px;">
+                                            <i class="fas fa-paper-plane me-1"></i>Send
+                                        </button>
                                     </div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- File Preview Modal -->
-            <div class='modal fade' id='filePreviewModal' tabindex='-1' aria-labelledby='filePreviewModalLabel' aria-hidden='true'>
-                <div class='modal-dialog' style='max-width: 100vw; width: 100vw; height: 100vh; margin: 0;'>
-                    <div class='modal-content' style='height: 100vh; border-radius: 0;'>
-                        <div class='modal-header' style='flex-shrink: 0;'>
-                            <h5 class='modal-title' id='filePreviewModalLabel'>itasker file preview</h5>
-                            <button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>
-                        </div>
-                        <div class='modal-body' id='filePreviewContent'
-                             style='flex: 1; display: flex; justify-content: center; align-items: center; padding: 0; overflow: hidden;'>
-                            <!-- Preview content will be injected here -->
-                            <div id='previewLoading' style='text-align:center;'>
-                                <div class='spinner-border text-primary' role='status'>
-                                    <span class='visually-hidden'>Loading...</span>
-                                </div>
-                                <p>Loading preview...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- Task Duplicate Modal-->
-            <div class="modal fade" id="duplicateModal" tabindex="-1" aria-labelledby="duplicateModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content border-0 shadow-lg">
-                        <div class="modal-header bg-info-subtle bg-gradient border-0 text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                            <h5 class="modal-title d-flex align-items-center" id="duplicateModalLabel">
-                                <div class="rounded-circle bg-white bg-opacity-25 p-2 me-3">
-                                    <i class="fas fa-clone fa-lg"></i>
-                                </div>
-                                <div>
-                                    <div class="fw-bold">Duplicate Task</div>
-                                    <small class="opacity-75" style="font-size: 0.85rem;">Create a copy of this task</small>
-                                </div>
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body p-4">
-                            <div class="alert alert-info border-0 d-flex align-items-start mb-4">
-                                <i class="fas fa-info-circle text-info me-3 mt-1"></i>
-                                <div class="flex-grow-1">
-                                    <strong>Confirmation Required</strong>
-                                    <p class="mb-0 small text-muted mt-1">You are about to create a duplicate of the following task. All task details will be copied.</p>
-                                </div>
-                            </div>
 
-                            <div class="card border-0 shadow-sm mb-3">
-                                <div class="card-body p-4">
-                                    <div class="row g-3">
-                                        <div class="col-12">
-                                            <div class="d-flex align-items-center mb-2">
-                                                <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
-                                                    <i class="fas fa-hashtag text-primary"></i>
-                                                </div>
-                                                <div class="flex-grow-1">
-                                                    <small class="text-muted text-uppercase fw-semibold d-block" style="font-size: 0.75rem; letter-spacing: 0.5px;">Task ID</small>
-                                                    <span id="modalTaskId" class="fw-bold fs-6"></span>
-                                                </div>
-                                            </div>
+                                    <small class="text-muted d-block mt-2">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Press Ctrl+Enter to send quickly • (Max 10MB)
+                                    </small>
+                                </form>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- File Preview Modal -->
+    <div class='modal fade' id='filePreviewModal' tabindex='-1' aria-labelledby='filePreviewModalLabel' aria-hidden='true'>
+        <div class='modal-dialog' style='max-width: 100vw; width: 100vw; height: 100vh; margin: 0;'>
+            <div class='modal-content' style='height: 100vh; border-radius: 0;'>
+                <div class='modal-header' style='flex-shrink: 0;'>
+                    <h5 class='modal-title' id='filePreviewModalLabel'>itasker file preview</h5>
+                    <button type='button' class='btn-close' data-bs-dismiss='modal' aria-label='Close'></button>
+                </div>
+                <div class='modal-body' id='filePreviewContent'
+                     style='flex: 1; display: flex; justify-content: center; align-items: center; padding: 0; overflow: hidden;'>
+                    <!-- Preview content will be injected here -->
+                    <div id='previewLoading' style='text-align:center;'>
+                        <div class='spinner-border text-primary' role='status'>
+                            <span class='visually-hidden'>Loading...</span>
+                        </div>
+                        <p>Loading preview...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Task Duplicate Modal-->
+    <div class="modal fade" id="duplicateModal" tabindex="-1" aria-labelledby="duplicateModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-info-subtle bg-gradient border-0 text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <h5 class="modal-title d-flex align-items-center" id="duplicateModalLabel">
+                        <div class="rounded-circle bg-white bg-opacity-25 p-2 me-3">
+                            <i class="fas fa-clone fa-lg"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold">Duplicate Task</div>
+                            <small class="opacity-75" style="font-size: 0.85rem;">Create a copy of this task</small>
+                        </div>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info border-0 d-flex align-items-start mb-4">
+                        <i class="fas fa-info-circle text-info me-3 mt-1"></i>
+                        <div class="flex-grow-1">
+                            <strong>Confirmation Required</strong>
+                            <p class="mb-0 small text-muted mt-1">You are about to create a duplicate of the following task. All task details will be copied.</p>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body p-4">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
+                                            <i class="fas fa-hashtag text-primary"></i>
                                         </div>
-                                        <div class="col-12">
-                                            <hr class="my-2 opacity-25">
+                                        <div class="flex-grow-1">
+                                            <small class="text-muted text-uppercase fw-semibold d-block" style="font-size: 0.75rem; letter-spacing: 0.5px;">Task ID</small>
+                                            <span id="modalTaskId" class="fw-bold fs-6"></span>
                                         </div>
-                                        <div class="col-12">
-                                            <div class="d-flex align-items-start">
-                                                <div class="rounded-circle bg-success bg-opacity-10 p-2 me-3 mt-1">
-                                                    <i class="fas fa-tasks text-success"></i>
-                                                </div>
-                                                <div class="flex-grow-1">
-                                                    <small class="text-muted text-uppercase fw-semibold d-block mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Task Title</small>
-                                                    <span id="modalTaskTitle" class="fw-medium"></span>
-                                                </div>
-                                            </div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <hr class="my-2 opacity-25">
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex align-items-start">
+                                        <div class="rounded-circle bg-success bg-opacity-10 p-2 me-3 mt-1">
+                                            <i class="fas fa-tasks text-success"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <small class="text-muted text-uppercase fw-semibold d-block mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Task Title</small>
+                                            <span id="modalTaskTitle" class="fw-medium"></span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="rounded p-3 border-start border-4 border-warning">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
-                                    <small class="text-muted mb-0">The duplicated task will appear as a new entry in drafts task list.</small>
-                                </div>
-                            </div>
                         </div>
-                        <div class="modal-footer border-0  p-4">
-                            <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">
-                                <i class="fas fa-times me-2"></i>Cancel
-                            </button>
-                            <button type="button" class="btn btn-primary px-4 shadow-sm" id="confirmDuplicateBtn">
-                                <i class="fas fa-clone me-2"></i>Duplicate Task
-                            </button>
+                    </div>
+
+                    <div class="rounded p-3 border-start border-4 border-warning">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                            <small class="text-muted mb-0">The duplicated task will appear as a new entry in drafts task list.</small>
                         </div>
                     </div>
                 </div>
+                <div class="modal-footer border-0  p-4">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary px-4 shadow-sm" id="confirmDuplicateBtn">
+                        <i class="fas fa-clone me-2"></i>Duplicate Task
+                    </button>
+                </div>
             </div>
-            <!-- Delete File Confirmation Modal -->
-            <div class="modal fade" id="deleteFileModal" tabindex="-1" aria-labelledby="deleteFileModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header bg-danger">
-                            <h5 class="modal-title text-white" id="deleteFileModalLabel">
-                                <i class="fas fa-exclamation-triangle me-2"></i>Delete File
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="text-center mb-3">
-                                <i class="fas fa-trash-alt text-danger" style="font-size: 48px;"></i>
-                            </div>
-                            <p class="text-center mb-3">Are you sure you want to delete this file?</p>
-                            <div class="bg-secondary-subtle rounded p-3 mb-3">
-                                <p class="mb-1 text-center">
-                                    <strong id="deleteFileName"></strong>
-                                </p>
-                                <p class="mb-0 text-center text-muted fs-10">
-                                    <i class="far fa-clock me-1"></i>Uploaded: <span id="deleteFileDate"></span>
-                                </p>
-                            </div>
-                            <div class="alert alert-warning d-flex align-items-center" role="alert">
-                                <i class="fas fa-exclamation-circle me-2"></i>
-                                <div>
-                                    <strong>Warning:</strong> This action cannot be undone. The file will be permanently removed and cannot be retrieved.
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                <i class="fas fa-times me-1"></i>Cancel
-                            </button>
-                            <button type="button" class="btn btn-danger" id="confirmDeleteBtn" onclick="return deleteFile();">
-                                <i class="fas fa-trash-alt me-1"></i>Delete File
-                            </button>
+        </div>
+    </div>
+    <!-- Delete File Confirmation Modal -->
+    <div class="modal fade" id="deleteFileModal" tabindex="-1" aria-labelledby="deleteFileModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger">
+                    <h5 class="modal-title text-white" id="deleteFileModalLabel">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Delete File
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-trash-alt text-danger" style="font-size: 48px;"></i>
+                    </div>
+                    <p class="text-center mb-3">Are you sure you want to delete this file?</p>
+                    <div class="bg-secondary-subtle rounded p-3 mb-3">
+                        <p class="mb-1 text-center">
+                            <strong id="deleteFileName"></strong>
+                        </p>
+                        <p class="mb-0 text-center text-muted fs-10">
+                            <i class="far fa-clock me-1"></i>Uploaded: <span id="deleteFileDate"></span>
+                        </p>
+                    </div>
+                    <div class="alert alert-warning d-flex align-items-center" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <div>
+                            <strong>Warning:</strong> This action cannot be undone. The file will be permanently removed and cannot be retrieved.
                         </div>
                     </div>
                 </div>
-            </div>
-
-        </div><!-- /.admin-view-pane -->
-
-        <!-- ===== WRITER VIEW TAB PANE ===== -->
-        <div class="tab-pane fade" id="writer-view-pane" role="tabpanel" aria-labelledby="writer-view-tab">
-
-            <?php
-            // Receiver: writer for this task
-            if (!empty($taskWriterEmail)) {
-                $wv_writerIdQuery  = "SELECT id FROM tblwriters WHERE email = '" . mysqli_real_escape_string($con, $taskWriterEmail) . "'";
-                $wv_writerIdResult = mysqli_query($con, $wv_writerIdQuery);
-                $wv_receiverId = ($wv_writerIdResult && mysqli_num_rows($wv_writerIdResult) > 0)
-                    ? mysqli_fetch_assoc($wv_writerIdResult)['id'] : 0;
-            } else { $wv_receiverId = 0; }
-            $wv_receiverType = 'writer';
-
-            // Fetch comments
-            $wv_commentsStmt = mysqli_prepare($con, "SELECT * FROM tbl_task_comments WHERE task_id = ? ORDER BY created_at ASC");
-            mysqli_stmt_bind_param($wv_commentsStmt, 'i', $taskId);
-            mysqli_stmt_execute($wv_commentsStmt);
-            $wv_comments = mysqli_stmt_get_result($wv_commentsStmt)->fetch_all(MYSQLI_ASSOC);
-            mysqli_stmt_close($wv_commentsStmt);
-            $wv_hasMessages = !empty($wv_comments);
-
-            // Unread count (admin sees unread writer messages)
-            $wv_unreadCount = 0; $wv_firstUnreadIndex = -1;
-            foreach ($wv_comments as $wv_index => $wv_comment) {
-                if ($wv_comment['user_type'] === 'writer' && $wv_comment['is_read'] == 0) {
-                    $wv_unreadCount++;
-                    if ($wv_firstUnreadIndex === -1) $wv_firstUnreadIndex = $wv_index;
-                }
-            }
-
-            // Conversation status
-            $wv_conversationStatus = 'Active conversation'; $wv_statusIcon = 'fa-comment-dots'; $wv_statusClass = 'text-success';
-            if (in_array($taskStatus, ['Completed','Cancelled'])) { $wv_conversationStatus = 'Closed conversation'; $wv_statusIcon = 'fa-comment-slash'; $wv_statusClass = 'text-muted'; }
-            elseif ($taskStatus === 'Draft')       { $wv_conversationStatus = 'Draft conversation'; $wv_statusIcon = 'fa-comment-alt'; $wv_statusClass = 'text-warning'; }
-            elseif ($taskStatus === 'In Revision') { $wv_conversationStatus = 'Under review'; $wv_statusIcon = 'fa-comment-medical'; $wv_statusClass = 'text-info'; }
-
-            // Online status cache
-            $wv_userOnlineStatuses = [];
-            foreach ($wv_comments as $wv_comment) {
-                $wv_userKey = $wv_comment['user_type'] . '_' . $wv_comment['username'];
-                if (!isset($wv_userOnlineStatuses[$wv_userKey])) {
-                    $wv_uemail = null;
-                    $wv_table  = $wv_comment['user_type'] === 'writer' ? 'tblwriters' : 'tbladmin';
-                    $wv_eq = "SELECT email FROM {$wv_table} WHERE username = ? LIMIT 1";
-                    if ($wv_es = mysqli_prepare($con, $wv_eq)) {
-                        mysqli_stmt_bind_param($wv_es, 's', $wv_comment['username']);
-                        mysqli_stmt_execute($wv_es);
-                        mysqli_stmt_bind_result($wv_es, $wv_uemail);
-                        mysqli_stmt_fetch($wv_es);
-                        mysqli_stmt_close($wv_es);
-                    }
-                    $wv_userOnlineStatuses[$wv_userKey] = getUserOnlineStatus($con, $wv_comment['user_type'], $wv_comment['username'], $wv_uemail);
-                }
-            }
-
-            // Task detail card calculations
-            $wv_due_date_obj    = new DateTime($rowTask['due_date']);
-            $wv_currentDT       = new DateTime();
-            $wv_isLate_card     = ($wv_due_date_obj < $wv_currentDT);
-            $wv_remSecs         = $wv_isLate_card ? 0 : $wv_due_date_obj->getTimestamp() - $wv_currentDT->getTimestamp();
-            $wv_totalCost       = $taskPages * $taskCPP;
-
-            $wv_totalDur = 1; $wv_elapsed = 1;
-            if (!$wv_isLate_card && $wv_remSecs > 0) {
-                $wv_cTs = strtotime($taskCreatedOn); $wv_dTs = $wv_due_date_obj->getTimestamp(); $wv_nTs = $wv_currentDT->getTimestamp();
-                $wv_totalDur = max(1, $wv_dTs - $wv_cTs); $wv_elapsed = $wv_nTs - $wv_cTs;
-            }
-            $wv_pct   = min(100, max(0, ($wv_elapsed / $wv_totalDur) * 100));
-            $wv_ring  = $wv_pct < 50 ? '#22c55e' : ($wv_pct < 80 ? '#f59e0b' : '#ef4444');
-
-            if      ($rowTask['status'] == 'Completed') { $wv_tdc = "<span class='fw-bold'>Completed</span>"; $wv_ring = '#22c55e'; $wv_pct = 100; }
-            elseif  ($rowTask['status'] == 'Cancelled') { $wv_tdc = "<span class='fw-bold'>Cancelled</span>"; $wv_ring = '#6b7280'; $wv_pct = 100; }
-            elseif  ($rowTask['status'] == 'Submitted') { $wv_tdc = "<span class='fw-bold'>Submitted</span>"; $wv_ring = '#3b82f6'; $wv_pct = 100; }
-            elseif  ($rowTask['is_confirmed'] == 2)     { $wv_tdc = "<span class='fw-bold'>Declined</span>";  $wv_ring = '#ef4444'; $wv_pct = 100; }
-            elseif  ($wv_isLate_card)                   { $wv_tdc = "<span id='wv-time-remaining-card' class='fw-bold' style='color:#ef4444;'>Past Due</span>"; $wv_ring = '#ef4444'; $wv_pct = 100; }
-            else                                        { $wv_tdc = "<span id='wv-time-remaining-card' class='fw-bold'></span>"; }
-
-            $wv_circ   = 2 * M_PI * 42;
-            $wv_offset = $wv_circ * (1 - $wv_pct / 100);
-            $wv_overdue_ring = $wv_isLate_card && !in_array($rowTask['status'], ['Completed','Cancelled','Submitted']);
-            ?>
-
-            <!-- Writer-View: Status bar -->
-            <div class="card mb-3">
-                <div class="bg-holder bg-card" style="background-image:url(../assets/img/icons/spot-illustrations/corner-5.png);"></div>
-                <div class="card-body position-relative">
-                    <div class="row g-2 align-items-sm-center">
-                        <div class="col-auto">
-                            <div class="calendar me-2">
-                                <span class="calendar-month"><?php echo date('M'); ?></span>
-                                <span class="calendar-day"><?php echo date('d'); ?></span>
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="row align-items-center">
-                                <div class="col col-lg-8">
-                                    <h5 class="mb-sm-0 text-primary fs-7">Task ID: <span class="text-info fw-medium">#<?php echo $taskId; ?></span></h5>
-                                    <p class="fw-semi-bold fs-10"><span class="me-1">Posted:</span><span class="text-info ms-2"><?php echo date("d M Y, g:i A", strtotime($taskCreatedOn)); ?></span></p>
-                                    <div class="fs-9 mb-3 mb-sm-0 text-primary">
-                                        <strong class="me-2">Status: </strong><?php echo $statusBadge; ?>
-                                        <?php if ($taskStatus == 'Submitted' && !empty($submittedOn)): ?>
-                                            <span class="fs-10 text-info ms-2"><?php echo date("d M Y, g:i A", strtotime($submittedOn)); ?></span>
-                                        <?php elseif ($taskStatus == 'Completed' && !empty($completedOn)): ?>
-                                            <span class="fs-10 text-success ms-2"><?php echo date("d M Y, g:i A", strtotime($completedOn)); ?></span>
-                                        <?php endif; ?>
-                                        <?php if ($is_confirmed == 1): ?><?php echo $confirmation; ?><?php endif; ?>
-                                    </div>
-                                </div>
-                                <div class="col-12 col-sm-auto ms-auto">
-                                    <?php if ($taskStatus == 'In Progress'): ?>
-                                        <span class="btn btn-outline-secondary btn-sm disabled"><i class="fas fa-upload me-1"></i> Submit Task <small class="ms-1 text-muted">(writer only)</small></span>
-                                    <?php elseif ($is_confirmed == 1 && $taskStatus != 'Cancelled'): ?>
-                                        <span class="btn btn-outline-secondary btn-sm disabled me-1"><i class="fas fa-check me-1"></i> Accept Task <small class="ms-1 text-muted">(writer only)</small></span>
-                                    <?php elseif ($taskStatus == 'Submitted' || $taskStatus == 'In Revision'): ?>
-                                        <span class="btn btn-outline-secondary btn-sm disabled"><i class="fas fa-sync-alt me-1"></i> Resubmit Task <small class="ms-1 text-muted">(writer only)</small></span>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn" onclick="return deleteFile();">
+                        <i class="fas fa-trash-alt me-1"></i>Delete File
+                    </button>
                 </div>
             </div>
-
-            <!-- Writer-View: Task detail card with progress ring -->
-            <style>
-                .wv-tdc{border:1px solid rgba(255,255,255,.08);border-radius:20px;overflow:hidden;position:relative;}
-                .wv-tdc::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(59,130,246,.15) 0%,transparent 70%);border-radius:50%;pointer-events:none;}
-                .wv-tdc::after{content:'';position:absolute;bottom:-40px;left:-40px;width:160px;height:160px;background:radial-gradient(circle,rgba(168,85,247,.12) 0%,transparent 70%);border-radius:50%;pointer-events:none;}
-                .wv-ring-wrap{position:relative;width:100px;height:100px;flex-shrink:0;}
-                .wv-ring-wrap svg{transform:rotate(-90deg);}
-                .wv-ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;text-align:center;overflow:hidden;}
-                .wv-ring-center .rl{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(148,163,184,.6);line-height:1;margin-bottom:3px;}
-                .wv-ring-center span{font-size:10px!important;font-weight:700;line-height:1.2;max-width:72px;word-break:break-word;display:block;}
-                .wv-subj{font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;}
-                .wv-title{font-size:clamp(1.2rem,3vw,1.7rem);font-weight:800;line-height:1.2;letter-spacing:-.5px;}
-                .wv-stat-pill{display:flex;align-items:center;gap:8px;border-radius:12px;padding:10px 16px;}
-                .wv-stat-pill .si{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
-                .wv-stat-pill .sl{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;line-height:1;}
-                .wv-stat-pill .sv{font-size:13px;font-weight:700;line-height:1;}
-                .wv-cost{background:linear-gradient(135deg,rgba(34,197,94,.15) 0%,rgba(16,185,129,.1) 100%);border:1px solid rgba(34,197,94,.25);border-radius:14px;padding:12px 20px;}
-                .wv-cost-amt{font-weight:900;color:#4ade80;letter-spacing:-1px;line-height:1;}
-                .wv-due{border-radius:14px;padding:12px 16px;}
-                @keyframes wv-rop{0%,100%{opacity:1}50%{opacity:.35}}
-                .wv-ring-overdue{animation:wv-rop 1.2s ease-in-out infinite;}
-            </style>
-
-            <div class="card wv-tdc mb-3">
-                <div class="card-body p-4">
-                    <div class="row g-4 align-items-start">
-                        <div class="col-lg-9">
-                            <div class="d-flex align-items-start gap-4">
-                                <div class="wv-ring-wrap d-none d-sm-block">
-                                    <svg viewBox="0 0 100 100" width="100" height="100" class="<?php echo $wv_overdue_ring ? 'wv-ring-overdue' : ''; ?>">
-                                        <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="7"/>
-                                        <circle cx="50" cy="50" r="42" fill="none" stroke="<?php echo $wv_ring; ?>" stroke-width="7" stroke-linecap="round"
-                                                stroke-dasharray="<?php echo $wv_circ; ?>" stroke-dashoffset="<?php echo $wv_offset; ?>" style="transition:stroke-dashoffset 1s ease;"/>
-                                        <?php if ($wv_overdue_ring): ?>
-                                            <g transform="translate(50,50)">
-                                                <line x1="-8" y1="-8" x2="8" y2="8" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
-                                                <line x1="8" y1="-8" x2="-8" y2="8" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
-                                            </g>
-                                        <?php endif; ?>
-                                    </svg>
-                                    <div class="wv-ring-center">
-                                        <span class="rl"><?php echo $wv_overdue_ring ? 'Overdue' : 'Time'; ?></span>
-                                        <?php echo $wv_tdc; ?>
-                                    </div>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="wv-subj mb-1"><i class="fas fa-book me-1" style="color:#64748b;"></i><?php echo htmlspecialchars($taskSubject); ?></div>
-                                    <div class="wv-title mb-3"><?php echo htmlspecialchars($taskTopic); ?></div>
-                                    <div class="wv-due d-flex align-items-center gap-3 mb-3">
-                                        <div>
-                                            <div class="wv-subj mb-1">Due Date</div>
-                                            <div style="font-size:13px;font-weight:600;color:#94a3b8;">
-                                                <i class="far fa-calendar-alt me-1 text-info"></i><?php echo date("D, d M Y", strtotime($taskDueDate)); ?>
-                                                <span class="mx-1 text-muted">·</span>
-                                                <i class="far fa-clock me-1 text-info"></i><?php echo date("g:i A", strtotime($taskDueDate)); ?>
-                                            </div>
-                                        </div>
-                                        <?php if ($wv_overdue_ring): ?>
-                                            <span class="badge" style="background:rgba(239,68,68,.2);color:#fca5a5;border:1px solid rgba(239,68,68,.3);font-size:10px;font-weight:700;letter-spacing:1px;">OVERDUE</span>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="d-sm-none mb-2" style="font-size:13px;color:#94a3b8;">
-                                        <i class="far fa-clock me-1"></i>
-                                        <span id="wv-time-remaining-card-mobile"><?php
-                                            if (in_array($rowTask['status'],['Completed','Cancelled','Submitted'])) echo $rowTask['status'];
-                                            elseif ($rowTask['is_confirmed']==2) echo 'Declined';
-                                            elseif ($wv_isLate_card) echo 'Past Due';
-                                            ?></span>
-                                    </div>
-                                    <?php if ($taskStatus == 'Completed'): ?>
-                                        <?php if ($is_paid == 0): ?>
-                                            <span class="badge" style="background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.3);padding:6px 14px;font-size:11px;"><i class="fas fa-exclamation-circle me-1"></i>Unpaid</span>
-                                        <?php else: ?>
-                                            <span class="badge" style="background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.3);padding:6px 14px;font-size:11px;"><i class="fas fa-check-circle me-1"></i>Paid · <?php echo date("d M Y", strtotime($rowTask['paid_on'])); ?></span>
-                                        <?php endif; ?>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-3">
-                            <div class="mb-3 d-flex flex-column gap-2">
-                                <div class="d-flex gap-2">
-                                    <div class="wv-stat-pill flex-grow-1">
-                                        <div class="si" style="background:rgba(59,130,246,.2);"><i class="fas fa-file-alt" style="color:#93c5fd;"></i></div>
-                                        <div><div class="sl">Pages</div><div class="sv"><?php echo $taskPages; ?></div></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="wv-cost d-flex align-items-center justify-content-between">
-                                <div>
-                                    <div class="fs-10">CPP (Ksh): <?php echo number_format($taskCPP, 2); ?></div>
-                                    <div class="sl mb-1">Total</div>
-                                    <div class="wv-cost-amt">Ksh <?php echo number_format($wv_totalCost, 2); ?></div>
-                                </div>
-                                <div style="opacity:.4;font-size:2rem;"><i class="fas fa-coins" style="color:#4ade80;"></i></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <script>
-                (function() {
-                    var dueTs = <?php echo $wv_due_date_obj->getTimestamp(); ?> * 1000;
-                    var isLate = <?php echo $wv_isLate_card ? 'true' : 'false'; ?>;
-                    var status = <?php echo json_encode($rowTask['status']); ?>;
-                    if (['Completed','Cancelled','Submitted'].includes(status) || isLate) return;
-                    function fmt(ms) {
-                        if (ms<=0) return 'Past Due';
-                        var s=Math.floor(ms/1000), d=Math.floor(s/86400), h=Math.floor((s%86400)/3600), m=Math.floor((s%3600)/60), sec=s%60;
-                        return d>0 ? d+'d '+h+'h '+m+'m' : h>0 ? h+'h '+m+'m '+sec+'s' : m+'m '+sec+'s';
-                    }
-                    function applyColor(el, remaining) {
-                        el.style.color = remaining<3600000 ? '#ef4444' : remaining<86400000 ? '#f59e0b' : '#4ade80';
-                    }
-                    function tick() {
-                        var r = dueTs - Date.now(), t = fmt(r);
-                        var re = document.getElementById('wv-time-remaining-card');
-                        if (re) { re.textContent = t; applyColor(re, r); }
-                        var me = document.getElementById('wv-time-remaining-card-mobile');
-                        if (me) { me.textContent = t; applyColor(me, r); }
-                    }
-                    tick(); setInterval(tick, 1000);
-                })();
-            </script>
-
-            <!-- Writer-View: Description -->
-            <div class="row">
-                <div class="col-lg-12">
-                    <div class="card mb-3">
-                        <div class="card-header d-flex bg-body-tertiary align-items-center">
-                            <i class="fas fa-sliders-h me-2 text-primary"></i><h6 class="mb-0">Description</h6>
-                        </div>
-                        <div class="card-body position-relative">
-                            <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/icons/spot-illustrations/corner-1.png);"></div>
-                            <ul class="list-unstyled position-relative fs-9 p-0 m-0"><li class="mb-2"><div class="d-flex"><dd class="task-description-content">
-                                            <?php echo preg_replace('/(https?:\/\/[^\s]+)/', '<a href="$1" class="highlighted-link" target="_blank">$1</a>', stripslashes($taskDescription)); ?>
-                                        </dd></div></li></ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <?php
-            // Shared file listing helper
-            function wv_list_files($con, $taskId, $fileType, $pathPrefix) {
-                $q = "SELECT * FROM tbl_task_files WHERE task_id = ? AND file_type = ? AND is_deleted = 0 ORDER BY upload_time ASC";
-                $s = mysqli_prepare($con, $q);
-                mysqli_stmt_bind_param($s, 'is', $taskId, $fileType);
-                mysqli_stmt_execute($s);
-                $rows = mysqli_stmt_get_result($s)->fetch_all(MYSQLI_ASSOC);
-                mysqli_stmt_close($s);
-                if (empty($rows)) { echo '<div>No ' . htmlspecialchars($fileType) . ' files attached.</div>'; return; }
-                $thumbMap = ['pdf'=>'pdf','doc'=>'word','docx'=>'word','rtf'=>'word','xls'=>'excel','xlsx'=>'excel','csv'=>'excel',
-                    'ppt'=>'powerpoint','pptx'=>'powerpoint','jpg'=>'image','jpeg'=>'image','png'=>'image','gif'=>'image','zip'=>'zip','rar'=>'zip'];
-                foreach ($rows as $row) {
-                    $fn  = $row['original_file_name'];
-                    $fu  = htmlspecialchars($row['file_url']);
-                    $fd  = date('d M Y, g:i A', strtotime($row['upload_time']));
-                    $sz  = $row['file_size'] > 0 ? round($row['file_size'] / pow(1024, floor(log($row['file_size'],1024))), 2) . ' ' . ['B','KB','MB','GB'][floor(log($row['file_size'],1024))] : 'Unknown size';
-                    $ext = strtolower(pathinfo($fn, PATHINFO_EXTENSION));
-                    $th  = $pathPrefix . 'assets/img/icons/' . ($thumbMap[$ext] ?? 'docs') . '.png';
-                    echo '<div class="d-flex mb-3 hover-actions-trigger align-items-center">';
-                    echo '<div class="file-thumbnail"><img class="border h-100 w-100 object-fit-cover rounded-2" src="' . $th . '" alt=""/></div>';
-                    echo '<div class="ms-3 flex-shrink-1 flex-grow-1">';
-                    echo '<h6 class="mb-1"><a class="stretched-link text-900 fw-semi-bold" href="' . $fu . '" target="_blank">' . htmlspecialchars($fn) . '</a></h6>';
-                    echo '<div class="fs-10"><span class="fw-medium text-600">' . $sz . '</span><span class="fw-medium text-600 mx-1">•</span><span class="fw-medium text-600">' . $fd . '</span></div>';
-                    echo '<div class="hover-actions end-0 top-50 translate-middle-y"><a class="btn btn-tertiary border-300 btn-sm me-1 text-600" data-bs-toggle="tooltip" data-bs-placement="top" title="Download" href="' . $fu . '" download="' . htmlspecialchars($fn) . '"><img src="' . $pathPrefix . 'assets/img/icons/cloud-download.svg" alt="" width="15"/></a></div>';
-                    echo '</div></div><hr class="text-200"/>';
-                }
-            }
-            ?>
-
-            <!-- Writer-View: Task Files -->
-            <div class="col mb-3"><div class="row g-3"><div class="col-xxl-12">
-                        <div class="card h-100 h-xxl-auto mt-xxl-3">
-                            <div class="card-header d-flex bg-body-tertiary align-items-center">
-                                <i class="far fa-folder-open me-2 text-primary"></i><h6 class="mb-0">Task Files</h6>
-                            </div>
-                            <div class="card-body position-relative">
-                                <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/icons/spot-illustrations/corner-2.png);"></div>
-                                <?php wv_list_files($con, $taskId, 'task', '../'); ?>
-                            </div>
-                        </div>
-                    </div></div></div>
-
-            <!-- Writer-View: Submitted Files -->
-            <div class="col mb-3"><div class="row g-3"><div class="col-xxl-12">
-                        <div class="card h-100 h-xxl-auto mt-xxl-3">
-                            <div class="card-header d-flex bg-body-tertiary align-items-center">
-                                <i class="far fa-folder me-2 text-primary"></i><h6 class="mb-0">Submitted Files</h6>
-                            </div>
-                            <div class="card-body position-relative">
-                                <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/icons/spot-illustrations/corner-7.png);"></div>
-                                <?php wv_list_files($con, $taskId, 'submitted', '../'); ?>
-                            </div>
-                        </div>
-                    </div></div></div>
-
-            <!-- Writer-View: Discussion -->
-            <div class="row"><div class="col-md-12 col-xxl-12 mb-3">
-                    <div class="card shadow-sm border-0 overflow-hidden h-100" style="border-radius:15px;">
-                        <div class="card-header text-white position-relative overflow-hidden bg-body-tertiary" style="cursor:pointer;" onclick="wvToggleDiscussion()">
-                            <div class="d-flex justify-content-between align-items-center position-relative" style="z-index:2;">
-                                <div class="d-flex align-items-center">
-                                    <div class="me-2 text-primary"><i class="fas fa-comments"></i></div>
-                                    <div>
-                                        <h6 class="mb-0">Task Discussion</h6>
-                                        <small class="text-1000">
-                                            <i class="fas <?php echo $wv_statusIcon; ?> me-1"></i>
-                                            <?php if ($wv_unreadCount > 0): ?>
-                                                <span class="badge bg-danger me-2 pulse-animation" style="font-size:10px;"><?php echo $wv_unreadCount; ?> unread</span>
-                                            <?php else: ?><?php echo count($wv_comments); ?> messages •<?php endif; ?>
-                                            <span class="<?php echo $wv_statusClass; ?>"><?php echo $wv_conversationStatus; ?></span>
-                                        </small>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <?php if (in_array($taskStatus, ['Completed','Cancelled'])): ?>
-                                        <span class="badge bg-secondary bg-opacity-75 text-white px-3 py-2"><i class="fas fa-lock me-1"></i>Conversation Closed</span>
-                                    <?php endif; ?>
-                                    <button type="button" id="wvDiscussionToggleBtn" class="btn btn-sm btn-outline-secondary" style="border-radius:8px;min-width:36px;" title="Toggle discussion" onclick="event.stopPropagation();wvToggleDiscussion();">
-                                        <i class="fas fa-chevron-up" id="wvDiscussionToggleIcon" style="transition:transform .3s ease;display:inline-block;"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="wvDiscussionCardBody" class="card-body p-0" style="display:<?php echo $wv_hasMessages ? 'flex' : 'none'; ?>;flex-direction:column;height:650px;">
-                            <div id="wvCommentsContainer" class="flex-grow-1 px-3 py-3" style="overflow-y:auto;overflow-x:hidden;">
-                                <?php if (empty($wv_comments)): ?>
-                                    <div class="text-center py-5">
-                                        <div class="mb-4"><div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width:80px;height:80px;"><i class="fas fa-comment-alt text-muted fa-2x"></i></div></div>
-                                        <h6 class="text-muted mb-2">No messages yet</h6>
-                                        <?php if (!in_array($taskStatus,['Completed','Cancelled'])): ?>
-                                            <p class="text-muted small mb-3">Start the conversation by sharing your thoughts or asking questions.</p>
-                                        <?php else: ?>
-                                            <p class="text-muted small">This conversation is closed as the task has been <?php echo strtolower($taskStatus); ?>.</p>
-                                        <?php endif; ?>
-                                    </div>
-                                <?php else: ?>
-                                    <?php if ($wv_unreadCount > 0): ?>
-                                        <div class="alert alert-warning border-0 d-flex align-items-center mb-3" role="alert" style="background:linear-gradient(135deg,#ffeaa7 0%,#fdcb6e 100%);">
-                                            <div class="me-3"><i class="fas fa-bell fa-lg"></i></div>
-                                            <div class="flex-grow-1"><strong>You have <?php echo $wv_unreadCount; ?> unread message<?php echo $wv_unreadCount > 1 ? 's' : ''; ?></strong></div>
-                                            <button class="btn btn-sm btn-outline-dark" onclick="wvScrollToFirstUnread()"><i class="fas fa-arrow-down me-1"></i>Jump to first</button>
-                                        </div>
-                                    <?php endif; ?>
-
-                                    <div class="messages-list">
-                                        <?php
-                                        $wv_lastDate = null;
-                                        foreach ($wv_comments as $wv_idx => $wv_c):
-                                            $wv_isAdm  = ($wv_c['user_type'] === 'admin');
-                                            $wv_mDate  = date('Y-m-d', strtotime($wv_c['created_at'] . ' UTC'));
-                                            $wv_isUnr  = ($wv_c['user_type'] === 'writer' && $wv_c['is_read'] == 0);
-                                            $wv_isSent = !$wv_isAdm; // writer msg on right, admin on left
-
-                                            if ($wv_mDate !== $wv_lastDate):
-                                                $wv_lastDate = $wv_mDate;
-                                                $wv_td = date('Y-m-d'); $wv_yd = date('Y-m-d', strtotime('-1 day' . ' UTC'));
-                                                $wv_dLabel = $wv_mDate===$wv_td ? 'Today' : ($wv_mDate===$wv_yd ? 'Yesterday' : date('F j, Y', strtotime($wv_mDate . ' UTC')));
-                                                ?>
-                                                <div class="text-center my-3"><span class="badge bg-info-subtle text-muted px-3 py-2"><i class="far fa-calendar me-1"></i><?php echo $wv_dLabel; ?></span></div>
-                                            <?php endif; ?>
-
-                                            <div class="comment-item mb-3 <?php echo $wv_firstUnreadIndex===$wv_idx ? 'first-unread-message' : ''; ?>"
-                                                 id="<?php echo $wv_firstUnreadIndex===$wv_idx ? 'wv-first-unread-message' : 'wv-comment-'.$wv_c['id']; ?>"
-                                                 data-comment-id="<?php echo $wv_c['id']; ?>"
-                                                 <?php if ($wv_isUnr): ?>data-unread="true"<?php endif; ?>
-                                                 style="animation:<?php echo $wv_isUnr ? 'fadeInUp .5s ease' : 'none'; ?>;">
-                                                <div class="d-flex <?php echo $wv_isSent ? 'flex-row' : 'flex-row-reverse'; ?> align-items-start gap-2">
-                                                    <div class="flex-shrink-0">
-                                                        <?php
-                                                        $wv_uk  = $wv_c['user_type'].'_'.$wv_c['username'];
-                                                        $wv_st  = $wv_userOnlineStatuses[$wv_uk] ?? ['last_seen'=>null];
-                                                        $wv_ini = strtoupper(substr($wv_c['username'],0,2));
-                                                        $wv_bg  = $wv_isAdm ? 'bg-primary' : 'bg-success';
-                                                        $wv_sc  = 'secondary'; $wv_stxt = 'Offline';
-                                                        if (!empty($wv_st['last_seen'])) {
-                                                            $timezone = new DateTimeZone('UTC');
-                                                            $wv_td2 = (new DateTime('now', $timezone))->diff(new DateTime($wv_st['last_seen'], $timezone));
-                                                            $wv_mins2 = ($wv_td2->days*24*60)+($wv_td2->h*60)+$wv_td2->i;
-                                                            if ($wv_mins2<=1) { $wv_sc='success'; $wv_stxt='Online'; }
-                                                            elseif ($wv_td2->days>0) { $wv_sc='secondary'; $wv_stxt='Last seen '.($wv_td2->days==1?'1 day ago':$wv_td2->days.' days ago'); }
-                                                            elseif ($wv_td2->h>0)   { $wv_sc='warning';   $wv_stxt='Last seen '.($wv_td2->h==1?'1 hour ago':$wv_td2->h.' hours ago'); }
-                                                            else                     { $wv_sc='info';      $wv_stxt='Last seen '.($wv_td2->i<=1?'1 minute ago':$wv_td2->i.' minutes ago'); }
-                                                        }
-                                                        ?>
-                                                        <div class="position-relative d-inline-block" data-bs-toggle="tooltip" data-bs-placement="<?php echo $wv_isSent ? 'left' : 'right'; ?>" data-bs-html="true" title="<strong><?php echo htmlspecialchars($wv_c['username']); ?></strong><br><?php echo $wv_stxt; ?>">
-                                                            <div class="rounded-circle shadow-sm <?php echo $wv_bg; ?> d-flex align-items-center justify-content-center" style="width:45px;height:45px;">
-                                                                <span class="fw-bold text-white" style="font-size:14px;"><?php echo $wv_ini; ?></span>
-                                                            </div>
-                                                            <span class="position-absolute bottom-0 end-0 rounded-circle bg-<?php echo $wv_sc; ?>" style="width:12px;height:12px;border:2px solid white;"></span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="flex-grow-1" style="max-width:75%;">
-                                                        <?php
-                                                        $wv_bc = $wv_isSent ? 'bg-primary-subtle border-primary-subtle' : 'bg-success-subtle border-success-subtle';
-                                                        $wv_br = $wv_isSent ? '20px 20px 20px 5px' : '20px 20px 5px 20px';
-                                                        $wv_tc = $wv_isAdm ? 'text-primary' : 'text-success';
-                                                        $wv_ui = $wv_isAdm ? 'fa-user-shield' : 'fa-user-edit';
-                                                        ?>
-                                                        <div class="comment-bubble position-relative p-3 shadow-sm border <?php echo $wv_bc; ?>" style="border-radius:<?php echo $wv_br; ?>;word-wrap:break-word;">
-                                                            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
-                                                                <div class="comment-author fw-bold <?php echo $wv_tc; ?>" style="font-size:13px;">
-                                                                    <i class="fas <?php echo $wv_ui; ?> me-1" style="font-size:11px;"></i>
-                                                                    <?php echo htmlspecialchars($wv_c['username']); ?>
-                                                                    <?php if ($wv_isUnr): ?><span class="badge bg-danger ms-2 pulse-animation" style="font-size:9px;"><i class="fas fa-envelope me-1"></i>UNREAD</span><?php endif; ?>
-                                                                </div>
-                                                                <small class="fw-medium text-muted d-flex align-items-center" style="font-size:11px;">
-                                                                    <i class="far fa-clock me-1"></i><?php echo date('g:i A', strtotime($wv_c['created_at'] . ' UTC')); ?>
-                                                                    <span class="ms-2"><?php echo $wv_c['is_read']==1 ? '<i class="fas fa-check-double text-primary" title="Read" style="font-size:10px;"></i>' : '<i class="fas fa-check text-muted" title="Delivered" style="font-size:10px;"></i>'; ?></span>
-                                                                </small>
-                                                            </div>
-                                                            <div class="comment-text" style="font-size:14px;">
-                                                                <?php
-                                                                $wv_fmt = nl2br(htmlspecialchars(stripcslashes($wv_c['comment'])));
-                                                                echo preg_replace('/(https?:\/\/[^\s]+)/', '<a href="$1" target="_blank" class="text-decoration-none fw-medium">$1 <i class="fas fa-external-link-alt" style="font-size:10px;"></i></a>', $wv_fmt);
-                                                                ?>
-                                                            </div>
-                                                            <?php if (!empty($wv_c['file_url'])): ?>
-                                                                <div class="message-attachments mt-3 pt-3 border-top">
-                                                                    <small class="text-muted d-block mb-2"><i class="fas fa-paperclip"></i> Attachments:</small>
-                                                                    <div class="attachments-grid">
-                                                                        <?php
-                                                                        $wv_fe = strtolower(pathinfo($wv_c['file_url'], PATHINFO_EXTENSION));
-                                                                        $wv_ie = ['jpg','jpeg','png','gif','webp'];
-                                                                        if (in_array($wv_fe, $wv_ie)): ?>
-                                                                            <a href="../taskfiles/<?php echo htmlspecialchars($wv_c['file_url']); ?>" class="glightbox attachment-image" data-gallery="wv-msg-<?php echo $wv_c['id']; ?>">
-                                                                                <img src="../taskfiles/<?php echo htmlspecialchars($wv_c['file_url']); ?>" alt="Attachment" class="img-thumbnail" style="max-width:200px;max-height:200px;object-fit:cover;cursor:pointer;border-radius:8px;">
-                                                                            </a>
-                                                                        <?php else: ?>
-                                                                            <a href="../taskfiles/<?php echo htmlspecialchars($wv_c['file_url']); ?>" class="attachment-file-badge" download target="_blank">
-                                                                                <i class="<?php echo getFileIconClass($wv_fe); ?> me-2"></i><span><?php echo basename($wv_c['file_url']); ?></span>
-                                                                            </a>
-                                                                        <?php endif; ?>
-                                                                        <?php
-                                                                        $wv_ar = mysqli_query($con, "SELECT * FROM tbl_comment_attachments WHERE comment_id=".(int)$wv_c['id']);
-                                                                        if ($wv_ar && mysqli_num_rows($wv_ar)>0):
-                                                                            while ($wv_at=mysqli_fetch_assoc($wv_ar)):
-                                                                                $wv_ae = strtolower(pathinfo($wv_at['file_name'],PATHINFO_EXTENSION));
-                                                                                $wv_ap = basename($wv_at['file_path']);
-                                                                                if (in_array($wv_ae,$wv_ie)): ?>
-                                                                                    <a href="../taskfiles/<?php echo htmlspecialchars($wv_ap); ?>" class="glightbox attachment-image" data-gallery="wv-msg-<?php echo $wv_c['id']; ?>">
-                                                                                        <img src="../taskfiles/<?php echo htmlspecialchars($wv_ap); ?>" alt="<?php echo htmlspecialchars($wv_at['file_name']); ?>" class="img-thumbnail" style="max-width:200px;max-height:200px;object-fit:cover;cursor:pointer;border-radius:8px;">
-                                                                                    </a>
-                                                                                <?php else: ?>
-                                                                                    <a href="../taskfiles/<?php echo htmlspecialchars($wv_ap); ?>" class="attachment-file-badge" download target="_blank">
-                                                                                        <i class="<?php echo getFileIconClass($wv_ae); ?> me-2"></i><span><?php echo htmlspecialchars($wv_at['file_name']); ?></span><small class="text-muted ms-2">(<?php echo formatFileSize($wv_at['file_size']); ?>)</small>
-                                                                                    </a>
-                                                                                <?php endif; ?>
-                                                                            <?php endwhile; endif; ?>
-                                                                    </div>
-                                                                </div>
-                                                            <?php endif; ?>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-
-                            <?php if (!in_array($taskStatus,['Completed','Cancelled'])): ?>
-                                <div class="border-top bg-info-subtle p-3" style="flex-shrink:0;">
-                                    <form id="wvAddCommentForm" onsubmit="wvAddComment(event)" enctype="multipart/form-data">
-                                        <div id="wvSelectedFilesPreview" style="display:none;margin-bottom:15px;">
-                                            <div style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:12px;padding:12px;">
-                                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                                    <small class="text-muted fw-semibold"><i class="fas fa-paperclip me-1"></i><span id="wvFileCount">0</span> file(s) attached</small>
-                                                    <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="wvClearAllFiles()" style="text-decoration:none;font-size:12px;"><i class="fas fa-times-circle me-1"></i>Remove all</button>
-                                                </div>
-                                                <div id="wvFilesPreviewList" style="max-height:200px;overflow-y:auto;"></div>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex gap-2 align-items-end">
-                                            <input type="file" id="wvFileInput" name="attachments[]" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.txt" style="display:none;" onchange="wvHandleFileSelect(event)">
-                                            <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('wvFileInput').click()" title="Attach file"><i class="fas fa-paperclip"></i></button>
-                                            <div class="flex-grow-1">
-                                                <textarea class="form-control" id="wvCommentText" name="comment" rows="2" placeholder="Type your message as admin... (Ctrl+Enter to send)" style="resize:none;border-radius:20px;" onkeydown="wvHandleKeyPress(event)"></textarea>
-                                            </div>
-                                            <button type="submit" class="btn btn-primary px-4" style="border-radius:20px;"><i class="fas fa-paper-plane me-1"></i>Send</button>
-                                        </div>
-                                        <small class="text-muted d-block mt-2"><i class="fas fa-info-circle me-1"></i>Sending as admin • Press Ctrl+Enter to send quickly • (Max 10MB)</small>
-                                    </form>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div></div>
-
-            <script>
-                (function() {
-                    var wvHas = <?php echo $wv_hasMessages ? 'true' : 'false'; ?>;
-                    var wvBody = document.getElementById('wvDiscussionCardBody');
-                    var wvIcon = document.getElementById('wvDiscussionToggleIcon');
-                    var wvOpen = wvHas;
-                    function wvSet(open) {
-                        wvOpen = open;
-                        if (wvBody) { wvBody.style.display = open ? 'flex' : 'none'; wvBody.style.flexDirection = 'column'; }
-                        if (wvIcon) wvIcon.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
-                        if (open) setTimeout(function(){ var c=document.getElementById('wvCommentsContainer'); if(c) c.scrollTop=c.scrollHeight; }, 50);
-                    }
-                    wvSet(wvOpen);
-                    window.wvToggleDiscussion = function() { wvSet(!wvOpen); };
-                })();
-
-                function wvScrollToFirstUnread() {
-                    var el = document.getElementById('wv-first-unread-message');
-                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-
-                var wvFiles = [];
-                function wvAddComment(e) {
-                    e.preventDefault();
-                    var txt = document.getElementById('wvCommentText').value.trim();
-                    if (!txt && wvFiles.length===0) { showToast('Please enter a message or attach a file','warning'); return; }
-                    var btn = e.target.querySelector('button[type="submit"]'), orig = btn.innerHTML;
-                    btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin me-1"></i>Sending...';
-                    var fd = new FormData();
-                    fd.append('task_id', <?php echo (int)$taskId; ?>);
-                    fd.append('comment', txt);
-                    fd.append('csrf_token', '<?php echo $_SESSION['csrf_token'] ?? ''; ?>');
-                    fd.append('receiver_id', '<?php echo (int)$wv_receiverId; ?>');
-                    fd.append('receiver_type', '<?php echo htmlspecialchars($wv_receiverType); ?>');
-                    wvFiles.forEach(function(f){ fd.append('attachments[]', f); });
-                    fetch('../add-task-comment', { method:'POST', body:fd })
-                        .then(function(r){ return r.json(); })
-                        .then(function(d){ if (d&&d.success){ showToast('Message sent!','success'); setTimeout(function(){ window.location.reload(); },1000); } else { showToast(d.message||'Failed to send','danger'); btn.disabled=false; btn.innerHTML=orig; } })
-                        .catch(function(){ showToast('An error occurred','danger'); btn.disabled=false; btn.innerHTML=orig; });
-                }
-                function wvHandleKeyPress(e) { if (e.ctrlKey&&e.key==='Enter'){ e.preventDefault(); document.getElementById('wvAddCommentForm').dispatchEvent(new Event('submit',{bubbles:true})); } }
-                function wvHandleFileSelect(e) {
-                    Array.from(e.target.files).forEach(function(f){
-                        if (f.size>10*1024*1024){ showToast('"'+f.name+'" exceeds 10MB','warning'); return; }
-                        if (wvFiles.some(function(x){ return x.name===f.name&&x.size===f.size; })){ showToast('"'+f.name+'" already attached','info'); return; }
-                        wvFiles.push(f);
-                    });
-                    wvUpdateFP();
-                }
-                function wvClearAllFiles() { wvFiles=[]; var fi=document.getElementById('wvFileInput'); if(fi) fi.value=''; wvUpdateFP(); }
-                function wvUpdateFP() {
-                    var c=document.getElementById('wvSelectedFilesPreview'), l=document.getElementById('wvFilesPreviewList'), n=document.getElementById('wvFileCount');
-                    if(!c||!l||!n) return;
-                    l.innerHTML='';
-                    if (wvFiles.length===0){ c.style.display='none'; return; }
-                    c.style.display='block'; n.textContent=wvFiles.length;
-                    wvFiles.forEach(function(f,i){
-                        var d=document.createElement('div');
-                        d.style.cssText='display:flex;align-items:center;padding:8px;background:white;border-radius:8px;margin-bottom:6px;border:1px solid #e9ecef;';
-                        d.innerHTML='<div style="flex-grow:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+f.name+'</div><button type="button" class="btn btn-sm btn-link text-danger p-1" onclick="wvRemoveFile('+i+')"><i class="fas fa-times-circle"></i></button>';
-                        l.appendChild(d);
-                    });
-                }
-                function wvRemoveFile(i) { wvFiles.splice(i,1); wvUpdateFP(); }
-            </script>
-
-        </div><!-- /.writer-view-pane -->
-
-    </div><!-- /.tab-content -->
+        </div>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
