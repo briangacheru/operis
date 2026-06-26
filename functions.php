@@ -3,65 +3,62 @@ function email_exists($email)
 {
     global $con;
 
-    $sql = "SELECT id FROM tblwriters WHERE email = '$email'";
-
-    $result = $con->query($sql);
-
-    if($result->num_rows == 1 ) {
-        return true;
-    } else {
-        return false;
-    }
+    $stmt = $con->prepare("SELECT id FROM tblwriters WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $stmt->store_result();
+    $exists = $stmt->num_rows === 1;
+    $stmt->close();
+    return $exists;
 }
+
 function username_exists($username)
 {
     global $con;
 
-    $sql = "SELECT id FROM tblwriters WHERE username = '$username'";
-
-    $result = $con->query($sql);
-
-    if($result->num_rows == 1 ) {
-        return true;
-    } else {
-        return false;
-    }
+    $stmt = $con->prepare("SELECT id FROM tblwriters WHERE username = ?");
+    $stmt->bind_param("s", $username);
+    $stmt->execute();
+    $stmt->store_result();
+    $exists = $stmt->num_rows === 1;
+    $stmt->close();
+    return $exists;
 }
 
 function get_name($email) {
     global $con;
 
-    $sql = "SELECT username FROM tbladmin WHERE email = '$email'";
-
-    $result = $con->query($sql);
-
+    $stmt = $con->prepare("SELECT username FROM tbladmin WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
     $row = $result->fetch_assoc();
-
-    return $row["username"];
+    $stmt->close();
+    return $row["username"] ?? null;
 }
 
 function get_email($email) {
     global $con;
 
-    $sql = "SELECT email FROM tbladmin WHERE email = '$email'";
-
-    $result = $con->query($sql);
-
+    $stmt = $con->prepare("SELECT email FROM tbladmin WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
     $row = $result->fetch_assoc();
-
-    return $row["email"];
+    $stmt->close();
+    return $row["email"] ?? null;
 }
 
 function get_picture($email) {
     global $con;
 
-    $sql = "SELECT profile_picture FROM tbladmin WHERE email = '$email'";
-
-    $result = $con->query($sql);
-
+    $stmt = $con->prepare("SELECT profile_picture FROM tbladmin WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
     $row = $result->fetch_assoc();
-
-    return $row["profile_picture"];
+    $stmt->close();
+    return $row["profile_picture"] ?? null;
 }
 
 
@@ -193,13 +190,10 @@ function formatSizeUnits($bytes) {
     return $bytes;
 }
 
-function updateUserStatus($email, $userType, $isOnline) {
+function updateUserStatus($email, $isOnline) {
     global $con;
-    $table = $userType === 'admin' ? 'tblwriters' : 'tblwriters';
-    $lastSeen = $isOnline ? 'NOW()' : 'NOW()';
 
-    $query = "UPDATE $table SET is_online = ?, last_seen = $lastSeen WHERE email = ?";
-    $stmt = $con->prepare($query);
+    $stmt = $con->prepare("UPDATE tblwriters SET is_online = ?, last_seen = NOW() WHERE email = ?");
     $stmt->bind_param("is", $isOnline, $email);
     $stmt->execute();
     $stmt->close();
@@ -209,8 +203,7 @@ function logout() {
 
     if (isset($_SESSION['sessionWriter'])) {
         $email = $_SESSION['sessionWriter'];
-        $userType = 'admin'; // Adjust if necessary
-        updateUserStatus($email, $userType, false);
+        updateUserStatus($email, false);
 
         // Store last page in cookie before destroying session
         if (isset($_SESSION['last_page']) || isset($_SERVER['REQUEST_URI'])) {

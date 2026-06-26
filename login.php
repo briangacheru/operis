@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
 
                 // Update user status to online
-                updateUserStatus($email, 'writer', true);
+                updateUserStatus($email, true);
 
                 $loginMessage = "
                     <div class='alert alert-success alert-dismissible fade show' role='alert'>
