@@ -6,12 +6,7 @@
  * Call via AJAX from the task view page
  */
 
-session_start();
-error_reporting(E_ALL);
-ini_set('error_log', __DIR__ . '/php-errors.log');
-date_default_timezone_set('Africa/Nairobi');
-
-include('../sudo/dbcon.php');
+require_once __DIR__ . '/../includes/bootstrap.php';
 include('../sudo/task-share-helper.php');
 
 header('Content-Type: application/json');

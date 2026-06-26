@@ -1,4 +1,6 @@
 <?php
+// Legacy functions file — only used by sudo/. Root-level pages load includes/Helpers.php via bootstrap.php.
+
 function email_exists($email)
 {
     global $con;

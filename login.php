@@ -4,8 +4,9 @@ $loginMessage = ''; // Initialize a variable to hold the login message
 $loginError = ''; // Initialize a variable to hold the login error message
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
-    $password = $_POST['password']; // Passwords should not be modified before hashing
+    $email    = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
+    $password = $_POST['password'];
+    $remember = isset($_POST['remember']);
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $loginError = "
@@ -14,91 +15,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
             </div>";
     } else {
-        // Prepared statement to avoid SQL injection
-        $sql = "SELECT email, password FROM tblwriters WHERE email = ?";
-        $stmt = $con->prepare($sql);
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $authError = '';
+        if (Auth::login($email, $password, $remember, $authError)) {
+            record_writer_session($con, $email);
 
-        if ($result->num_rows == 1) {
-            $row = $result->fetch_assoc();
-            $hashedPasswordFromDatabase = $row['password'];
+            $redirectUrl = safeRedirectUrl(
+                $_COOKIE['last_page_before_timeout'] ?? $_COOKIE['last_page_before_logout'] ?? 'index.php'
+            );
 
-            if (password_verify($password, $hashedPasswordFromDatabase)) {
-                $_SESSION['sessionWriter'] = $email;
-                require_once 'session_tracker.php';
-                record_writer_session($con, $email);
+            $loginMessage = "
+                <div class='alert alert-success alert-dismissible fade show' role='alert'>
+                <i class='bi bi-check-circle me-1'></i> Login successful. Redirecting!
+                <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
+                </div>";
 
-                if (isset($_POST['remember'])) {
-                    $rememberToken = bin2hex(random_bytes(16));
-                    $hashedRememberToken = password_hash($rememberToken, PASSWORD_DEFAULT);
-                    $updateTokenSql = "UPDATE tblwriters SET remember_token = ? WHERE email = ?";
-                    $stmt = $con->prepare($updateTokenSql);
-                    $stmt->bind_param('ss', $hashedRememberToken, $email);
-                    $stmt->execute();
-
-                    setcookie('rememberme', $rememberToken, time() + 86400, '/', '', true, true);
-                }
-
-                // Update user status to online
-                updateUserStatus($email, true);
-
-                $loginMessage = "
-                    <div class='alert alert-success alert-dismissible fade show' role='alert'>
-                    <i class='bi bi-check-circle me-1'></i> Login successful. Redirecting!
-                    <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
-                    </div>";
-
-                // Determine redirect location
-                $redirectUrl = 'index.php'; // Default redirect
-
-                // Debug: Check what cookies exist
-                error_log("Available cookies: " . print_r($_COOKIE, true));
-
-                // Check for last page cookies
-                if (isset($_COOKIE['last_page_before_timeout'])) {
-                    $redirectUrl = $_COOKIE['last_page_before_timeout'];
-                    setcookie('last_page_before_timeout', '', time() - 420, '/'); // Clear cookie
-                    error_log("Redirecting to timeout page: " . $redirectUrl);
-                } elseif (isset($_COOKIE['last_page_before_logout'])) {
-                    $redirectUrl = $_COOKIE['last_page_before_logout'];
-                    setcookie('last_page_before_logout', '', time() - 420, '/'); // Clear cookie
-                    error_log("Redirecting to logout page: " . $redirectUrl);
-                }
-
-                // Ensure redirect URL is safe - only check for external URLs
-                if (strpos($redirectUrl, 'http://') === 0 || strpos($redirectUrl, 'https://') === 0) {
-                    // Check if it's the same domain
-                    $parsedUrl = parse_url($redirectUrl);
-                    $currentDomain = $_SERVER['HTTP_HOST'];
-                    if ($parsedUrl['host'] !== $currentDomain) {
-                        $redirectUrl = 'index.php'; // Fallback for external URLs
-                    }
-                }
-
-                // Remove any login.php references to avoid loops
-                if (strpos($redirectUrl, 'login.php') !== false) {
-                    $redirectUrl = 'index.php';
-                }
-
-                echo "<script>
-                    console.log('Redirecting to: $redirectUrl');
-                    setTimeout(function(){
-                        window.location.href = '$redirectUrl';
-                    }, 2000);
-                    </script>";
-            } else {
-                $loginError = "
-                    <div class='alert alert-danger alert-dismissible fade show' role='alert'>
-                        <i class='bi bi-exclamation-circle me-1'></i> Incorrect Email or password.
-                        <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
-                    </div>";
-            }
+            $safeUrl = htmlspecialchars($redirectUrl, ENT_QUOTES, 'UTF-8');
+            echo "<script>setTimeout(function(){ window.location.href = '{$safeUrl}'; }, 2000);</script>";
         } else {
             $loginError = "
                 <div class='alert alert-danger alert-dismissible fade show' role='alert'>
-                    <i class='bi bi-exclamation-circle me-1'></i> Incorrect Email or password.
+                    <i class='bi bi-exclamation-circle me-1'></i> " . htmlspecialchars($authError, ENT_QUOTES, 'UTF-8') . "
                     <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
                 </div>";
         }
@@ -209,15 +145,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                     if (!empty($loginMessage)) {
                                         echo "<p>$loginMessage</p>";
                                     }
-                                    // Store the submitted values in session variables
-                                    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                                        $_SESSION['email'] = $_POST['email'];
-                                        $_SESSION['password'] = $_POST['password'];
-                                    }
-
-                                    // Retrieve the submitted values from session variables
-                                    $email = isset($_SESSION['email']) ? $_SESSION['email'] : '';
-                                    $password = isset($_SESSION['password']) ? $_SESSION['password'] : '';
+                                    // Re-populate email on failed submission (never re-populate password).
+                                    $email = $_SERVER['REQUEST_METHOD'] === 'POST'
+                                        ? htmlspecialchars(filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL) ?? '', ENT_QUOTES, 'UTF-8')
+                                        : '';
                                     ?>
                                     <div class="row flex-between-center">
                                         <div class="col-auto">
@@ -226,11 +157,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                     </div>
                                     <form class="needs-validation" novalidate="novalidate" method="post" role="form" action="">
                                         <div class="form-floating mb-3">
-                                            <input class="form-control" id="floatingInput" type="email" placeholder="name@example.com" name="email" value="<?php echo htmlspecialchars($email); ?>" required="required" />
+                                            <input class="form-control" id="floatingInput" type="email" placeholder="name@example.com" name="email" value="<?php echo $email; ?>" required="required" />
                                             <label for="floatingInput">Email address</label>
                                         </div>
                                         <div class="form-floating">
-                                            <input class="form-control" id="floatingPassword" type="password" placeholder="Password" name="password" value="<?php echo htmlspecialchars($password); ?>" required="required" />
+                                            <input class="form-control" id="floatingPassword" type="password" placeholder="Password" name="password" required="required" />
                                             <label for="floatingPassword">Password</label>
                                         </div>
                                         <div class="form-check form-switch mb-2">

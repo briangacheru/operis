@@ -1,79 +1,14 @@
 <?php
-session_start();
-error_reporting(E_ALL);
-date_default_timezone_set('Africa/Nairobi');
-include('dbcon.php');
+require_once __DIR__ . '/includes/bootstrap.php';
 
 if (isset($_REQUEST['logout'])) {
-    // Store current page before logout
-    $lastPage = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'index.php';
-
-    // Debug logging
-    error_log("Logout - storing last page: " . $lastPage);
-
-    $cookieSet = setcookie('last_page_before_logout', $lastPage, time() + 600, '/', '', false, false);
-    error_log("Logout - cookie set: " . ($cookieSet ? 'true' : 'false'));
-
-    // Update is_online and last_seen before logging out
-    if (isset($_SESSION['sessionWriter'])) {
-        $userEmail = $_SESSION['sessionWriter'];
-        $lastSeen = gmdate('Y-m-d H:i:s');
-
-        $updateStatusSql = "UPDATE tblwriters SET is_online = 0, last_seen = ? WHERE email = ?";
-        $stmt = $con->prepare($updateStatusSql);
-
-        if (!$stmt) {
-            echo "Prepare failed: (" . $con->errno . ") " . $con->error;
-            exit;
-        }
-
-        $stmt->bind_param('ss', $lastSeen, $userEmail);
-        if (!$stmt->execute()) {
-            echo "Execute failed: (" . $stmt->errno . ") " . $stmt->error;
-            exit;
-        }
-        $stmt->close();
-    }
-
-    // Clear the remember token in the database if it's set
-    if (isset($_COOKIE['rememberme'])) {
-        if (isset($_SESSION['sessionWriter'])) {
-            $updateTokenSql = "UPDATE tblwriters SET remember_token = NULL WHERE email = ?";
-            $stmt = $con->prepare($updateTokenSql);
-
-            if (!$stmt) {
-                echo "Prepare failed: (" . $con->errno . ") " . $con->error;
-                exit;
-            }
-
-            $stmt->bind_param('s', $userEmail);
-            if (!$stmt->execute()) {
-                echo "Execute failed: (" . $stmt->errno . ") " . $stmt->error;
-                exit;
-            }
-            $stmt->close();
-        }
-
-        // Clear the "Remember Me" cookie
-        setcookie('rememberme', '', time() - 3600, '/', '', isset($_SERVER["HTTPS"]), true);
-    }
-
-    require_once 'session_tracker.php';
     $sid = session_id();
-    if ($delSess = $con->prepare("DELETE FROM tblwriter_sessions WHERE session_id = ?")) {
-        $delSess->bind_param('s', $sid);
-        $delSess->execute();
-        $delSess->close();
-    }
 
-    // Clear all session variables
-    session_unset();
-    session_destroy();
+    Auth::logout();
 
-    // Destroy the PHP session cookie
-    setcookie('PHPSESSID', '', time() - 3600, '/', '', isset($_SERVER["HTTPS"]), true);
+    // Remove the session row so the device list stays accurate.
+    $db->query("DELETE FROM tblwriter_sessions WHERE session_id = ?", "s", $sid);
 
-    // Redirect to the login page
     header('Location: login.php?logout=1');
     exit();
 }
