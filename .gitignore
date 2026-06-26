@@ -1,0 +1,9 @@
+# Local secrets — never commit real credentials
+.env
+.env.local
+spaces-config.local.php
+sudo/spaces-config.local.php
+
+# PHP error logs
+php-errors.log
+sudo/php-errors.log
