@@ -45,359 +45,397 @@ function getSetting($key, $default = '') {
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 // Handle AJAX requests
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-        header('Content-Type: application/json');
-    
-        switch ($_POST['action']) {
-            case 'add_reminder':
-                $title = sanitize($_POST['title']);
-                $description = sanitize($_POST['description']);
-                $advance_notification = (int)$_POST['advance_notification'];
-                $email_frequency = $_POST['email_frequency'];
-                $priority = $_POST['priority'];
-                $category = sanitize($_POST['category']);
-                $reminder_type = $_POST['reminder_type'];
-    
-                try {
-                    $dbh->beginTransaction();
-    
-                    if ($reminder_type === 'multiple_days') {
-                        // Handle multiple days selection
-                        $selected_dates = json_decode($_POST['selected_dates'], true);
-                        $reminder_time = $_POST['reminder_time']; // This should be set by JavaScript
-    
-                        if (empty($selected_dates)) {
-                            throw new Exception('Please select at least one date');
-                        }
-    
-                        foreach ($selected_dates as $date) {
-                            $stmt = $dbh->prepare('INSERT INTO reminders (title, description, reminder_date, reminder_time, advance_notification, email_frequency, priority, category, is_recurring) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)');
-                            $stmt->execute([$title, $description, $date, $reminder_time, $advance_notification, $email_frequency, $priority, $category]);
-                        }
-    
-                        $message = 'Reminder added for ' . count($selected_dates) . ' days!';
-    
-                    } elseif ($reminder_type === 'recurring') {
-                        // Handle recurring reminders
-                        $reminder_date = $_POST['reminder_date'];
-                        $reminder_time = $_POST['reminder_time']; // This should be set by JavaScript
-                        $recurring_days = (int)$_POST['recurring_days'];
-                        $end_date = $_POST['end_date'] ?: null;
-    
-                        $stmt = $dbh->prepare('INSERT INTO reminders (title, description, reminder_date, reminder_time, is_recurring, recurring_days, end_date, advance_notification, email_frequency, priority, category) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)');
-                        $stmt->execute([$title, $description, $reminder_date, $reminder_time, $recurring_days, $end_date, $advance_notification, $email_frequency, $priority, $category]);
-    
-                        $reminder_id = $dbh->lastInsertId();
-    
-                        // Generate recurring instances
-                        if ($recurring_days > 0) {
-                            $current_date = new DateTime($reminder_date);
-                            $end_date_obj = $end_date ? new DateTime($end_date) : new DateTime('+1 year');
-    
-                            while ($current_date <= $end_date_obj) {
-                                $stmt = $dbh->prepare('INSERT INTO reminder_instances (reminder_id, instance_date, instance_time) VALUES (?, ?, ?)');
-                                $stmt->execute([$reminder_id, $current_date->format('Y-m-d'), $reminder_time]);
-                                $current_date->add(new DateInterval('P' . $recurring_days . 'D'));
-                            }
-                        }
-    
-                        $message = 'Recurring reminder added!';
-    
-                    } else {
-                        // Handle single day reminder
-                        $reminder_date = $_POST['reminder_date'];
-                        $reminder_time = $_POST['reminder_time']; // This should be set by JavaScript from single_time field
-    
-                        $stmt = $dbh->prepare('INSERT INTO reminders (title, description, reminder_date, reminder_time, advance_notification, email_frequency, priority, category, is_recurring) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)');
-                        $stmt->execute([$title, $description, $reminder_date, $reminder_time, $advance_notification, $email_frequency, $priority, $category]);
-    
-                        $message = 'Reminder added!';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    header('Content-Type: application/json');
+
+    switch ($_POST['action']) {
+        case 'add_reminder':
+            $title = sanitize($_POST['title']);
+            $description = sanitize($_POST['description']);
+            $advance_notification = (int)$_POST['advance_notification'];
+            $email_frequency = $_POST['email_frequency'];
+            $priority = $_POST['priority'];
+            $category = sanitize($_POST['category']);
+            $reminder_type = $_POST['reminder_type'];
+
+            try {
+                $dbh->beginTransaction();
+
+                if ($reminder_type === 'multiple_days') {
+                    // Handle multiple days selection
+                    $selected_dates = json_decode($_POST['selected_dates'], true);
+                    $reminder_time = $_POST['reminder_time']; // This should be set by JavaScript
+
+                    if (empty($selected_dates)) {
+                        throw new Exception('Please select at least one date');
                     }
-    
-                    $dbh->commit();
-                    echo json_encode(['success' => true, 'message' => $message]);
-    
-                } catch (Exception $e) {
-                    $dbh->rollBack();
-                    echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+
+                    foreach ($selected_dates as $date) {
+                        $stmt = $dbh->prepare('INSERT INTO reminders (title, description, reminder_date, reminder_time, advance_notification, email_frequency, priority, category, is_recurring) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)');
+                        $stmt->execute([$title, $description, $date, $reminder_time, $advance_notification, $email_frequency, $priority, $category]);
+                    }
+
+                    $message = 'Reminder added for ' . count($selected_dates) . ' days!';
+
+                } elseif ($reminder_type === 'recurring') {
+                    // Handle recurring reminders
+                    $reminder_date = $_POST['reminder_date'];
+                    $reminder_time = $_POST['reminder_time']; // This should be set by JavaScript
+                    $recurring_days = (int)$_POST['recurring_days'];
+                    $end_date = $_POST['end_date'] ?: null;
+
+                    $stmt = $dbh->prepare('INSERT INTO reminders (title, description, reminder_date, reminder_time, is_recurring, recurring_days, end_date, advance_notification, email_frequency, priority, category) VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)');
+                    $stmt->execute([$title, $description, $reminder_date, $reminder_time, $recurring_days, $end_date, $advance_notification, $email_frequency, $priority, $category]);
+
+                    $reminder_id = $dbh->lastInsertId();
+
+                    // Generate recurring instances
+                    if ($recurring_days > 0) {
+                        $current_date = new DateTime($reminder_date);
+                        $end_date_obj = $end_date ? new DateTime($end_date) : new DateTime('+1 year');
+
+                        while ($current_date <= $end_date_obj) {
+                            $stmt = $dbh->prepare('INSERT INTO reminder_instances (reminder_id, instance_date, instance_time) VALUES (?, ?, ?)');
+                            $stmt->execute([$reminder_id, $current_date->format('Y-m-d'), $reminder_time]);
+                            $current_date->add(new DateInterval('P' . $recurring_days . 'D'));
+                        }
+                    }
+
+                    $message = 'Recurring reminder added!';
+
+                } else {
+                    // Handle single day reminder
+                    $reminder_date = $_POST['reminder_date'];
+                    $reminder_time = $_POST['reminder_time']; // This should be set by JavaScript from single_time field
+
+                    $stmt = $dbh->prepare('INSERT INTO reminders (title, description, reminder_date, reminder_time, advance_notification, email_frequency, priority, category, is_recurring) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)');
+                    $stmt->execute([$title, $description, $reminder_date, $reminder_time, $advance_notification, $email_frequency, $priority, $category]);
+
+                    $message = 'Reminder added!';
                 }
-                exit;
-    
-            case 'complete_reminder':
+
+                $dbh->commit();
+                echo json_encode(['success' => true, 'message' => $message]);
+
+            } catch (Exception $e) {
+                $dbh->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+            }
+            exit;
+
+        case 'complete_reminder':
+            $id = (int)$_POST['id'];
+            $stmt = $dbh->prepare('UPDATE reminders SET is_completed = 1 WHERE id = ?');
+            $stmt->execute([$id]);
+            echo json_encode(['success' => true]);
+            exit;
+
+        case 'quick_add_reminder':
+            // Lightweight inline add: title + date + time + category only
+            try {
+                $title = sanitize($_POST['title']);
+                if ($title === '') {
+                    throw new Exception('Title is required');
+                }
+                $reminder_date = $_POST['reminder_date'] ?: date('Y-m-d');
+                $reminder_time = $_POST['reminder_time'] ?: '09:00';
+                $category = sanitize($_POST['category'] ?? 'general');
+                $priority = $_POST['priority'] ?? 'medium';
+
+                $stmt = $dbh->prepare('INSERT INTO reminders (title, description, reminder_date, reminder_time, advance_notification, email_frequency, priority, category, is_recurring) VALUES (?, "", ?, ?, 0, "none", ?, ?, 0)');
+                $stmt->execute([$title, $reminder_date, $reminder_time, $priority, $category]);
+                $newId = $dbh->lastInsertId();
+
+                echo json_encode(['success' => true, 'id' => $newId, 'message' => 'Reminder added!']);
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            }
+            exit;
+
+        case 'reschedule_reminder':
+            // For drag-to-reschedule from the list
+            try {
                 $id = (int)$_POST['id'];
-                $stmt = $dbh->prepare('UPDATE reminders SET is_completed = 1 WHERE id = ?');
-                $stmt->execute([$id]);
-                echo json_encode(['success' => true]);
-                exit;
-    
-            case 'get_reminder':
-                $id = (int)$_POST['id'];
+                $new_date = $_POST['new_date'];
+                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $new_date)) {
+                    throw new Exception('Invalid date');
+                }
+                $stmt = $dbh->prepare('UPDATE reminders SET reminder_date = ? WHERE id = ?');
+                $stmt->execute([$new_date, $id]);
+                echo json_encode(['success' => true, 'message' => 'Rescheduled!']);
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            }
+            exit;
+
+        case 'get_reminder':
+            $id = (int)$_POST['id'];
+            $stmt = $dbh->prepare('SELECT * FROM reminders WHERE id = ?');
+            $stmt->execute([$id]);
+            $reminder = $stmt->fetch();
+
+            // If it's a recurring reminder, get related instances
+            $instances = [];
+            if ($reminder && $reminder['is_recurring']) {
+                $instanceStmt = $dbh->prepare('SELECT * FROM reminder_instances WHERE reminder_id = ? ORDER BY instance_date ASC');
+                $instanceStmt->execute([$id]);
+                $instances = $instanceStmt->fetchAll();
+            }
+
+            echo json_encode([
+                'success' => true,
+                'reminder' => $reminder,
+                'instances' => $instances
+            ]);
+            exit;
+
+        case 'check_multiple_days':
+            $title = sanitize($_POST['title']);
+            $time = $_POST['time'];
+            $category = sanitize($_POST['category']);
+            $exclude_id = (int)$_POST['exclude_id'];
+
+            $stmt = $dbh->prepare('SELECT COUNT(*) FROM reminders WHERE title = ? AND reminder_time = ? AND category = ? AND id != ? AND is_recurring = 0');
+            $stmt->execute([$title, $time, $category, $exclude_id]);
+            $count = $stmt->fetchColumn();
+
+            echo json_encode(['success' => true, 'count' => $count]);
+            exit;
+
+        case 'update_reminder':
+            $id = (int)$_POST['id'];
+            $title = sanitize($_POST['title']);
+            $description = sanitize($_POST['description']);
+            $reminder_date = $_POST['reminder_date'];
+            $reminder_time = $_POST['reminder_time'];
+            $priority = $_POST['priority'];
+            $category = sanitize($_POST['category']);
+            $advance_notification = (int)$_POST['advance_notification'];
+            $email_frequency = $_POST['email_frequency'];
+
+            try {
+                $dbh->beginTransaction();
+
+                // First, get the current reminder to check its type
                 $stmt = $dbh->prepare('SELECT * FROM reminders WHERE id = ?');
                 $stmt->execute([$id]);
-                $reminder = $stmt->fetch();
-    
-                // If it's a recurring reminder, get related instances
-                $instances = [];
-                if ($reminder && $reminder['is_recurring']) {
-                    $instanceStmt = $dbh->prepare('SELECT * FROM reminder_instances WHERE reminder_id = ? ORDER BY instance_date ASC');
-                    $instanceStmt->execute([$id]);
-                    $instances = $instanceStmt->fetchAll();
+                $current_reminder = $stmt->fetch();
+
+                if (!$current_reminder) {
+                    throw new Exception('Reminder not found');
                 }
-    
-                echo json_encode([
-                    'success' => true,
-                    'reminder' => $reminder,
-                    'instances' => $instances
-                ]);
-                exit;
-    
-            case 'check_multiple_days':
-                $title = sanitize($_POST['title']);
-                $time = $_POST['time'];
-                $category = sanitize($_POST['category']);
-                $exclude_id = (int)$_POST['exclude_id'];
-    
-                $stmt = $dbh->prepare('SELECT COUNT(*) FROM reminders WHERE title = ? AND reminder_time = ? AND category = ? AND id != ? AND is_recurring = 0');
-                $stmt->execute([$title, $time, $category, $exclude_id]);
-                $count = $stmt->fetchColumn();
-    
-                echo json_encode(['success' => true, 'count' => $count]);
-                exit;
-    
-            case 'update_reminder':
-                $id = (int)$_POST['id'];
-                $title = sanitize($_POST['title']);
-                $description = sanitize($_POST['description']);
-                $reminder_date = $_POST['reminder_date'];
-                $reminder_time = $_POST['reminder_time'];
-                $priority = $_POST['priority'];
-                $category = sanitize($_POST['category']);
-                $advance_notification = (int)$_POST['advance_notification'];
-                $email_frequency = $_POST['email_frequency'];
-    
-                try {
-                    $dbh->beginTransaction();
-    
-                    // First, get the current reminder to check its type
-                    $stmt = $dbh->prepare('SELECT * FROM reminders WHERE id = ?');
-                    $stmt->execute([$id]);
-                    $current_reminder = $stmt->fetch();
-    
-                    if (!$current_reminder) {
-                        throw new Exception('Reminder not found');
-                    }
-    
-                    // Check if this is a recurring reminder
-                    if ($current_reminder['is_recurring']) {
-                        $dbh->rollBack();
-                        echo json_encode([
-                            'success' => false,
-                            'message' => 'This is a recurring reminder. Please use the recurring reminder update function.',
-                            'reminder_type' => 'recurring'
-                        ]);
-                        exit;
-                    }
-    
-                    // Check if this is part of a multiple-day reminder set
-                    $stmt = $dbh->prepare('
+
+                // Check if this is a recurring reminder
+                if ($current_reminder['is_recurring']) {
+                    $dbh->rollBack();
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'This is a recurring reminder. Please use the recurring reminder update function.',
+                        'reminder_type' => 'recurring'
+                    ]);
+                    exit;
+                }
+
+                // Check if this is part of a multiple-day reminder set
+                $stmt = $dbh->prepare('
                 SELECT COUNT(*) as count FROM reminders 
                 WHERE title = ? 
                 AND reminder_time = ? 
                 AND is_recurring = 0 
                 AND ABS(TIMESTAMPDIFF(SECOND, created_at, ?)) <= 60
             ');
-                    $stmt->execute([
-                        $current_reminder['title'],
-                        $current_reminder['reminder_time'],
-                        $current_reminder['created_at']
+                $stmt->execute([
+                    $current_reminder['title'],
+                    $current_reminder['reminder_time'],
+                    $current_reminder['created_at']
+                ]);
+                $related_count = $stmt->fetchColumn();
+
+                if ($related_count > 1) {
+                    $dbh->rollBack();
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'This is part of a multiple-day reminder set. Please use the multiple-day reminder update function.',
+                        'reminder_type' => 'multiple_days'
                     ]);
-                    $related_count = $stmt->fetchColumn();
-    
-                    if ($related_count > 1) {
-                        $dbh->rollBack();
-                        echo json_encode([
-                            'success' => false,
-                            'message' => 'This is part of a multiple-day reminder set. Please use the multiple-day reminder update function.',
-                            'reminder_type' => 'multiple_days'
-                        ]);
-                        exit;
-                    }
-    
-                    // This is a single reminder, proceed with update
-                    $stmt = $dbh->prepare('
+                    exit;
+                }
+
+                // This is a single reminder, proceed with update
+                $stmt = $dbh->prepare('
                 UPDATE reminders 
                 SET title = ?, description = ?, reminder_date = ?, reminder_time = ?, 
                     priority = ?, category = ?, advance_notification = ?, email_frequency = ?, 
                     updated_at = NOW() 
                 WHERE id = ? AND is_recurring = 0
             ');
-    
-                    $result = $stmt->execute([
-                        $title, $description, $reminder_date, $reminder_time,
-                        $priority, $category, $advance_notification, $email_frequency, $id
-                    ]);
-    
-                    if ($stmt->rowCount() === 0) {
-                        throw new Exception('No reminder was updated. Please check if the reminder exists and is not recurring.');
-                    }
-    
-                    $dbh->commit();
-                    echo json_encode([
-                        'success' => true,
-                        'message' => 'Single reminder updated!',
-                        'reminder_type' => 'single'
-                    ]);
-    
-                } catch (Exception $e) {
-                    $dbh->rollBack();
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'Error: ' . $e->getMessage()
-                    ]);
+
+                $result = $stmt->execute([
+                    $title, $description, $reminder_date, $reminder_time,
+                    $priority, $category, $advance_notification, $email_frequency, $id
+                ]);
+
+                if ($stmt->rowCount() === 0) {
+                    throw new Exception('No reminder was updated. Please check if the reminder exists and is not recurring.');
                 }
+
+                $dbh->commit();
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Single reminder updated!',
+                    'reminder_type' => 'single'
+                ]);
+
+            } catch (Exception $e) {
+                $dbh->rollBack();
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Error: ' . $e->getMessage()
+                ]);
+            }
+            exit;
+
+        case 'update_recurring_reminder':
+            $id = (int)$_POST['id'];
+            $title = sanitize($_POST['title']);
+            $description = sanitize($_POST['description']);
+            $reminder_date = $_POST['reminder_date'] ?? $_POST['recurring_start_date']; // Handle both field names
+            $reminder_time = $_POST['reminder_time'] ?? $_POST['recurring_time']; // Handle both field names
+            $priority = $_POST['priority'];
+            $category = sanitize($_POST['category']);
+            $advance_notification = (int)$_POST['advance_notification'];
+            $email_frequency = $_POST['email_frequency'];
+            $recurring_days = (int)$_POST['recurring_days'];
+            $end_date = $_POST['end_date'] ?: null;
+
+            try {
+                $dbh->beginTransaction();
+
+                // Update the main recurring reminder
+                $stmt = $dbh->prepare('UPDATE reminders SET title = ?, description = ?, reminder_date = ?, reminder_time = ?, priority = ?, category = ?, advance_notification = ?, email_frequency = ?, recurring_days = ?, end_date = ? WHERE id = ?');
+                $stmt->execute([$title, $description, $reminder_date, $reminder_time, $priority, $category, $advance_notification, $email_frequency, $recurring_days, $end_date, $id]);
+
+                // Delete existing instances
+                $stmt = $dbh->prepare('DELETE FROM reminder_instances WHERE reminder_id = ?');
+                $stmt->execute([$id]);
+
+                // Regenerate instances with new settings
+                if ($recurring_days > 0) {
+                    $current_date = new DateTime($reminder_date);
+                    $end_date_obj = $end_date ? new DateTime($end_date) : new DateTime('+1 year');
+
+                    while ($current_date <= $end_date_obj) {
+                        $stmt = $dbh->prepare('INSERT INTO reminder_instances (reminder_id, instance_date, instance_time) VALUES (?, ?, ?)');
+                        $stmt->execute([$id, $current_date->format('Y-m-d'), $reminder_time]);
+                        $current_date->add(new DateInterval('P' . $recurring_days . 'D'));
+                    }
+                }
+
+                $dbh->commit();
+                echo json_encode(['success' => true, 'message' => 'Recurring reminder updated!']);
+            } catch (Exception $e) {
+                $dbh->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+            }
+            exit;
+
+        case 'update_multiple_days_reminder':
+            $id = (int)$_POST['id'];
+            $title = sanitize($_POST['title']);
+            $description = sanitize($_POST['description']);
+            $reminder_time = $_POST['reminder_time'];
+            $priority = $_POST['priority'];
+            $category = sanitize($_POST['category']);
+            $advance_notification = (int)$_POST['advance_notification'];
+            $email_frequency = $_POST['email_frequency'];
+            $selected_dates = json_decode($_POST['selected_dates'], true);
+
+            if (empty($selected_dates)) {
+                echo json_encode(['success' => false, 'message' => 'Please select at least one date']);
                 exit;
-    
-            case 'update_recurring_reminder':
-                $id = (int)$_POST['id'];
-                $title = sanitize($_POST['title']);
-                $description = sanitize($_POST['description']);
-                $reminder_date = $_POST['reminder_date'] ?? $_POST['recurring_start_date']; // Handle both field names
-                $reminder_time = $_POST['reminder_time'] ?? $_POST['recurring_time']; // Handle both field names
-                $priority = $_POST['priority'];
-                $category = sanitize($_POST['category']);
-                $advance_notification = (int)$_POST['advance_notification'];
-                $email_frequency = $_POST['email_frequency'];
-                $recurring_days = (int)$_POST['recurring_days'];
-                $end_date = $_POST['end_date'] ?: null;
-    
-                try {
-                    $dbh->beginTransaction();
-    
-                    // Update the main recurring reminder
-                    $stmt = $dbh->prepare('UPDATE reminders SET title = ?, description = ?, reminder_date = ?, reminder_time = ?, priority = ?, category = ?, advance_notification = ?, email_frequency = ?, recurring_days = ?, end_date = ? WHERE id = ?');
-                    $stmt->execute([$title, $description, $reminder_date, $reminder_time, $priority, $category, $advance_notification, $email_frequency, $recurring_days, $end_date, $id]);
-    
-                    // Delete existing instances
-                    $stmt = $dbh->prepare('DELETE FROM reminder_instances WHERE reminder_id = ?');
-                    $stmt->execute([$id]);
-    
-                    // Regenerate instances with new settings
-                    if ($recurring_days > 0) {
-                        $current_date = new DateTime($reminder_date);
-                        $end_date_obj = $end_date ? new DateTime($end_date) : new DateTime('+1 year');
-    
-                        while ($current_date <= $end_date_obj) {
-                            $stmt = $dbh->prepare('INSERT INTO reminder_instances (reminder_id, instance_date, instance_time) VALUES (?, ?, ?)');
-                            $stmt->execute([$id, $current_date->format('Y-m-d'), $reminder_time]);
-                            $current_date->add(new DateInterval('P' . $recurring_days . 'D'));
-                        }
-                    }
-    
-                    $dbh->commit();
-                    echo json_encode(['success' => true, 'message' => 'Recurring reminder updated!']);
-                } catch (Exception $e) {
-                    $dbh->rollBack();
-                    echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+            }
+
+            try {
+                $dbh->beginTransaction();
+
+                // Get all reminders that belong to this multiple-day group
+                // We'll use the original reminder's title and creation time to identify the group
+                $stmt = $dbh->prepare('SELECT * FROM reminders WHERE id = ?');
+                $stmt->execute([$id]);
+                $original_reminder = $stmt->fetch();
+
+                if (!$original_reminder) {
+                    throw new Exception('Reminder not found');
                 }
-                exit;
-    
-            case 'update_multiple_days_reminder':
-                $id = (int)$_POST['id'];
-                $title = sanitize($_POST['title']);
-                $description = sanitize($_POST['description']);
-                $reminder_time = $_POST['reminder_time'];
-                $priority = $_POST['priority'];
-                $category = sanitize($_POST['category']);
-                $advance_notification = (int)$_POST['advance_notification'];
-                $email_frequency = $_POST['email_frequency'];
-                $selected_dates = json_decode($_POST['selected_dates'], true);
-    
-                if (empty($selected_dates)) {
-                    echo json_encode(['success' => false, 'message' => 'Please select at least one date']);
-                    exit;
-                }
-    
-                try {
-                    $dbh->beginTransaction();
-    
-                    // Get all reminders that belong to this multiple-day group
-                    // We'll use the original reminder's title and creation time to identify the group
-                    $stmt = $dbh->prepare('SELECT * FROM reminders WHERE id = ?');
-                    $stmt->execute([$id]);
-                    $original_reminder = $stmt->fetch();
-    
-                    if (!$original_reminder) {
-                        throw new Exception('Reminder not found');
-                    }
-    
-                    // Find all reminders with the same title, time, and similar creation time (within 1 minute)
-                    // This helps identify reminders that were created together as a multiple-day set
-                    $stmt = $dbh->prepare('
+
+                // Find all reminders with the same title, time, and similar creation time (within 1 minute)
+                // This helps identify reminders that were created together as a multiple-day set
+                $stmt = $dbh->prepare('
                 SELECT id FROM reminders 
                 WHERE title = ? 
                 AND reminder_time = ? 
                 AND is_recurring = 0 
                 AND ABS(TIMESTAMPDIFF(SECOND, created_at, ?)) <= 60
             ');
-                    $stmt->execute([
-                        $original_reminder['title'],
-                        $original_reminder['reminder_time'],
-                        $original_reminder['created_at']
-                    ]);
-                    $related_reminders = $stmt->fetchAll(PDO::FETCH_COLUMN);
-    
-                    // Delete all related reminders
-                    if (!empty($related_reminders)) {
-                        $placeholders = str_repeat('?,', count($related_reminders) - 1) . '?';
-                        $stmt = $dbh->prepare("DELETE FROM reminders WHERE id IN ($placeholders)");
-                        $stmt->execute($related_reminders);
-                    }
-    
-                    // Create new reminders for selected dates
-                    foreach ($selected_dates as $date) {
-                        $stmt = $dbh->prepare('INSERT INTO reminders (title, description, reminder_date, reminder_time, advance_notification, email_frequency, priority, category, is_recurring, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())');
-                        $stmt->execute([$title, $description, $date, $reminder_time, $advance_notification, $email_frequency, $priority, $category]);
-                    }
-    
-                    $dbh->commit();
-                    echo json_encode(['success' => true, 'message' => 'Multiple-day reminder updated!']);
-                } catch (Exception $e) {
-                    $dbh->rollBack();
-                    echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+                $stmt->execute([
+                    $original_reminder['title'],
+                    $original_reminder['reminder_time'],
+                    $original_reminder['created_at']
+                ]);
+                $related_reminders = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+                // Delete all related reminders
+                if (!empty($related_reminders)) {
+                    $placeholders = str_repeat('?,', count($related_reminders) - 1) . '?';
+                    $stmt = $dbh->prepare("DELETE FROM reminders WHERE id IN ($placeholders)");
+                    $stmt->execute($related_reminders);
                 }
-                exit;
-    
-            case 'get_reminder_details':
-                $id = (int)$_POST['id'];
-    
-                try {
-                    // Get the main reminder
-                    $stmt = $dbh->prepare('SELECT * FROM reminders WHERE id = ?');
+
+                // Create new reminders for selected dates
+                foreach ($selected_dates as $date) {
+                    $stmt = $dbh->prepare('INSERT INTO reminders (title, description, reminder_date, reminder_time, advance_notification, email_frequency, priority, category, is_recurring, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())');
+                    $stmt->execute([$title, $description, $date, $reminder_time, $advance_notification, $email_frequency, $priority, $category]);
+                }
+
+                $dbh->commit();
+                echo json_encode(['success' => true, 'message' => 'Multiple-day reminder updated!']);
+            } catch (Exception $e) {
+                $dbh->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+            }
+            exit;
+
+        case 'get_reminder_details':
+            $id = (int)$_POST['id'];
+
+            try {
+                // Get the main reminder
+                $stmt = $dbh->prepare('SELECT * FROM reminders WHERE id = ?');
+                $stmt->execute([$id]);
+                $reminder = $stmt->fetch();
+
+                if (!$reminder) {
+                    echo json_encode(['success' => false, 'message' => 'Reminder not found']);
+                    exit;
+                }
+
+                $response = [
+                    'success' => true,
+                    'reminder' => $reminder,
+                    'type' => 'single'
+                ];
+
+                // Check if it's a recurring reminder
+                if ($reminder['is_recurring']) {
+                    $response['type'] = 'recurring';
+
+                    // Get instances
+                    $stmt = $dbh->prepare('SELECT * FROM reminder_instances WHERE reminder_id = ? ORDER BY instance_date ASC');
                     $stmt->execute([$id]);
-                    $reminder = $stmt->fetch();
-    
-                    if (!$reminder) {
-                        echo json_encode(['success' => false, 'message' => 'Reminder not found']);
-                        exit;
-                    }
-    
-                    $response = [
-                        'success' => true,
-                        'reminder' => $reminder,
-                        'type' => 'single'
-                    ];
-    
-                    // Check if it's a recurring reminder
-                    if ($reminder['is_recurring']) {
-                        $response['type'] = 'recurring';
-    
-                        // Get instances
-                        $stmt = $dbh->prepare('SELECT * FROM reminder_instances WHERE reminder_id = ? ORDER BY instance_date ASC');
-                        $stmt->execute([$id]);
-                        $response['instances'] = $stmt->fetchAll();
-                    } else {
-                        // Check if it's part of a multiple-day reminder set
-                        $stmt = $dbh->prepare('
+                    $response['instances'] = $stmt->fetchAll();
+                } else {
+                    // Check if it's part of a multiple-day reminder set
+                    $stmt = $dbh->prepare('
                     SELECT id, reminder_date FROM reminders 
                     WHERE title = ? 
                     AND reminder_time = ? 
@@ -405,41 +443,41 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
                     AND ABS(TIMESTAMPDIFF(SECOND, created_at, ?)) <= 60
                     ORDER BY reminder_date ASC
                 ');
-                        $stmt->execute([
-                            $reminder['title'],
-                            $reminder['reminder_time'],
-                            $reminder['created_at']
-                        ]);
-                        $related_reminders = $stmt->fetchAll();
-    
-                        if (count($related_reminders) > 1) {
-                            $response['type'] = 'multiple_days';
-                            $response['related_reminders'] = $related_reminders;
-                            $response['selected_dates'] = array_column($related_reminders, 'reminder_date');
-                        }
+                    $stmt->execute([
+                        $reminder['title'],
+                        $reminder['reminder_time'],
+                        $reminder['created_at']
+                    ]);
+                    $related_reminders = $stmt->fetchAll();
+
+                    if (count($related_reminders) > 1) {
+                        $response['type'] = 'multiple_days';
+                        $response['related_reminders'] = $related_reminders;
+                        $response['selected_dates'] = array_column($related_reminders, 'reminder_date');
                     }
-    
-                    echo json_encode($response);
-                } catch (Exception $e) {
-                    echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
                 }
-                exit;
-    
-            case 'check_multiple_days_reminder':
-                $id = (int)$_POST['id'];
-    
-                try {
-                    $stmt = $dbh->prepare('SELECT * FROM reminders WHERE id = ?');
-                    $stmt->execute([$id]);
-                    $reminder = $stmt->fetch();
-    
-                    if (!$reminder) {
-                        echo json_encode(['success' => false, 'message' => 'Reminder not found']);
-                        exit;
-                    }
-    
-                    // Check for related reminders (multiple days)
-                    $stmt = $dbh->prepare('
+
+                echo json_encode($response);
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+            }
+            exit;
+
+        case 'check_multiple_days_reminder':
+            $id = (int)$_POST['id'];
+
+            try {
+                $stmt = $dbh->prepare('SELECT * FROM reminders WHERE id = ?');
+                $stmt->execute([$id]);
+                $reminder = $stmt->fetch();
+
+                if (!$reminder) {
+                    echo json_encode(['success' => false, 'message' => 'Reminder not found']);
+                    exit;
+                }
+
+                // Check for related reminders (multiple days)
+                $stmt = $dbh->prepare('
                 SELECT id, reminder_date FROM reminders 
                 WHERE title = ? 
                 AND reminder_time = ? 
@@ -447,81 +485,81 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
                 AND ABS(TIMESTAMPDIFF(SECOND, created_at, ?)) <= 60
                 ORDER BY reminder_date ASC
             ');
-                    $stmt->execute([
-                        $reminder['title'],
-                        $reminder['reminder_time'],
-                        $reminder['created_at']
-                    ]);
-                    $related_reminders = $stmt->fetchAll();
-    
-                    echo json_encode([
-                        'success' => true,
-                        'is_multiple_days' => count($related_reminders) > 1,
-                        'related_reminders' => $related_reminders,
-                        'selected_dates' => array_column($related_reminders, 'reminder_date')
-                    ]);
-                } catch (Exception $e) {
-                    echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
-                }
-                exit;
-    
-            case 'dismiss_reminder':
-                $id = (int)$_POST['id'];
-                $stmt = $dbh->prepare('UPDATE reminders SET is_dismissed = 1 WHERE id = ?');
-                $stmt->execute([$id]);
-                echo json_encode(['success' => true]);
-                exit;
-    
-            case 'dismiss_reminder_instance':
-                $instance_id = (int)$_POST['instance_id'];
-                $stmt = $dbh->prepare('UPDATE reminder_instances SET is_dismissed = 1 WHERE id = ?');
-                $stmt->execute([$instance_id]);
-                echo json_encode(['success' => true, 'message' => 'Reminder instance dismissed!']);
-                exit;
-    
-            case 'restore_reminder':
-                $id = (int)$_POST['id'];
-                $source_type = $_POST['source_type'] ?? 'reminder';
-    
-                if ($source_type === 'instance') {
-                    $instance_id = (int)$_POST['instance_id'];
-                    $stmt = $dbh->prepare('UPDATE reminder_instances SET is_dismissed = 0 WHERE id = ?');
-                    $stmt->execute([$instance_id]);
-                    $message = 'Reminder instance restored!';
-                } else {
-                    $stmt = $dbh->prepare('UPDATE reminders SET is_dismissed = 0 WHERE id = ?');
-                    $stmt->execute([$id]);
-                    $message = 'Reminder restored!';
-                }
-    
-                echo json_encode(['success' => true, 'message' => $message]);
-                exit;
-    
-            case 'complete_reminder_instance':
-                $instance_id = (int)$_POST['instance_id'];
-                $stmt = $dbh->prepare('UPDATE reminder_instances SET is_completed = 1 WHERE id = ?');
-                $stmt->execute([$instance_id]);
-                echo json_encode(['success' => true, 'message' => 'Reminder instance completed!']);
-                exit;
-    
-            case 'delete_reminder':
-                $id = (int)$_POST['id'];
-                $stmt = $dbh->prepare('DELETE FROM reminders WHERE id = ?');
-                $stmt->execute([$id]);
-                echo json_encode(['success' => true]);
-                exit;
-    
-            case 'delete_reminder_instance':
-                $instance_id = (int)$_POST['id'];
-                $stmt = $dbh->prepare('DELETE FROM reminder_instances WHERE id = ?');
-                $stmt->execute([$instance_id]);
-                echo json_encode(['success' => true]);
-                exit;
+                $stmt->execute([
+                    $reminder['title'],
+                    $reminder['reminder_time'],
+                    $reminder['created_at']
+                ]);
+                $related_reminders = $stmt->fetchAll();
 
-            case 'get_calendar_reminders':
-                try {
-                    // Get all reminders and instances for calendar display with category icons
-                    $sql = "
+                echo json_encode([
+                    'success' => true,
+                    'is_multiple_days' => count($related_reminders) > 1,
+                    'related_reminders' => $related_reminders,
+                    'selected_dates' => array_column($related_reminders, 'reminder_date')
+                ]);
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+            }
+            exit;
+
+        case 'dismiss_reminder':
+            $id = (int)$_POST['id'];
+            $stmt = $dbh->prepare('UPDATE reminders SET is_dismissed = 1 WHERE id = ?');
+            $stmt->execute([$id]);
+            echo json_encode(['success' => true]);
+            exit;
+
+        case 'dismiss_reminder_instance':
+            $instance_id = (int)$_POST['instance_id'];
+            $stmt = $dbh->prepare('UPDATE reminder_instances SET is_dismissed = 1 WHERE id = ?');
+            $stmt->execute([$instance_id]);
+            echo json_encode(['success' => true, 'message' => 'Reminder instance dismissed!']);
+            exit;
+
+        case 'restore_reminder':
+            $id = (int)$_POST['id'];
+            $source_type = $_POST['source_type'] ?? 'reminder';
+
+            if ($source_type === 'instance') {
+                $instance_id = (int)$_POST['instance_id'];
+                $stmt = $dbh->prepare('UPDATE reminder_instances SET is_dismissed = 0 WHERE id = ?');
+                $stmt->execute([$instance_id]);
+                $message = 'Reminder instance restored!';
+            } else {
+                $stmt = $dbh->prepare('UPDATE reminders SET is_dismissed = 0 WHERE id = ?');
+                $stmt->execute([$id]);
+                $message = 'Reminder restored!';
+            }
+
+            echo json_encode(['success' => true, 'message' => $message]);
+            exit;
+
+        case 'complete_reminder_instance':
+            $instance_id = (int)$_POST['instance_id'];
+            $stmt = $dbh->prepare('UPDATE reminder_instances SET is_completed = 1 WHERE id = ?');
+            $stmt->execute([$instance_id]);
+            echo json_encode(['success' => true, 'message' => 'Reminder instance completed!']);
+            exit;
+
+        case 'delete_reminder':
+            $id = (int)$_POST['id'];
+            $stmt = $dbh->prepare('DELETE FROM reminders WHERE id = ?');
+            $stmt->execute([$id]);
+            echo json_encode(['success' => true]);
+            exit;
+
+        case 'delete_reminder_instance':
+            $instance_id = (int)$_POST['id'];
+            $stmt = $dbh->prepare('DELETE FROM reminder_instances WHERE id = ?');
+            $stmt->execute([$instance_id]);
+            echo json_encode(['success' => true]);
+            exit;
+
+        case 'get_calendar_reminders':
+            try {
+                // Get all reminders and instances for calendar display with category icons
+                $sql = "
             SELECT 
                 r.id,
                 r.title,
@@ -571,351 +609,398 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
             ORDER BY reminder_date ASC, reminder_time ASC
         ";
 
-                    $stmt = $dbh->prepare($sql);
-                    $stmt->execute();
-                    $reminders = $stmt->fetchAll();
-
-                    echo json_encode([
-                        'success' => true,
-                        'reminders' => $reminders
-                    ]);
-                } catch (Exception $e) {
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'Error fetching calendar reminders: ' . $e->getMessage()
-                    ]);
-                }
-                exit;
-
-            case 'bulk_delete_reminders':
-                try {
-                    $ids = json_decode($_POST['ids'], true);
-                    if (empty($ids) || !is_array($ids)) {
-                        throw new Exception('No reminders selected');
-                    }
-
-                    $dbh->beginTransaction();
-
-                    // First check if these IDs exist in reminder_instances table
-                    $placeholders = str_repeat('?,', count($ids) - 1) . '?';
-                    $stmt = $dbh->prepare("SELECT id FROM reminder_instances WHERE id IN ($placeholders)");
-                    $stmt->execute($ids);
-                    $instance_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-                    // The remaining IDs should be from reminders table
-                    $reminder_ids = array_diff($ids, $instance_ids);
-
-                    // Delete recurring instances from reminder_instances table
-                    if (!empty($instance_ids)) {
-                        $instance_placeholders = str_repeat('?,', count($instance_ids) - 1) . '?';
-                        $stmt = $dbh->prepare("DELETE FROM reminder_instances WHERE id IN ($instance_placeholders)");
-                        $stmt->execute($instance_ids);
-                    }
-
-                    // Delete non-recurring reminders from reminders table
-                    if (!empty($reminder_ids)) {
-                        $reminder_placeholders = str_repeat('?,', count($reminder_ids) - 1) . '?';
-                        $stmt = $dbh->prepare("DELETE FROM reminders WHERE id IN ($reminder_placeholders)");
-                        $stmt->execute($reminder_ids);
-                    }
-
-                    $dbh->commit();
-
-                    echo json_encode([
-                        'success' => true,
-                        'message' => count($ids) . ' reminder(s) deleted'
-                    ]);
-                } catch (Exception $e) {
-                    $dbh->rollBack();
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'Error: ' . $e->getMessage()
-                    ]);
-                }
-                exit;
-
-            case 'save_reminder_settings':
-                try {
-                    $settings = [
-                        'morning_summary_enabled' => $_POST['morning_summary_enabled'],
-                        'evening_progress_enabled' => $_POST['evening_progress_enabled'],
-                        'due_reminders_enabled' => $_POST['due_reminders_enabled'],
-                        'send_empty_summaries' => $_POST['send_empty_summaries'],
-                        'notification_email' => sanitize($_POST['notification_email']),
-                        'email_format' => $_POST['email_format']
-                    ];
-
-                    foreach ($settings as $key => $value) {
-                        $stmt = $dbh->prepare('INSERT INTO reminder_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?');
-                        $stmt->execute([$key, $value, $value]);
-                    }
-
-                    echo json_encode(['success' => true, 'message' => 'Settings saved successfully']);
-                } catch (Exception $e) {
-                    echo json_encode(['success' => false, 'message' => 'Error saving settings: ' . $e->getMessage()]);
-                }
-                exit;
-
-            case 'get_reminder_settings':
-                try {
-                    $stmt = $dbh->query('SELECT setting_key, setting_value FROM reminder_settings');
-                    $settings = [];
-                    while ($row = $stmt->fetch()) {
-                        $settings[$row['setting_key']] = $row['setting_value'];
-                    }
-
-                    echo json_encode(['success' => true, 'settings' => $settings]);
-                } catch (Exception $e) {
-                    echo json_encode(['success' => false, 'message' => 'Error loading settings']);
-                }
-                exit;
-
-            case 'reset_reminder_settings':
-                try {
-                    $defaultSettings = [
-                        'morning_summary_enabled' => '1',
-                        'evening_progress_enabled' => '1',
-                        'due_reminders_enabled' => '1',
-                        'send_empty_summaries' => '1',
-                        'notification_email' => 'bryo4419@gmail.com',
-                        'email_format' => 'html'
-                    ];
-
-                    foreach ($defaultSettings as $key => $value) {
-                        $stmt = $dbh->prepare('INSERT INTO reminder_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?');
-                        $stmt->execute([$key, $value, $value]);
-                    }
-
-                    echo json_encode(['success' => true, 'message' => 'Settings reset to defaults']);
-                } catch (Exception $e) {
-                    echo json_encode(['success' => false, 'message' => 'Error resetting settings']);
-                }
-                exit;
-
-            case 'snooze_reminder':
-                $id = (int)$_POST['id'];
-                $minutes = (int)$_POST['minutes'];
-                $source_type = $_POST['source_type'] ?? 'reminder';
-                $instance_id = isset($_POST['instance_id']) ? (int)$_POST['instance_id'] : null;
-
-                // Validate snooze duration
-                $allowedSnoozeOptions = explode(',', getSetting('snooze_options', '15,30,60,120,480,1440'));
-                if (!in_array($minutes, $allowedSnoozeOptions)) {
-                    echo json_encode(['success' => false, 'message' => 'Invalid snooze duration']);
-                    exit;
-                }
-
-                // Check max snooze count
-                $maxSnoozeCount = (int)getSetting('max_snooze_count', '5');
-
-                try {
-                    $dbh->beginTransaction();
-
-                    if ($source_type === 'instance' && $instance_id) {
-                        // Handle recurring reminder instance
-                        $stmt = $dbh->prepare('SELECT snooze_count FROM reminder_instances WHERE id = ?');
-                        $stmt->execute([$instance_id]);
-                        $current = $stmt->fetch();
-
-                        if ($current && $current['snooze_count'] >= $maxSnoozeCount) {
-                            throw new Exception('Maximum snooze limit reached for this reminder');
-                        }
-
-                        $snoozeUntil = date('Y-m-d H:i:s', strtotime("+{$minutes} minutes"));
-
-                        $stmt = $dbh->prepare('
-                UPDATE reminder_instances 
-                SET is_snoozed = 1, snooze_until = ?, snooze_count = snooze_count + 1, last_snooze_time = NOW()
-                WHERE id = ?
-            ');
-                        $stmt->execute([$snoozeUntil, $instance_id]);
-
-                        // Log snooze history
-                        $stmt = $dbh->prepare('
-                INSERT INTO snooze_history (reminder_id, instance_id, snooze_duration_minutes, snooze_time, snooze_until) 
-                VALUES (?, ?, ?, NOW(), ?)
-            ');
-                        $stmt->execute([$id, $instance_id, $minutes, $snoozeUntil]);
-
-                    } else {
-                        // Handle regular reminder
-                        $stmt = $dbh->prepare('SELECT snooze_count FROM reminders WHERE id = ?');
-                        $stmt->execute([$id]);
-                        $current = $stmt->fetch();
-
-                        if ($current && $current['snooze_count'] >= $maxSnoozeCount) {
-                            throw new Exception('Maximum snooze limit reached for this reminder');
-                        }
-
-                        $snoozeUntil = date('Y-m-d H:i:s', strtotime("+{$minutes} minutes"));
-
-                        $stmt = $dbh->prepare('
-                UPDATE reminders 
-                SET is_snoozed = 1, snooze_until = ?, snooze_count = snooze_count + 1, last_snooze_time = NOW()
-                WHERE id = ?
-            ');
-                        $stmt->execute([$snoozeUntil, $id]);
-
-                        // Log snooze history
-                        $stmt = $dbh->prepare('
-                INSERT INTO snooze_history (reminder_id, snooze_duration_minutes, snooze_time, snooze_until) 
-                VALUES (?, ?, NOW(), ?)
-            ');
-                        $stmt->execute([$id, $minutes, $snoozeUntil]);
-                    }
-
-                    $dbh->commit();
-
-                    // Format the snooze duration for display
-                    $snoozeText = formatSnoozeDuration($minutes);
-
-                    echo json_encode([
-                        'success' => true,
-                        'message' => "Reminder snoozed for {$snoozeText}",
-                        'snooze_until' => $snoozeUntil,
-                        'snooze_count' => ($current['snooze_count'] ?? 0) + 1,
-                        'max_snoozes' => $maxSnoozeCount
-                    ]);
-
-                } catch (Exception $e) {
-                    $dbh->rollBack();
-                    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-                }
-                exit;
-
-            case 'get_snooze_options':
-                $snoozeOptions = getSetting('snooze_options', '15,30,60,120,480,1440');
-                $maxSnoozeCount = (int)getSetting('max_snooze_count', '5');
-
-                $options = [];
-                foreach (explode(',', $snoozeOptions) as $minutes) {
-                    $minutes = (int)$minutes;
-                    $options[] = [
-                        'minutes' => $minutes,
-                        'label' => formatSnoozeDuration($minutes),
-                        'icon' => getSnoozeDurationIcon($minutes)
-                    ];
-                }
+                $stmt = $dbh->prepare($sql);
+                $stmt->execute();
+                $reminders = $stmt->fetchAll();
 
                 echo json_encode([
                     'success' => true,
-                    'options' => $options,
-                    'max_snooze_count' => $maxSnoozeCount
+                    'reminders' => $reminders
                 ]);
+            } catch (Exception $e) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Error fetching calendar reminders: ' . $e->getMessage()
+                ]);
+            }
+            exit;
+
+        case 'bulk_delete_reminders':
+            try {
+                $ids = json_decode($_POST['ids'], true);
+                if (empty($ids) || !is_array($ids)) {
+                    throw new Exception('No reminders selected');
+                }
+
+                $dbh->beginTransaction();
+
+                // First check if these IDs exist in reminder_instances table
+                $placeholders = str_repeat('?,', count($ids) - 1) . '?';
+                $stmt = $dbh->prepare("SELECT id FROM reminder_instances WHERE id IN ($placeholders)");
+                $stmt->execute($ids);
+                $instance_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+                // The remaining IDs should be from reminders table
+                $reminder_ids = array_diff($ids, $instance_ids);
+
+                // Delete recurring instances from reminder_instances table
+                if (!empty($instance_ids)) {
+                    $instance_placeholders = str_repeat('?,', count($instance_ids) - 1) . '?';
+                    $stmt = $dbh->prepare("DELETE FROM reminder_instances WHERE id IN ($instance_placeholders)");
+                    $stmt->execute($instance_ids);
+                }
+
+                // Delete non-recurring reminders from reminders table
+                if (!empty($reminder_ids)) {
+                    $reminder_placeholders = str_repeat('?,', count($reminder_ids) - 1) . '?';
+                    $stmt = $dbh->prepare("DELETE FROM reminders WHERE id IN ($reminder_placeholders)");
+                    $stmt->execute($reminder_ids);
+                }
+
+                $dbh->commit();
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => count($ids) . ' reminder(s) deleted'
+                ]);
+            } catch (Exception $e) {
+                $dbh->rollBack();
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Error: ' . $e->getMessage()
+                ]);
+            }
+            exit;
+
+        case 'bulk_complete_reminders':
+            try {
+                $ids = json_decode($_POST['ids'], true);
+                if (empty($ids) || !is_array($ids)) {
+                    throw new Exception('No reminders selected');
+                }
+
+                $dbh->beginTransaction();
+
+                // Split IDs across reminder_instances vs reminders
+                $placeholders = str_repeat('?,', count($ids) - 1) . '?';
+                $stmt = $dbh->prepare("SELECT id FROM reminder_instances WHERE id IN ($placeholders)");
+                $stmt->execute($ids);
+                $instance_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+                $reminder_ids = array_diff($ids, $instance_ids);
+
+                $total = 0;
+
+                if (!empty($instance_ids)) {
+                    $iph = str_repeat('?,', count($instance_ids) - 1) . '?';
+                    $stmt = $dbh->prepare("UPDATE reminder_instances SET is_completed = 1 WHERE id IN ($iph)");
+                    $stmt->execute($instance_ids);
+                    $total += $stmt->rowCount();
+                }
+
+                if (!empty($reminder_ids)) {
+                    $rph = str_repeat('?,', count($reminder_ids) - 1) . '?';
+                    $stmt = $dbh->prepare("UPDATE reminders SET is_completed = 1 WHERE id IN ($rph)");
+                    $stmt->execute($reminder_ids);
+                    $total += $stmt->rowCount();
+                }
+
+                $dbh->commit();
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => $total . ' reminder(s) marked complete'
+                ]);
+            } catch (Exception $e) {
+                $dbh->rollBack();
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Error: ' . $e->getMessage()
+                ]);
+            }
+            exit;
+
+        case 'save_reminder_settings':
+            try {
+                $settings = [
+                    'morning_summary_enabled' => $_POST['morning_summary_enabled'],
+                    'evening_progress_enabled' => $_POST['evening_progress_enabled'],
+                    'due_reminders_enabled' => $_POST['due_reminders_enabled'],
+                    'send_empty_summaries' => $_POST['send_empty_summaries'],
+                    'notification_email' => sanitize($_POST['notification_email']),
+                    'email_format' => $_POST['email_format']
+                ];
+
+                foreach ($settings as $key => $value) {
+                    $stmt = $dbh->prepare('INSERT INTO reminder_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?');
+                    $stmt->execute([$key, $value, $value]);
+                }
+
+                echo json_encode(['success' => true, 'message' => 'Settings saved successfully']);
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => 'Error saving settings: ' . $e->getMessage()]);
+            }
+            exit;
+
+        case 'get_reminder_settings':
+            try {
+                $stmt = $dbh->query('SELECT setting_key, setting_value FROM reminder_settings');
+                $settings = [];
+                while ($row = $stmt->fetch()) {
+                    $settings[$row['setting_key']] = $row['setting_value'];
+                }
+
+                echo json_encode(['success' => true, 'settings' => $settings]);
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => 'Error loading settings']);
+            }
+            exit;
+
+        case 'reset_reminder_settings':
+            try {
+                $defaultSettings = [
+                    'morning_summary_enabled' => '1',
+                    'evening_progress_enabled' => '1',
+                    'due_reminders_enabled' => '1',
+                    'send_empty_summaries' => '1',
+                    'notification_email' => 'bryo4419@gmail.com',
+                    'email_format' => 'html'
+                ];
+
+                foreach ($defaultSettings as $key => $value) {
+                    $stmt = $dbh->prepare('INSERT INTO reminder_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?');
+                    $stmt->execute([$key, $value, $value]);
+                }
+
+                echo json_encode(['success' => true, 'message' => 'Settings reset to defaults']);
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => 'Error resetting settings']);
+            }
+            exit;
+
+        case 'snooze_reminder':
+            $id = (int)$_POST['id'];
+            $minutes = (int)$_POST['minutes'];
+            $source_type = $_POST['source_type'] ?? 'reminder';
+            $instance_id = isset($_POST['instance_id']) ? (int)$_POST['instance_id'] : null;
+
+            // Validate snooze duration
+            $allowedSnoozeOptions = explode(',', getSetting('snooze_options', '15,30,60,120,480,1440'));
+            if (!in_array($minutes, $allowedSnoozeOptions)) {
+                echo json_encode(['success' => false, 'message' => 'Invalid snooze duration']);
                 exit;
+            }
 
-            case 'unsnooze_reminder':
-                $id = (int)$_POST['id'];
-                $source_type = $_POST['source_type'] ?? 'reminder';
-                $instance_id = isset($_POST['instance_id']) ? (int)$_POST['instance_id'] : null;
+            // Check max snooze count
+            $maxSnoozeCount = (int)getSetting('max_snooze_count', '5');
 
-                try {
-                    if ($source_type === 'instance' && $instance_id) {
-                        $stmt = $dbh->prepare('
+            try {
+                $dbh->beginTransaction();
+
+                if ($source_type === 'instance' && $instance_id) {
+                    // Handle recurring reminder instance
+                    $stmt = $dbh->prepare('SELECT snooze_count FROM reminder_instances WHERE id = ?');
+                    $stmt->execute([$instance_id]);
+                    $current = $stmt->fetch();
+
+                    if ($current && $current['snooze_count'] >= $maxSnoozeCount) {
+                        throw new Exception('Maximum snooze limit reached for this reminder');
+                    }
+
+                    $snoozeUntil = date('Y-m-d H:i:s', strtotime("+{$minutes} minutes"));
+
+                    $stmt = $dbh->prepare('
+                UPDATE reminder_instances 
+                SET is_snoozed = 1, snooze_until = ?, snooze_count = snooze_count + 1, last_snooze_time = NOW()
+                WHERE id = ?
+            ');
+                    $stmt->execute([$snoozeUntil, $instance_id]);
+
+                    // Log snooze history
+                    $stmt = $dbh->prepare('
+                INSERT INTO snooze_history (reminder_id, instance_id, snooze_duration_minutes, snooze_time, snooze_until) 
+                VALUES (?, ?, ?, NOW(), ?)
+            ');
+                    $stmt->execute([$id, $instance_id, $minutes, $snoozeUntil]);
+
+                } else {
+                    // Handle regular reminder
+                    $stmt = $dbh->prepare('SELECT snooze_count FROM reminders WHERE id = ?');
+                    $stmt->execute([$id]);
+                    $current = $stmt->fetch();
+
+                    if ($current && $current['snooze_count'] >= $maxSnoozeCount) {
+                        throw new Exception('Maximum snooze limit reached for this reminder');
+                    }
+
+                    $snoozeUntil = date('Y-m-d H:i:s', strtotime("+{$minutes} minutes"));
+
+                    $stmt = $dbh->prepare('
+                UPDATE reminders 
+                SET is_snoozed = 1, snooze_until = ?, snooze_count = snooze_count + 1, last_snooze_time = NOW()
+                WHERE id = ?
+            ');
+                    $stmt->execute([$snoozeUntil, $id]);
+
+                    // Log snooze history
+                    $stmt = $dbh->prepare('
+                INSERT INTO snooze_history (reminder_id, snooze_duration_minutes, snooze_time, snooze_until) 
+                VALUES (?, ?, NOW(), ?)
+            ');
+                    $stmt->execute([$id, $minutes, $snoozeUntil]);
+                }
+
+                $dbh->commit();
+
+                // Format the snooze duration for display
+                $snoozeText = formatSnoozeDuration($minutes);
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => "Reminder snoozed for {$snoozeText}",
+                    'snooze_until' => $snoozeUntil,
+                    'snooze_count' => ($current['snooze_count'] ?? 0) + 1,
+                    'max_snoozes' => $maxSnoozeCount
+                ]);
+
+            } catch (Exception $e) {
+                $dbh->rollBack();
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            }
+            exit;
+
+        case 'get_snooze_options':
+            $snoozeOptions = getSetting('snooze_options', '15,30,60,120,480,1440');
+            $maxSnoozeCount = (int)getSetting('max_snooze_count', '5');
+
+            $options = [];
+            foreach (explode(',', $snoozeOptions) as $minutes) {
+                $minutes = (int)$minutes;
+                $options[] = [
+                    'minutes' => $minutes,
+                    'label' => formatSnoozeDuration($minutes),
+                    'icon' => getSnoozeDurationIcon($minutes)
+                ];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'options' => $options,
+                'max_snooze_count' => $maxSnoozeCount
+            ]);
+            exit;
+
+        case 'unsnooze_reminder':
+            $id = (int)$_POST['id'];
+            $source_type = $_POST['source_type'] ?? 'reminder';
+            $instance_id = isset($_POST['instance_id']) ? (int)$_POST['instance_id'] : null;
+
+            try {
+                if ($source_type === 'instance' && $instance_id) {
+                    $stmt = $dbh->prepare('
                 UPDATE reminder_instances 
                 SET is_snoozed = 0, snooze_until = NULL 
                 WHERE id = ?
             ');
-                        $stmt->execute([$instance_id]);
-                    } else {
-                        $stmt = $dbh->prepare('
+                    $stmt->execute([$instance_id]);
+                } else {
+                    $stmt = $dbh->prepare('
                 UPDATE reminders 
                 SET is_snoozed = 0, snooze_until = NULL 
                 WHERE id = ?
             ');
-                        $stmt->execute([$id]);
-                    }
-
-                    echo json_encode(['success' => true, 'message' => 'Reminder unnoozed successfully']);
-
-                } catch (Exception $e) {
-                    echo json_encode(['success' => false, 'message' => 'Error unsnoozing reminder']);
+                    $stmt->execute([$id]);
                 }
-                exit;
 
-            case 'get_snooze_stats':
-                $id = (int)$_POST['id'];
-                $instance_id = isset($_POST['instance_id']) ? (int)$_POST['instance_id'] : null;
+                echo json_encode(['success' => true, 'message' => 'Reminder unnoozed successfully']);
 
-                try {
-                    // Get snooze history
-                    $query = "
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => 'Error unsnoozing reminder']);
+            }
+            exit;
+
+        case 'get_snooze_stats':
+            $id = (int)$_POST['id'];
+            $instance_id = isset($_POST['instance_id']) ? (int)$_POST['instance_id'] : null;
+
+            try {
+                // Get snooze history
+                $query = "
             SELECT snooze_duration_minutes, snooze_time, snooze_until 
             FROM snooze_history 
             WHERE reminder_id = ?
         ";
-                    $params = [$id];
+                $params = [$id];
 
-                    if ($instance_id) {
-                        $query .= " AND instance_id = ?";
-                        $params[] = $instance_id;
-                    }
-
-                    $query .= " ORDER BY snooze_time DESC LIMIT 5";
-
-                    $stmt = $dbh->prepare($query);
-                    $stmt->execute($params);
-                    $history = $stmt->fetchAll();
-
-                    // Get current snooze status
-                    if ($instance_id) {
-                        $stmt = $dbh->prepare('SELECT is_snoozed, snooze_until, snooze_count FROM reminder_instances WHERE id = ?');
-                        $stmt->execute([$instance_id]);
-                    } else {
-                        $stmt = $dbh->prepare('SELECT is_snoozed, snooze_until, snooze_count FROM reminders WHERE id = ?');
-                        $stmt->execute([$id]);
-                    }
-                    $current = $stmt->fetch();
-
-                    echo json_encode([
-                        'success' => true,
-                        'current_status' => $current,
-                        'history' => $history,
-                        'max_snooze_count' => (int)getSetting('max_snooze_count', '5')
-                    ]);
-
-                } catch (Exception $e) {
-                    echo json_encode(['success' => false, 'message' => 'Error getting snooze stats']);
+                if ($instance_id) {
+                    $query .= " AND instance_id = ?";
+                    $params[] = $instance_id;
                 }
-                exit;
 
-            case 'reset_snooze_count':
-                $id = (int)$_POST['id'];
-                $source_type = $_POST['source_type'] ?? 'reminder';
-                $instance_id = isset($_POST['instance_id']) ? (int)$_POST['instance_id'] : null;
+                $query .= " ORDER BY snooze_time DESC LIMIT 5";
 
-                try {
-                    if ($source_type === 'instance' && $instance_id) {
-                        $stmt = $dbh->prepare('
+                $stmt = $dbh->prepare($query);
+                $stmt->execute($params);
+                $history = $stmt->fetchAll();
+
+                // Get current snooze status
+                if ($instance_id) {
+                    $stmt = $dbh->prepare('SELECT is_snoozed, snooze_until, snooze_count FROM reminder_instances WHERE id = ?');
+                    $stmt->execute([$instance_id]);
+                } else {
+                    $stmt = $dbh->prepare('SELECT is_snoozed, snooze_until, snooze_count FROM reminders WHERE id = ?');
+                    $stmt->execute([$id]);
+                }
+                $current = $stmt->fetch();
+
+                echo json_encode([
+                    'success' => true,
+                    'current_status' => $current,
+                    'history' => $history,
+                    'max_snooze_count' => (int)getSetting('max_snooze_count', '5')
+                ]);
+
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => 'Error getting snooze stats']);
+            }
+            exit;
+
+        case 'reset_snooze_count':
+            $id = (int)$_POST['id'];
+            $source_type = $_POST['source_type'] ?? 'reminder';
+            $instance_id = isset($_POST['instance_id']) ? (int)$_POST['instance_id'] : null;
+
+            try {
+                if ($source_type === 'instance' && $instance_id) {
+                    $stmt = $dbh->prepare('
                 UPDATE reminder_instances 
                 SET snooze_count = 0, is_snoozed = 0, snooze_until = NULL 
                 WHERE id = ?
             ');
-                        $stmt->execute([$instance_id]);
-                    } else {
-                        $stmt = $dbh->prepare('
+                    $stmt->execute([$instance_id]);
+                } else {
+                    $stmt = $dbh->prepare('
                 UPDATE reminders 
                 SET snooze_count = 0, is_snoozed = 0, snooze_until = NULL 
                 WHERE id = ?
             ');
-                        $stmt->execute([$id]);
-                    }
-
-                    echo json_encode(['success' => true, 'message' => 'Snooze count reset successfully']);
-
-                } catch (Exception $e) {
-                    echo json_encode(['success' => false, 'message' => 'Error resetting snooze count']);
+                    $stmt->execute([$id]);
                 }
-                exit;
 
-            case 'get_snooze_analytics':
-                $days = (int)($_POST['days'] ?? 30);
+                echo json_encode(['success' => true, 'message' => 'Snooze count reset successfully']);
 
-                try {
-                    $since = date('Y-m-d', strtotime("-{$days} days"));
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => 'Error resetting snooze count']);
+            }
+            exit;
 
-                    // Get overall snooze statistics
-                    $statsQuery = "
+        case 'get_snooze_analytics':
+            $days = (int)($_POST['days'] ?? 30);
+
+            try {
+                $since = date('Y-m-d', strtotime("-{$days} days"));
+
+                // Get overall snooze statistics
+                $statsQuery = "
             SELECT 
                 COUNT(*) as total_snoozes,
                 AVG(snooze_duration_minutes) as avg_duration,
@@ -928,12 +1013,12 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
             ORDER BY snooze_date DESC
         ";
 
-                    $stmt = $dbh->prepare($statsQuery);
-                    $stmt->execute([$since]);
-                    $dailyStats = $stmt->fetchAll();
+                $stmt = $dbh->prepare($statsQuery);
+                $stmt->execute([$since]);
+                $dailyStats = $stmt->fetchAll();
 
-                    // Get most snoozed reminders
-                    $topSnoozeQuery = "
+                // Get most snoozed reminders
+                $topSnoozeQuery = "
             SELECT 
                 r.title,
                 r.category,
@@ -947,12 +1032,12 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
             LIMIT 5
         ";
 
-                    $stmt = $dbh->prepare($topSnoozeQuery);
-                    $stmt->execute([$since]);
-                    $topSnoozed = $stmt->fetchAll();
+                $stmt = $dbh->prepare($topSnoozeQuery);
+                $stmt->execute([$since]);
+                $topSnoozed = $stmt->fetchAll();
 
-                    // Get snooze duration preferences
-                    $durationQuery = "
+                // Get snooze duration preferences
+                $durationQuery = "
             SELECT 
                 snooze_duration_minutes,
                 COUNT(*) as usage_count
@@ -962,67 +1047,67 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
             ORDER BY usage_count DESC
         ";
 
-                    $stmt = $dbh->prepare($durationQuery);
-                    $stmt->execute([$since]);
-                    $durationPrefs = $stmt->fetchAll();
+                $stmt = $dbh->prepare($durationQuery);
+                $stmt->execute([$since]);
+                $durationPrefs = $stmt->fetchAll();
 
-                    echo json_encode([
-                        'success' => true,
-                        'period_days' => $days,
-                        'daily_stats' => $dailyStats,
-                        'top_snoozed' => $topSnoozed,
-                        'duration_preferences' => $durationPrefs
-                    ]);
+                echo json_encode([
+                    'success' => true,
+                    'period_days' => $days,
+                    'daily_stats' => $dailyStats,
+                    'top_snoozed' => $topSnoozed,
+                    'duration_preferences' => $durationPrefs
+                ]);
 
-                } catch (Exception $e) {
-                    echo json_encode(['success' => false, 'message' => 'Error getting snooze analytics']);
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => 'Error getting snooze analytics']);
+            }
+            exit;
+
+        case 'update_snooze_settings':
+            try {
+                $maxSnoozeCount = (int)$_POST['max_snooze_count'];
+                $snoozeOptions = $_POST['snooze_options']; // Comma-separated values
+
+                // Validate inputs
+                if ($maxSnoozeCount < 1 || $maxSnoozeCount > 20) {
+                    throw new Exception('Max snooze count must be between 1 and 20');
                 }
-                exit;
 
-            case 'update_snooze_settings':
-                try {
-                    $maxSnoozeCount = (int)$_POST['max_snooze_count'];
-                    $snoozeOptions = $_POST['snooze_options']; // Comma-separated values
-
-                    // Validate inputs
-                    if ($maxSnoozeCount < 1 || $maxSnoozeCount > 20) {
-                        throw new Exception('Max snooze count must be between 1 and 20');
+                // Validate snooze options
+                $options = explode(',', $snoozeOptions);
+                foreach ($options as $option) {
+                    $minutes = (int)trim($option);
+                    if ($minutes < 1 || $minutes > 1440) {
+                        throw new Exception('Snooze options must be between 1 and 1440 minutes');
                     }
-
-                    // Validate snooze options
-                    $options = explode(',', $snoozeOptions);
-                    foreach ($options as $option) {
-                        $minutes = (int)trim($option);
-                        if ($minutes < 1 || $minutes > 1440) {
-                            throw new Exception('Snooze options must be between 1 and 1440 minutes');
-                        }
-                    }
-
-                    // Update settings
-                    $stmt = $dbh->prepare('INSERT INTO reminder_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?');
-
-                    $stmt->execute(['max_snooze_count', $maxSnoozeCount, $maxSnoozeCount]);
-                    $stmt->execute(['snooze_options', $snoozeOptions, $snoozeOptions]);
-
-                    echo json_encode(['success' => true, 'message' => 'Snooze settings updated successfully']);
-
-                } catch (Exception $e) {
-                    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
                 }
-                exit;
+
+                // Update settings
+                $stmt = $dbh->prepare('INSERT INTO reminder_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?');
+
+                $stmt->execute(['max_snooze_count', $maxSnoozeCount, $maxSnoozeCount]);
+                $stmt->execute(['snooze_options', $snoozeOptions, $snoozeOptions]);
+
+                echo json_encode(['success' => true, 'message' => 'Snooze settings updated successfully']);
+
+            } catch (Exception $e) {
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            }
+            exit;
 
 // Also update your existing queries to include snooze information
 // Update the main reminders query to exclude currently snoozed reminders
 
 // In your main query section, modify the where conditions:
-                $where_conditions[] = '(is_snoozed = 0 OR is_snoozed IS NULL OR snooze_until <= NOW())';
-                $instance_where_conditions[] = '(ri.is_snoozed = 0 OR ri.is_snoozed IS NULL OR ri.snooze_until <= NOW())';
+            $where_conditions[] = '(is_snoozed = 0 OR is_snoozed IS NULL OR snooze_until <= NOW())';
+            $instance_where_conditions[] = '(ri.is_snoozed = 0 OR ri.is_snoozed IS NULL OR ri.snooze_until <= NOW())';
 
 // Also add snooze information to your calendar reminders query
-            case 'get_calendar_reminders':
-                try {
-                    // Updated query to include snooze information
-                    $sql = "
+        case 'get_calendar_reminders':
+            try {
+                // Updated query to include snooze information
+                $sql = "
             SELECT 
                 r.id,
                 r.title,
@@ -1050,76 +1135,81 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
             ORDER BY reminder_date ASC, reminder_time ASC
         ";
 
-                    $stmt = $dbh->prepare($sql);
-                    $stmt->execute();
-                    $reminders = $stmt->fetchAll();
+                $stmt = $dbh->prepare($sql);
+                $stmt->execute();
+                $reminders = $stmt->fetchAll();
 
-                    echo json_encode([
-                        'success' => true,
-                        'reminders' => $reminders
-                    ]);
-                } catch (Exception $e) {
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'Error fetching calendar reminders: ' . $e->getMessage()
-                    ]);
-                }
-                exit;
-        }
+                echo json_encode([
+                    'success' => true,
+                    'reminders' => $reminders
+                ]);
+            } catch (Exception $e) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Error fetching calendar reminders: ' . $e->getMessage()
+                ]);
+            }
+            exit;
     }
-    
-    // Get reminders
-    $filter = $_GET['filter'] ?? 'today';
-    $category = $_GET['category'] ?? '';
-    
-    // Build where conditions for main query (combining filter and category)
-    $where_conditions = ['1=1'];
-    $instance_where_conditions = ['1=1'];
-    $params = [];
-    
-    // Add category filtering
-    if (!empty($category)) {
-        $where_conditions[] = "category = :category";
-        $instance_where_conditions[] = "r.category = :category";
-        $params['category'] = $category;
-    }
-    
-    // Add filter conditions
-    switch ($filter) {
-        case 'today':
-            $where_conditions[] = 'reminder_date = CURDATE() AND is_completed = 0 AND is_dismissed = 0';
-            $instance_where_conditions[] = 'ri.instance_date = CURDATE() AND ri.is_completed = 0 AND ri.is_dismissed = 0';
-            break;
-        case 'upcoming':
-            $where_conditions[] = 'reminder_date >= CURDATE() AND is_completed = 0 AND is_dismissed = 0';
-            $instance_where_conditions[] = 'ri.instance_date >= CURDATE() AND ri.is_completed = 0 AND ri.is_dismissed = 0';
-            break;
-        case 'overdue':
-            $where_conditions[] = 'CONCAT(reminder_date, " ", reminder_time) <= NOW() AND is_completed = 0 AND is_dismissed = 0';
-            $instance_where_conditions[] = 'CONCAT(ri.instance_date, " ", ri.instance_time) <= NOW() AND ri.is_completed = 0 AND ri.is_dismissed = 0';
-            break;
-        case 'completed':
-            $where_conditions[] = 'is_completed = 1 AND is_dismissed = 0';
-            $instance_where_conditions[] = 'ri.is_completed = 1 AND ri.is_dismissed = 0';
-            break;
-        case 'dismissed':
-            $where_conditions[] = 'is_dismissed = 1';
-            $instance_where_conditions[] = '(ri.is_dismissed = 1)';
-            break;
-        case 'all':
-        default:
-            $where_conditions[] = 'is_completed = 0';
-            $instance_where_conditions[] = 'ri.is_completed = 0';
-            break;
-    }
-    
-    // Pagination
-    $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-    $per_page = isset($_GET['per_page']) ? max(12, min(100, (int)$_GET['per_page'])) : 12; // Default 12, min 12, max 100
-    $offset = ($page - 1) * $per_page;
-    
-    // Get total count (including instances)
-    $count_sql = "
+}
+
+// Get reminders
+$filter = $_GET['filter'] ?? 'today';
+$category = $_GET['category'] ?? '';
+
+// Build where conditions for main query (combining filter and category)
+$where_conditions = ['1=1'];
+$instance_where_conditions = ['1=1'];
+$params = [];
+
+// Add category filtering
+if (!empty($category)) {
+    $where_conditions[] = "category = :category";
+    $instance_where_conditions[] = "r.category = :category";
+    $params['category'] = $category;
+}
+
+// Add filter conditions
+// FIX: Active views must exclude currently-snoozed reminders.
+// A reminder is "currently snoozed" when is_snoozed = 1 AND snooze_until > NOW().
+$snooze_cond_main     = '(is_snoozed = 0 OR is_snoozed IS NULL OR snooze_until <= NOW())';
+$snooze_cond_instance = '(ri.is_snoozed = 0 OR ri.is_snoozed IS NULL OR ri.snooze_until <= NOW())';
+
+switch ($filter) {
+    case 'today':
+        $where_conditions[] = 'reminder_date = CURDATE() AND is_completed = 0 AND is_dismissed = 0 AND ' . $snooze_cond_main;
+        $instance_where_conditions[] = 'ri.instance_date = CURDATE() AND ri.is_completed = 0 AND ri.is_dismissed = 0 AND ' . $snooze_cond_instance;
+        break;
+    case 'upcoming':
+        $where_conditions[] = 'reminder_date >= CURDATE() AND is_completed = 0 AND is_dismissed = 0 AND ' . $snooze_cond_main;
+        $instance_where_conditions[] = 'ri.instance_date >= CURDATE() AND ri.is_completed = 0 AND ri.is_dismissed = 0 AND ' . $snooze_cond_instance;
+        break;
+    case 'overdue':
+        $where_conditions[] = 'CONCAT(reminder_date, " ", reminder_time) <= NOW() AND is_completed = 0 AND is_dismissed = 0 AND ' . $snooze_cond_main;
+        $instance_where_conditions[] = 'CONCAT(ri.instance_date, " ", ri.instance_time) <= NOW() AND ri.is_completed = 0 AND ri.is_dismissed = 0 AND ' . $snooze_cond_instance;
+        break;
+    case 'completed':
+        $where_conditions[] = 'is_completed = 1 AND is_dismissed = 0';
+        $instance_where_conditions[] = 'ri.is_completed = 1 AND ri.is_dismissed = 0';
+        break;
+    case 'dismissed':
+        $where_conditions[] = 'is_dismissed = 1';
+        $instance_where_conditions[] = '(ri.is_dismissed = 1)';
+        break;
+    case 'all':
+    default:
+        $where_conditions[] = 'is_completed = 0 AND ' . $snooze_cond_main;
+        $instance_where_conditions[] = 'ri.is_completed = 0 AND ' . $snooze_cond_instance;
+        break;
+}
+
+// Pagination
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$per_page = isset($_GET['per_page']) ? max(12, min(100, (int)$_GET['per_page'])) : 12; // Default 12, min 12, max 100
+$offset = ($page - 1) * $per_page;
+
+// Get total count (including instances)
+$count_sql = "
         SELECT COUNT(*) FROM (
             SELECT id FROM reminders WHERE is_recurring = 0 AND " . implode(' AND ', $where_conditions) . "
             UNION ALL
@@ -1129,14 +1219,14 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
             WHERE " . implode(' AND ', $instance_where_conditions) . "
         ) as combined_count
     ";
-    
-    $count_stmt = $dbh->prepare($count_sql);
-    $count_stmt->execute($params);
-    $total_reminders = $count_stmt->fetchColumn();
-    $total_pages = ceil($total_reminders / $per_page);
-    
-    // Get combined reminders and instances
-    $sql = "
+
+$count_stmt = $dbh->prepare($count_sql);
+$count_stmt->execute($params);
+$total_reminders = $count_stmt->fetchColumn();
+$total_pages = ceil($total_reminders / $per_page);
+
+// Get combined reminders and instances
+$sql = "
         SELECT 
             id,
             title,
@@ -1186,19 +1276,19 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
         
         ORDER BY reminder_date ASC, reminder_time ASC 
         LIMIT " . (int)$per_page . " OFFSET " . (int)$offset;
-    
-    $stmt = $dbh->prepare($sql);
-    $stmt->execute($params);
-    $reminders = $stmt->fetchAll();
-    
-    // Update statistics to include instances with category filtering
-    $category_condition = !empty($category) ? " AND category = ?" : "";
-    $category_condition_instances = !empty($category) ? " AND r.category = ?" : "";
-    
-    $stats = [];
-    
-    // Total count
-    $sql = "
+
+$stmt = $dbh->prepare($sql);
+$stmt->execute($params);
+$reminders = $stmt->fetchAll();
+
+// Update statistics to include instances with category filtering
+$category_condition = !empty($category) ? " AND category = ?" : "";
+$category_condition_instances = !empty($category) ? " AND r.category = ?" : "";
+
+$stats = [];
+
+// Total count
+$sql = "
         SELECT COUNT(*) FROM (
             SELECT id FROM reminders WHERE is_recurring = 0 AND is_completed = 0" . $category_condition . "
             UNION ALL
@@ -1207,81 +1297,85 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
             WHERE ri.is_dismissed = 0" . $category_condition_instances . "
         ) as total_count
     ";
-    $stmt = $dbh->prepare($sql);
-    if (!empty($category)) {
-        $stmt->execute([$category, $category]);
-    } else {
-        $stmt->execute();
-    }
-    $stats['total'] = $stmt->fetchColumn();
-    
-    // Today count
-    $sql = "
+$stmt = $dbh->prepare($sql);
+if (!empty($category)) {
+    $stmt->execute([$category, $category]);
+} else {
+    $stmt->execute();
+}
+$stats['total'] = $stmt->fetchColumn();
+
+// Today count
+$sql = "
         SELECT COUNT(*) FROM (
-            SELECT id FROM reminders WHERE is_recurring = 0 AND is_completed = 0 AND reminder_date = CURDATE() AND is_dismissed = 0" . $category_condition . "
+            SELECT id FROM reminders WHERE is_recurring = 0 AND is_completed = 0 AND reminder_date = CURDATE() AND is_dismissed = 0 AND (is_snoozed = 0 OR is_snoozed IS NULL OR snooze_until <= NOW())" . $category_condition . "
             UNION ALL
             SELECT ri.id FROM reminder_instances ri 
             JOIN reminders r ON ri.reminder_id = r.id 
-            WHERE ri.instance_date = CURDATE() AND ri.is_dismissed = 0" . $category_condition_instances . "
+            WHERE ri.instance_date = CURDATE() AND ri.is_dismissed = 0 AND (ri.is_snoozed = 0 OR ri.is_snoozed IS NULL OR ri.snooze_until <= NOW())" . $category_condition_instances . "
         ) as today_count
     ";
-    $stmt = $dbh->prepare($sql);
-    if (!empty($category)) {
-        $stmt->execute([$category, $category]);
-    } else {
-        $stmt->execute();
-    }
-    $stats['today'] = $stmt->fetchColumn();
-    
-    // Overdue count
-    $sql = "
+$stmt = $dbh->prepare($sql);
+if (!empty($category)) {
+    $stmt->execute([$category, $category]);
+} else {
+    $stmt->execute();
+}
+$stats['today'] = $stmt->fetchColumn();
+
+// Overdue count
+$sql = "
         SELECT COUNT(*) FROM (
             SELECT id FROM reminders 
             WHERE is_recurring = 0 
             AND CONCAT(reminder_date, ' ', reminder_time) <= NOW() 
             AND is_completed = 0 
-            AND is_dismissed = 0" . $category_condition . "
+            AND is_dismissed = 0
+            AND (is_snoozed = 0 OR is_snoozed IS NULL OR snooze_until <= NOW())" . $category_condition . "
             UNION ALL
             SELECT ri.id FROM reminder_instances ri 
             JOIN reminders r ON ri.reminder_id = r.id 
             WHERE CONCAT(ri.instance_date, ' ', ri.instance_time) <= NOW() 
             AND ri.is_completed = 0 
-            AND ri.is_dismissed = 0" . $category_condition_instances . "
+            AND ri.is_dismissed = 0
+            AND (ri.is_snoozed = 0 OR ri.is_snoozed IS NULL OR ri.snooze_until <= NOW())" . $category_condition_instances . "
         ) as overdue_count
     ";
-    $stmt = $dbh->prepare($sql);
-    if (!empty($category)) {
-        $stmt->execute([$category, $category]);
-    } else {
-        $stmt->execute();
-    }
-    $stats['overdue'] = $stmt->fetchColumn();
-    
-    // Upcoming count
-    $sql = "
+$stmt = $dbh->prepare($sql);
+if (!empty($category)) {
+    $stmt->execute([$category, $category]);
+} else {
+    $stmt->execute();
+}
+$stats['overdue'] = $stmt->fetchColumn();
+
+// Upcoming count
+$sql = "
         SELECT COUNT(*) FROM (
             SELECT id FROM reminders 
             WHERE is_recurring = 0 
             AND reminder_date >= CURDATE() 
               AND is_completed = 0
-            AND is_dismissed = 0" . $category_condition . "
+            AND is_dismissed = 0
+            AND (is_snoozed = 0 OR is_snoozed IS NULL OR snooze_until <= NOW())" . $category_condition . "
             UNION ALL
             SELECT ri.id FROM reminder_instances ri 
             JOIN reminders r ON ri.reminder_id = r.id 
             WHERE ri.instance_date > CURDATE()
-            AND ri.is_completed = 0 AND ri.is_dismissed = 0" . $category_condition_instances . "
+            AND ri.is_completed = 0 AND ri.is_dismissed = 0
+            AND (ri.is_snoozed = 0 OR ri.is_snoozed IS NULL OR ri.snooze_until <= NOW())" . $category_condition_instances . "
         ) as upcoming_count
     ";
-    $stmt = $dbh->prepare($sql);
-    if (!empty($category)) {
-        $stmt->execute([$category, $category]);
-    } else {
-        $stmt->execute();
-    }
-    $stats['upcoming'] = $stmt->fetchColumn();
-    
-    // Dismissed count
-    $sql = "
+$stmt = $dbh->prepare($sql);
+if (!empty($category)) {
+    $stmt->execute([$category, $category]);
+} else {
+    $stmt->execute();
+}
+$stats['upcoming'] = $stmt->fetchColumn();
+
+// Dismissed count
+$sql = "
         SELECT COUNT(*) FROM (
             SELECT id FROM reminders WHERE is_dismissed = 1" . $category_condition . "
             UNION ALL
@@ -1290,16 +1384,16 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
             WHERE ri.is_dismissed = 1" . $category_condition_instances . "
         ) as dismissed_count
     ";
-    $stmt = $dbh->prepare($sql);
-    if (!empty($category)) {
-        $stmt->execute([$category, $category]);
-    } else {
-        $stmt->execute();
-    }
-    $stats['dismissed'] = $stmt->fetchColumn();
-    
-    // Completed count
-    $sql = "
+$stmt = $dbh->prepare($sql);
+if (!empty($category)) {
+    $stmt->execute([$category, $category]);
+} else {
+    $stmt->execute();
+}
+$stats['dismissed'] = $stmt->fetchColumn();
+
+// Completed count
+$sql = "
         SELECT COUNT(*) FROM (
             SELECT id FROM reminders WHERE is_recurring = 0 AND is_completed = 1" . $category_condition . "
             UNION ALL
@@ -1308,16 +1402,16 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
             WHERE ri.is_completed = 1" . $category_condition_instances . "
         ) as completed_count
     ";
-    $stmt = $dbh->prepare($sql);
-    if (!empty($category)) {
-        $stmt->execute([$category, $category]);
-    } else {
-        $stmt->execute();
-    }
-    $stats['completed'] = $stmt->fetchColumn();
-    
-    // Get categories
-    $categories = $dbh->query("SELECT DISTINCT category FROM reminders WHERE category IS NOT NULL AND category != '' ORDER BY category")->fetchAll(PDO::FETCH_COLUMN);
+$stmt = $dbh->prepare($sql);
+if (!empty($category)) {
+    $stmt->execute([$category, $category]);
+} else {
+    $stmt->execute();
+}
+$stats['completed'] = $stmt->fetchColumn();
+
+// Get categories
+$categories = $dbh->query("SELECT DISTINCT category FROM reminders WHERE category IS NOT NULL AND category != '' ORDER BY category")->fetchAll(PDO::FETCH_COLUMN);
 
 
 // Get categories
@@ -1477,7 +1571,209 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Reminders</title>
-<?php include 'navi.php'; ?>
+    <style>
+        /* === Reminders: Split-View Redesign === */
+        .stat-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 0.9rem;
+            border-radius: 999px;
+            border: 1px solid var(--bs-border-color);
+            background: var(--bs-body-bg);
+            color: var(--bs-body-color);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.15s ease;
+        }
+        .stat-pill:hover {
+            background: var(--bs-body-tertiary-bg);
+            transform: translateY(-1px);
+            text-decoration: none;
+        }
+        .stat-pill.active {
+            border-width: 2px;
+            font-weight: 600;
+        }
+        .stat-pill .badge { font-size: 0.7rem; padding: 0.15em 0.55em; font-weight: 600; }
+
+        /* Split layout heights */
+        .reminders-split .reminders-list-card,
+        .reminders-split .reminder-detail-card {
+            min-height: 600px;
+        }
+        @media (min-width: 992px) {
+            .reminders-split .reminders-list-card,
+            .reminders-split .reminder-detail-card {
+                height: calc(100vh - 280px);
+                min-height: 500px;
+            }
+        }
+
+        .reminders-list-card { display: flex; flex-direction: column; overflow: hidden; }
+        .reminders-list-scroll {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        /* Group headers */
+        .reminder-group { }
+        .reminder-group-header {
+            position: sticky;
+            top: 0;
+            background: var(--bs-body-bg);
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--bs-border-color);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            z-index: 5;
+            transition: background-color 0.15s ease;
+        }
+        .reminder-group-header.drop-active {
+            background: var(--bs-primary-bg-subtle);
+            outline: 2px dashed var(--bs-primary);
+            outline-offset: -4px;
+        }
+
+        /* Each row */
+        .reminder-item {
+            padding: 0.85rem 1rem 0.85rem 1.1rem;
+            border-bottom: 1px solid var(--bs-border-color);
+            cursor: pointer;
+            transition: background-color 0.12s ease;
+            user-select: none;
+        }
+        .reminder-item:hover {
+            background: var(--bs-body-tertiary-bg);
+        }
+        .reminder-item.is-selected {
+            background: var(--bs-primary-bg-subtle);
+        }
+        .reminder-item.is-completed { opacity: 0.7; }
+        .reminder-item.dragging {
+            opacity: 0.45;
+            transform: scale(0.98);
+        }
+        .reminder-accent {
+            position: absolute;
+            top: 0; bottom: 0; left: 0;
+            width: 3px;
+        }
+        .reminder-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        .reminder-cat-icon {
+            width: 36px; height: 36px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff;
+            font-size: 0.95rem;
+        }
+        .reminder-main { min-width: 0; }
+        .reminder-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            line-height: 1.3;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .reminder-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            margin-top: 0.15rem;
+        }
+        .reminder-priority-dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .priority-high   { background: var(--bs-danger); }
+        .priority-medium { background: var(--bs-warning); }
+        .priority-low    { background: var(--bs-secondary); }
+
+        /* Quick action buttons: show on hover */
+        .reminder-quick-actions {
+            display: flex;
+            gap: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        .reminder-item:hover .reminder-quick-actions,
+        .reminder-item.is-selected .reminder-quick-actions { opacity: 1; }
+        @media (max-width: 768px) {
+            .reminder-quick-actions { opacity: 1; } /* always visible on touch */
+        }
+        .qa-btn {
+            width: 30px; height: 30px;
+            padding: 0;
+            display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 6px;
+        }
+
+        /* Detail pane */
+        .reminder-detail-card { overflow: hidden; display: flex; flex-direction: column; }
+        #reminderDetailContent { overflow-y: auto; flex: 1 1 auto; }
+        .detail-hero {
+            padding: 1.5rem 1.75rem 1rem;
+            border-bottom: 1px solid var(--bs-border-color);
+        }
+        .detail-section {
+            padding: 1rem 1.75rem;
+            border-bottom: 1px solid var(--bs-border-color);
+        }
+        .detail-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--bs-secondary-color);
+            margin-bottom: 0.25rem;
+            font-weight: 600;
+        }
+        .detail-actions {
+            padding: 1rem 1.75rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        /* Tab nav refresh */
+        #reminderTabs .nav-link {
+            border: 0;
+            color: var(--bs-secondary-color);
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            border-radius: 0;
+        }
+        #reminderTabs .nav-link.active {
+            background: transparent;
+            color: var(--bs-primary);
+            border-bottom-color: var(--bs-primary);
+        }
+
+        /* Quick add bar focus state */
+        .quick-add-bar { background: var(--bs-body-bg); }
+        #quickAddForm.expanded .quick-add-meta { display: flex !important; }
+
+        /* Scrollbar polish */
+        .reminders-list-scroll::-webkit-scrollbar,
+        #reminderDetailContent::-webkit-scrollbar { width: 6px; }
+        .reminders-list-scroll::-webkit-scrollbar-thumb,
+        #reminderDetailContent::-webkit-scrollbar-thumb {
+            background: var(--bs-border-color);
+            border-radius: 3px;
+        }
+
+        .min-width-0 { min-width: 0; }
+    </style>
+    <?php include 'navi.php'; ?>
     <!-- Header -->
     <div class='card shadow-none border mb-3'>
         <div class='bg-holder bg-card d-none d-md-block'
@@ -1528,803 +1824,782 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
 
     <!-- Main Content -->
     <div class="col mb-3">
-    <!-- Tab Content -->
-    <div class="tab-content" id="reminderTabContent">
-    <!-- List View Tab -->
-    <div class="tab-pane fade show active" id="list-view" role="tabpanel" aria-labelledby="list-tab">
-    <!-- Filters Row -->
-        <div class='card mb-2'>
-            <div class='card-header'>
-                <div class='d-flex justify-content-between align-items-center mb-3'>
-                    <button class='btn btn-outline-primary' data-bs-toggle='modal' data-bs-target='#addReminderModal'>
-                        <i class='fas fa-plus'></i> Add Reminder
-                    </button>
-                    <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#manageCategoriesModal">
-                        <i class="fas fa-tags me-2"></i>Manage Categories
-                    </button>
+        <!-- Tab Content -->
+        <div class="tab-content" id="reminderTabContent">
+            <!-- List View Tab -->
+            <!-- List View Tab (Redesigned: Split View) -->
+            <div class="tab-pane fade show active" id="list-view" role="tabpanel" aria-labelledby="list-tab">
+
+                <!-- Stats Pills Row (compact, replaces old big stat cards) -->
+                <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+                    <a href="?filter=today<?= !empty($category) ? '&category=' . urlencode($category) : '' ?>"
+                       class="stat-pill <?= $filter === 'today' ? 'active border-info text-info' : '' ?>">
+                        <i class="fas fa-calendar-day me-1"></i>Today
+                        <span class="badge bg-info bg-opacity-25 text-info ms-1"><?= $stats['today'] ?></span>
+                    </a>
+                    <a href="?filter=upcoming<?= !empty($category) ? '&category=' . urlencode($category) : '' ?>"
+                       class="stat-pill <?= $filter === 'upcoming' ? 'active border-primary text-primary' : '' ?>">
+                        <i class="fas fa-arrow-right me-1"></i>Upcoming
+                        <span class="badge bg-primary bg-opacity-25 text-primary ms-1"><?= $stats['upcoming'] ?></span>
+                    </a>
+                    <a href="?filter=overdue<?= !empty($category) ? '&category=' . urlencode($category) : '' ?>"
+                       class="stat-pill <?= $filter === 'overdue' ? 'active border-danger text-danger' : '' ?>">
+                        <i class="fas fa-exclamation-triangle me-1"></i>Overdue
+                        <span class="badge bg-danger bg-opacity-25 text-danger ms-1"><?= $stats['overdue'] ?></span>
+                    </a>
+                    <a href="?filter=completed<?= !empty($category) ? '&category=' . urlencode($category) : '' ?>"
+                       class="stat-pill <?= $filter === 'completed' ? 'active border-success text-success' : '' ?>">
+                        <i class="fas fa-check-circle me-1"></i>Done
+                        <span class="badge bg-success bg-opacity-25 text-success ms-1"><?= $stats['completed'] ?></span>
+                    </a>
+                    <a href="?filter=dismissed<?= !empty($category) ? '&category=' . urlencode($category) : '' ?>"
+                       class="stat-pill <?= $filter === 'dismissed' ? 'active border-warning text-warning' : '' ?>">
+                        <i class="fas fa-eye-slash me-1"></i>Dismissed
+                        <span class="badge bg-warning bg-opacity-25 text-warning ms-1"><?= $stats['dismissed'] ?></span>
+                    </a>
+                    <a href="?filter=all<?= !empty($category) ? '&category=' . urlencode($category) : '' ?>"
+                       class="stat-pill <?= $filter === 'all' ? 'active border-secondary' : '' ?>">
+                        <i class="fas fa-layer-group me-1"></i>All
+                        <span class="badge bg-secondary bg-opacity-25 text-secondary ms-1"><?= $stats['total'] ?></span>
+                    </a>
+
+                    <div class="ms-auto d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#manageCategoriesModal" title="Manage categories">
+                            <i class="fas fa-tags"></i>
+                        </button>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addReminderModal">
+                            <i class="fas fa-plus me-1"></i>Full Form
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Statistics Cards -->
-                <div class='row mb-3 g-3'>
-                    <div class="col-md-2 col-sm-4 col-6">
-                        <a href="?filter=today<?= !empty($category) ? '&category=' . urlencode($category) : '' ?>" class="text-decoration-none">
-                            <div class="card stat-card h-100 <?= $filter === 'today' ? 'border-info bg-info bg-opacity-10' : 'bg-body-tertiary' ?> shadow-sm">
-                                <div class="card-body text-center p-3">
-                                    <div class="mb-2">
-                                        <i class="fas fa-calendar-day fa-2x text-info"></i>
-                                    </div>
-                                    <h4 class="mb-1 fw-bold text-info"><?= $stats['today'] ?></h4>
-                                    <small class="text-muted fw-medium">Today</small>
+                <!-- Split View: List (left) + Detail (right) -->
+                <div class="row g-3 reminders-split">
+                    <!-- LEFT PANE: List -->
+                    <div class="col-12 col-lg-5 col-xl-4">
+                        <div class="card reminders-list-card border-0 shadow-sm">
+                            <!-- Search + Filter Bar -->
+                            <div class="card-header bg-body-tertiary border-0 p-3">
+                                <div class="position-relative mb-2">
+                                    <i class="fas fa-search position-absolute top-50 translate-middle-y ms-3 text-muted" style="font-size:0.85rem;"></i>
+                                    <input type="text" id="reminderSearch" class="form-control ps-5"
+                                           placeholder="Search reminders..." autocomplete="off">
+                                    <button type="button" id="reminderSearchClear"
+                                            class="btn btn-sm position-absolute top-50 end-0 translate-middle-y me-2 d-none"
+                                            style="background:transparent;border:0;">
+                                        <i class="fas fa-times text-muted"></i>
+                                    </button>
+                                </div>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <?php if (!empty($categories)): ?>
+                                        <select id="categoryFilter" class="form-select form-select-sm" style="flex:1;min-width:0;">
+                                            <option value="">All Categories</option>
+                                            <?php foreach ($categories as $cat): ?>
+                                                <option value="<?= htmlspecialchars($cat) ?>" <?= $category === $cat ? 'selected' : '' ?>>
+                                                    <?= ucfirst(htmlspecialchars($cat)) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    <?php endif; ?>
+                                    <select id="priorityFilter" class="form-select form-select-sm" style="flex:1;min-width:0;">
+                                        <option value="">All Priority</option>
+                                        <option value="high">High</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="low">Low</option>
+                                    </select>
                                 </div>
                             </div>
-                        </a>
-                    </div>
-                    <div class='col-md-2 col-sm-4 col-6'>
-                        <a href="?filter=upcoming<?= !empty($category) ? '&category=' . urlencode($category) : '' ?>" class="text-decoration-none">
-                            <div class='card stat-card h-100 <?= $filter === 'upcoming' ? 'border-primary bg-primary bg-opacity-10' : 'bg-body-tertiary' ?> shadow-sm'>
-                                <div class='card-body text-center p-3'>
-                                    <div class="mb-2">
-                                        <i class="fas fa-list fa-2x text-primary"></i>
-                                    </div>
-                                    <h4 class="mb-1 fw-bold text-primary"><?= $stats['upcoming'] ?></h4>
-                                    <small class="text-muted fw-medium">Upcoming</small>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-md-2 col-sm-4 col-6">
-                        <a href="?filter=overdue<?= !empty($category) ? '&category=' . urlencode($category) : '' ?>" class="text-decoration-none">
-                            <div class="card stat-card h-100 <?= $filter === 'overdue' ? 'border-danger bg-danger bg-opacity-10' : 'bg-body-tertiary' ?> shadow-sm">
-                                <div class="card-body text-center p-3">
-                                    <div class="mb-2">
-                                        <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
-                                    </div>
-                                    <h4 class="mb-1 fw-bold text-danger"><?= $stats['overdue'] ?></h4>
-                                    <small class="text-muted fw-medium">Overdue</small>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-md-2 col-sm-4 col-6">
-                        <a href="?filter=completed<?= !empty($category) ? '&category=' . urlencode($category) : '' ?>" class="text-decoration-none">
-                            <div class="card stat-card h-100 <?= $filter === 'completed' ? 'border-success bg-success bg-opacity-10' : 'bg-body-tertiary' ?> shadow-sm">
-                                <div class="card-body text-center p-3">
-                                    <div class="mb-2">
-                                        <i class="fas fa-check-circle fa-2x text-success"></i>
-                                    </div>
-                                    <h4 class="mb-1 fw-bold text-success"><?= $stats['completed'] ?></h4>
-                                    <small class="text-muted fw-medium">Done</small>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-md-2 col-sm-4 col-6">
-                        <a href="?filter=dismissed<?= !empty($category) ? '&category=' . urlencode($category) : '' ?>" class="text-decoration-none">
-                            <div class="card stat-card h-100 <?= $filter === 'dismissed' ? 'border-warning bg-warning bg-opacity-10' : 'bg-body-tertiary' ?> shadow-sm">
-                                <div class="card-body text-center p-3">
-                                    <div class="mb-2">
-                                        <i class="fas fa-eye-slash fa-2x text-warning"></i>
-                                    </div>
-                                    <h4 class="mb-1 fw-bold text-warning"><?= $stats['dismissed'] ?></h4>
-                                    <small class="text-muted fw-medium">Dismissed</small>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-md-2 col-sm-4 col-6">
-                        <a href="?filter=all<?= !empty($category) ? '&category=' . urlencode($category) : '' ?>" class="text-decoration-none">
-                            <div class="card stat-card h-100 <?= $filter === 'all' ? 'border-secondary bg-secondary bg-opacity-10' : 'bg-body-tertiary' ?> shadow-sm">
-                                <div class="card-body text-center p-3">
-                                    <div class="mb-2">
-                                        <i class="fas fa-calendar-alt fa-2x text-secondary"></i>
-                                    </div>
-                                    <h4 class="mb-1 fw-bold text-secondary"><?= $stats['total'] ?></h4>
-                                    <small class="text-muted fw-medium">Total</small>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                </div>
 
-                <!-- Category Filter -->
-                <div class="row mb-3">
-                    <div class="col-12 col-lg-4 ms-auto">
-                        <?php if (!empty($categories)): ?>
-                            <select class="form-select" onchange="window.location.href='?filter=<?= urlencode($filter) ?>&category=' + encodeURIComponent(this.value)">
-                                <option value="">All Categories</option>
-                                <?php foreach ($categories as $cat): ?>
-                                    <option value="<?= htmlspecialchars($cat) ?>" <?= $category === $cat ? 'selected' : '' ?>>
-                                        <?= ucfirst(htmlspecialchars($cat)) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    <div class="card mb-3">
-        <div class="card-header">
-            <!-- Per Page and Select All Controls -->
-            <div class="d-flex justify-content-between align-items-center gap-3">
-                <!-- Per Page Dropdown -->
-                <div class="d-flex align-items-center">
-                    <label class="form-label me-2 mb-0">Show:</label>
-                    <select class="form-select form-select-sm" style="width: auto;" onchange="changePerPage(this.value)">
-                        <option value="12" <?= $per_page == 12 ? 'selected' : '' ?>>12</option>
-                        <option value="24" <?= $per_page == 24 ? 'selected' : '' ?>>24</option>
-                        <option value="36" <?= $per_page == 36 ? 'selected' : '' ?>>36</option>
-                        <option value="48" <?= $per_page == 48 ? 'selected' : '' ?>>48</option>
-                        <option value="60" <?= $per_page == 60 ? 'selected' : '' ?>>60</option>
-                        <option value="100" <?= $per_page == 100 ? 'selected' : '' ?>>100</option>
-                    </select>
-                </div>
-                <!-- Select All Checkbox -->
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="selectAllReminders">
-                    <label class="form-check-label" for="selectAllReminders">
-                        Select All
-                    </label>
-                </div>
-            </div>
-
-            <div class="d-flex justify-content-between align-items-center gap-2">
-                <!-- Bulk Actions -->
-                <div class="bulk-actions" style="display: none;">
-                    <button class="btn btn-outline-danger" id="bulkDeleteBtn">
-                        <i class="fas fa-trash me-1"></i>Delete Selected (<span id="selectedCount">0</span>)
-                    </button>
-                    <button class="btn btn-outline-secondary" id="clearSelectionBtn">
-                        <i class="fas fa-times me-1"></i>Clear Selection
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4" id="reminders-container">
-        <?php if (empty($reminders)): ?>
-            <div class="col-12">
-                <div class="text-center py-5">
-                    <div class="mb-4">
-                        <div class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
-                            <i class="fas fa-bell-slash fa-2x text-muted"></i>
-                        </div>
-                    </div>
-                    <h5 class="text-muted fw-light mb-2">No reminders found</h5>
-                    <p class="text-muted small mb-4">Create your first reminder to get started!</p>
-                    <button class="btn btn-primary btn-sm rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addReminderModal">
-                        <i class="fas fa-plus me-2"></i>Add Your First Reminder
-                    </button>
-                </div>
-            </div>
-        <?php else: ?>
-            <?php foreach ($reminders as $reminder):
-                $datetime = new DateTime($reminder['reminder_date'] . ' ' . $reminder['reminder_time']);
-                $now = new DateTime();
-                $is_overdue = $datetime < $now && !$reminder['is_completed'];
-                $is_due_soon = $datetime->diff($now)->days == 0 && $datetime > $now;
-
-                // Enhanced card styling
-                $card_class = 'border-0 shadow-sm';
-                $accent_color = 'primary';
-                $status_icon = 'fas fa-clock';
-                $status_text = 'Upcoming';
-                $status_bg = 'bg-primary';
-
-                if ($reminder['is_completed']) {
-                    $accent_color = 'success';
-                    $status_icon = 'fas fa-check-circle';
-                    $status_text = 'Completed';
-                    $status_bg = 'bg-success';
-                } elseif ($is_overdue) {
-                    $accent_color = 'danger';
-                    $status_icon = 'fas fa-exclamation-triangle';
-                    $status_text = 'Overdue';
-                    $status_bg = 'bg-danger';
-                } elseif ($is_due_soon) {
-                    $accent_color = 'warning';
-                    $status_icon = 'fas fa-bell';
-                    $status_text = 'Due Soon';
-                    $status_bg = 'bg-warning';
-                }
-                ?>
-                <div class="col-lg-6 col-xl-4">
-                    <div class="card bg h-100 <?= $card_class ?> hover-shadow-lg transition-all position-relative overflow-hidden <?= $reminder['is_completed'] ? 'opacity-85' : '' ?>">
-
-                        <!-- Selection Checkbox -->
-                        <div class="position-absolute" style="top: 1px; left: 1px; z-index: 2;">
-                            <input type="checkbox" class="form-check-input reminder-checkbox" value="<?= $reminder['id'] ?>" style="transform: scale(1.2);">
-                        </div>
-                        <!-- Accent Bar -->
-                        <div class="position-absolute top-0 start-0 w-100 <?= $status_bg ?>" style="height: 4px;"></div>
-                        <!-- Card Header -->
-                        <div class="card-header border-0 pb-2">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div class="flex-grow-1 me-3">
-                                    <h5 class="card-title mb-2 fw-bold lh-sm <?= $reminder['is_completed'] ? 'text-decoration-line-through text-muted' : 'text-900' ?>">
-                                        <?= htmlspecialchars($reminder['title']) ?>
-                                    </h5>
-
-                                    <!-- Priority and Category Badges -->
-                                    <div class="d-flex flex-wrap gap-1 mb-0">
-                                    <span class="badge rounded-pill badge-subtle-<?= $reminder['priority'] === 'high' ? 'danger' : ($reminder['priority'] === 'medium' ? 'warning' : 'secondary') ?> bg-opacity-15 text-<?= $reminder['priority'] === 'high' ? 'danger' : ($reminder['priority'] === 'medium' ? 'warning' : 'secondary') ?> border-0 px-2 py-1" style="font-size: 0.7rem;">
-                                        <i class="fas fa-flag me-1"></i><?= ucfirst($reminder['priority']) ?>
-                                    </span>
-                                        <?php
-                                        $categoryStmt = $dbh->query("SELECT name, icon, color FROM reminder_categories");
-                                        $categoryData = [];
-                                        while ($cat = $categoryStmt->fetch(PDO::FETCH_ASSOC)) {
-                                            $categoryData[$cat['name']] = [
-                                                'icon' => $cat['icon'],
-                                                'color' => $cat['color']
-                                            ];
-                                        }
-                                        $catIcon = $categoryData[$reminder['category']]['icon'] ?? 'fas fa-bell';
-                                        $catColor = $categoryData[$reminder['category']]['color'] ?? '#007bff';
-                                        ?>
-                                        <span class="badge border-0"
-                                              style="background-color: <?= $catColor ?>; color: white;"
-                                              title="Category: <?= ucfirst($reminder['category']) ?>">
-                                                <i class="<?= $catIcon ?> me-1"></i><?= ucfirst($reminder['category']) ?>
-                                        </span>
-                                        <?php if ($reminder['is_recurring']): ?>
-                                            <span class="badge rounded-pill badge-subtle-info bg-opacity-15 text-info border-0 px-2 py-1" style="font-size: 0.7rem;" title="Repeats every <?= $reminder['recurring_days'] ?> day(s)">
-                                            <i class="fas fa-redo me-1"></i>Recurring
-                                        </span>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-
-                                <!-- Status Badge -->
-                                <div class="text-end">
-                                <span class="badge <?= $status_bg ?>-subtle bg-opacity-15 badge-subtle-<?= $accent_color ?> border-0 px-2 py-1 mb-2" style="font-size: 0.7rem;">
-                                    <i class="<?= $status_icon ?> me-1"></i>
-                                </span>
-
-                                    <!-- Dropdown Menu -->
-                                    <div class="dropdown d-block">
-                                        <button class="btn btn-sm rounded-circle p-1" type="button" data-bs-toggle="dropdown" style="width: 28px; height: 28px;" title="More actions">
-                                            <i class="fas fa-ellipsis-v" style="font-size: 0.7rem;"></i>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3">
-                                            <?php if ($filter === 'dismissed'): ?>
-                                                <li><a class="dropdown-item text-success rounded-2" href="#" onclick="restoreReminder(<?= $reminder['id'] ?>, '<?= $reminder['source_type'] ?? 'reminder' ?>', <?= $reminder['instance_id'] ?? 'null' ?>)">
-                                                        <i class="fas fa-undo me-2"></i>Restore
-                                                    </a></li>
-                                                <li><hr class="dropdown-divider my-1"></li>
+                            <!-- Inline Quick Add -->
+                            <div class="quick-add-bar p-3 border-bottom">
+                                <form id="quickAddForm" class="d-flex gap-2 flex-wrap align-items-center" autocomplete="off">
+                                    <input type="text" name="title" id="quickAddTitle" class="form-control form-control-sm"
+                                           placeholder="+ Quick add a reminder..." style="flex:1 1 100%;" required>
+                                    <div class="d-flex gap-2 w-100 quick-add-meta" style="display:none !important;">
+                                        <input type="date" name="reminder_date" id="quickAddDate"
+                                               value="<?= date('Y-m-d') ?>" class="form-control form-control-sm" style="flex:1;">
+                                        <input type="time" name="reminder_time" id="quickAddTime"
+                                               value="09:00" class="form-control form-control-sm" style="flex:1;">
+                                        <select name="category" id="quickAddCategory" class="form-select form-select-sm" style="flex:1;">
+                                            <?php if (!empty($categories)): ?>
+                                                <?php foreach ($categories as $cat): ?>
+                                                    <option value="<?= htmlspecialchars($cat) ?>"><?= ucfirst(htmlspecialchars($cat)) ?></option>
+                                                <?php endforeach; ?>
                                             <?php else: ?>
-                                                <?php if (!$reminder['is_completed']): ?>
-                                                    <li><a class="dropdown-item text-success rounded-2" href="#" onclick="<?= $reminder['source_type'] === 'instance' ? 'completeReminderInstance(' . $reminder['instance_id'] . ')' : 'completeReminder(' . $reminder['id'] . ')' ?>">
-                                                            <i class="fas fa-check me-2"></i>Mark Complete
-                                                        </a></li>
-                                                    <li><a class="dropdown-item text-primary rounded-2" href="#" onclick="editReminder(<?= $reminder['source_type'] === 'instance' ? $reminder['reminder_id'] : (is_numeric($reminder['id']) ? $reminder['id'] : "'" . $reminder['id'] . "'") ?>)">
-                                                            <i class="fas fa-edit me-2"></i>Edit
-                                                        </a></li>
-                                                    <li><hr class="dropdown-divider my-1"></li>
-                                                <?php endif; ?>
-                                                <li><a class="dropdown-item text-warning rounded-2" href="#" onclick="<?= $reminder['source_type'] === 'instance' && !empty($reminder['instance_id']) ? 'dismissReminderInstance(' . $reminder['instance_id'] . ')' : 'dismissReminder(' . $reminder['id'] . ')' ?>">
-                                                        <i class="fas fa-eye-slash me-2"></i>Dismiss
-                                                    </a></li>
+                                                <option value="general">General</option>
                                             <?php endif; ?>
-                                            <li><a class="dropdown-item text-danger rounded-2" href="#" onclick="deleteReminder(<?= $reminder['id'] ?>)">
-                                                    <i class="fas fa-trash me-2"></i>Delete
-                                                </a></li>
-                                        </ul>
+                                        </select>
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Bulk Action Bar (hidden when empty, toggled by existing JS) -->
+                            <div class="bulk-actions px-3 py-2 bg-warning bg-opacity-10 border-bottom" style="display:none;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="form-check mb-0">
+                                        <input class="form-check-input" type="checkbox" id="selectAllReminders">
+                                        <label class="form-check-label small" for="selectAllReminders">
+                                            <span id="selectedCount">0</span> selected
+                                        </label>
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        <button class="btn btn-sm btn-outline-success" id="bulkCompleteBtn" title="Mark selected as complete">
+                                            <i class="fas fa-check me-1"></i>Complete
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" id="bulkDeleteBtn" title="Delete selected">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" id="clearSelectionBtn" title="Clear">
+                                            <i class="fas fa-times"></i>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Card Body -->
-                        <div class="card-body py-3">
-                            <?php if ($reminder['description']): ?>
-                                <p class="fw-semibold text-900 mb-1"><?= htmlspecialchars($reminder['description']) ?></p>
-                            <?php endif; ?>
-
-                            <!-- Date and Time with improved styling -->
-                            <div class="d-flex align-items-center mb-1 p-3 bg-opacity-50 rounded-3">
-                                <div class="flex-grow-1">
-                                    <div class="fw-semibold mb-1" style="font-size: 0.9rem;">
-                                        <?= date('l, F j, Y', strtotime($reminder['reminder_date'])) ?>
+                            <!-- Grouped Reminder List -->
+                            <div class="reminders-list-scroll" id="reminders-container">
+                                <?php if (empty($reminders)): ?>
+                                    <div class="text-center py-5 px-3">
+                                        <i class="fas fa-bell-slash fa-2x text-muted mb-3 opacity-50"></i>
+                                        <h6 class="text-muted fw-light mb-2">No reminders found</h6>
+                                        <p class="text-muted small mb-3">Use the quick-add bar above or open the full form.</p>
                                     </div>
-                                    <div class="text-muted small">
-                                        <i class="fas fa-clock me-1"></i><?= date('g:i A', strtotime($reminder['reminder_time'])) ?>
-                                    </div>
-                                    <!-- Time indicator and status badges -->
-                                    <div class="d-flex gap-2 mt-2">
-                                        <?php if ($reminder['is_dismissed'] == 1): ?>
-                                            <span class="badge badge-subtle-secondary border-0 px-2 py-1" style="font-size: 0.7rem;">
-                                                <i class="fas fa-eye-slash me-1"></i>Dismissed
-                                            </span>
-                                        <?php endif; ?>
-
-                                        <?php if ($is_overdue): ?>
-                                            <span class="badge badge-subtle-danger bg-opacity-15 text-danger border-0 px-2 py-1" style="font-size: 0.7rem;">
-                                                <?php
-                                                $diff = $now->diff($datetime);
-                                                echo $diff->days > 0 ? $diff->days . ' days ago' : 'Today';
-                                                ?>
-                                            </span>
-                                        <?php elseif ($is_due_soon): ?>
-                                            <span class="badge badge-subtle-success rounded-pill fs-11">
-                                                <?php
-                                                $diff = $datetime->diff($now);
-                                                $hours = $diff->h + ($diff->days * 24);
-                                                echo $hours > 0 ? "Due in {$hours}h {$diff->i}m" : "In {$diff->i}m";
-                                                ?>
-                                            </span>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Enhanced Footer -->
-                        <div class="card-footer border-0 pt-0 pb-3">
-                            <div class="d-flex flex-wrap gap-2 align-items-center">
-                                <!-- Email Notification -->
-                                <?php if ($reminder['email_frequency'] !== 'none'): ?>
-                                    <span class="badge badge-subtle-info bg-opacity-10 text-info border border-info border-opacity-25 rounded-pill px-2 py-1 d-flex align-items-center" style="font-size: 0.7rem;" title="Email: <?= ucfirst($reminder['email_frequency']) ?>">
-                                    <i class="fas fa-envelope me-1"></i><?= ucfirst($reminder['email_frequency']) ?>
-                                </span>
-                                <?php endif; ?>
-
-                                <!-- Advance Notification -->
-                                <?php if ($reminder['advance_notification'] > 0): ?>
-                                    <span class="badge badge-subtle-warning bg-opacity-10 text-warning border border-warning border-opacity-25 rounded-pill px-2 py-1 d-flex align-items-center" style="font-size: 0.7rem;" title="Advance notification">
-                                    <i class="fas fa-bell me-1"></i>
+                                <?php else: ?>
                                     <?php
-                                    $minutes = $reminder['advance_notification'];
-                                    echo $minutes >= 60 ? floor($minutes / 60) . 'h' . ($minutes % 60 > 0 ? ' ' . ($minutes % 60) . 'm' : '') : $minutes . 'm';
-                                    ?> before
-                                </span>
-                                <?php endif; ?>
+                                    // Group reminders by relative date bucket
+                                    $today_str = date('Y-m-d');
+                                    $tomorrow_str = date('Y-m-d', strtotime('+1 day'));
+                                    $week_end_str = date('Y-m-d', strtotime('+7 days'));
 
-                                <!-- No notifications indicator -->
-                                <?php if ($reminder['email_frequency'] === 'none' && $reminder['advance_notification'] == 0): ?>
-                                    <span class="badge badge-subtle-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 rounded-pill px-2 py-1" style="font-size: 0.7rem;">
-                                    <i class="fas fa-bell-slash me-1"></i>No alerts
-                                </span>
+                                    $groups = [
+                                        'overdue'  => ['label' => 'Overdue',   'icon' => 'fa-exclamation-triangle', 'color' => 'danger',    'items' => []],
+                                        'today'    => ['label' => 'Today',     'icon' => 'fa-calendar-day',         'color' => 'info',      'items' => []],
+                                        'tomorrow' => ['label' => 'Tomorrow',  'icon' => 'fa-sun',                  'color' => 'primary',   'items' => []],
+                                        'week'     => ['label' => 'This Week', 'icon' => 'fa-calendar-week',        'color' => 'primary',   'items' => []],
+                                        'later'    => ['label' => 'Later',     'icon' => 'fa-calendar',             'color' => 'secondary', 'items' => []],
+                                        'done'     => ['label' => 'Completed', 'icon' => 'fa-check-circle',         'color' => 'success',   'items' => []],
+                                    ];
+
+                                    // Pre-load category color/icon map once
+                                    $categoryStmtAll = $dbh->query("SELECT name, icon, color FROM reminder_categories");
+                                    $categoryData = [];
+                                    while ($cat = $categoryStmtAll->fetch(PDO::FETCH_ASSOC)) {
+                                        $categoryData[$cat['name']] = ['icon' => $cat['icon'], 'color' => $cat['color']];
+                                    }
+
+                                    $now_dt = new DateTime();
+                                    foreach ($reminders as $r) {
+                                        $dt = new DateTime($r['reminder_date'] . ' ' . $r['reminder_time']);
+                                        $date_only = $r['reminder_date'];
+                                        if ($r['is_completed']) {
+                                            $bucket = 'done';
+                                        } elseif ($dt < $now_dt) {
+                                            $bucket = 'overdue';
+                                        } elseif ($date_only === $today_str) {
+                                            $bucket = 'today';
+                                        } elseif ($date_only === $tomorrow_str) {
+                                            $bucket = 'tomorrow';
+                                        } elseif ($date_only <= $week_end_str) {
+                                            $bucket = 'week';
+                                        } else {
+                                            $bucket = 'later';
+                                        }
+                                        $groups[$bucket]['items'][] = $r;
+                                    }
+                                    ?>
+
+                                    <?php foreach ($groups as $bucket_key => $group):
+                                        if (empty($group['items'])) continue; ?>
+                                        <div class="reminder-group" data-bucket="<?= $bucket_key ?>">
+                                            <div class="reminder-group-header" data-droptarget="<?= $bucket_key ?>">
+                                                <i class="fas <?= $group['icon'] ?> text-<?= $group['color'] ?> me-2"></i>
+                                                <span class="fw-semibold text-<?= $group['color'] ?>"><?= $group['label'] ?></span>
+                                                <span class="badge bg-<?= $group['color'] ?> bg-opacity-15 text-<?= $group['color'] ?> ms-2"><?= count($group['items']) ?></span>
+                                            </div>
+
+                                            <?php foreach ($group['items'] as $reminder):
+                                                $datetime = new DateTime($reminder['reminder_date'] . ' ' . $reminder['reminder_time']);
+                                                $is_overdue   = $datetime < $now_dt && !$reminder['is_completed'];
+                                                $is_due_soon  = $datetime->diff($now_dt)->days == 0 && $datetime > $now_dt;
+
+                                                $accent = 'primary';
+                                                if ($reminder['is_completed'])      $accent = 'success';
+                                                elseif ($is_overdue)                $accent = 'danger';
+                                                elseif ($is_due_soon)               $accent = 'warning';
+
+                                                $catIcon  = $categoryData[$reminder['category']]['icon']  ?? 'fas fa-bell';
+                                                $catColor = $categoryData[$reminder['category']]['color'] ?? '#007bff';
+
+                                                // Encode the full reminder as JSON for the right-pane renderer
+                                                $reminder_payload = htmlspecialchars(json_encode([
+                                                    'id'                   => $reminder['id'],
+                                                    'title'                => $reminder['title'],
+                                                    'description'          => $reminder['description'],
+                                                    'reminder_date'        => $reminder['reminder_date'],
+                                                    'reminder_time'        => $reminder['reminder_time'],
+                                                    'priority'             => $reminder['priority'],
+                                                    'category'             => $reminder['category'],
+                                                    'is_completed'         => (int)$reminder['is_completed'],
+                                                    'is_dismissed'         => (int)($reminder['is_dismissed'] ?? 0),
+                                                    'is_recurring'         => (int)$reminder['is_recurring'],
+                                                    'recurring_days'       => $reminder['recurring_days'] ?? null,
+                                                    'advance_notification' => $reminder['advance_notification'],
+                                                    'email_frequency'      => $reminder['email_frequency'],
+                                                    'source_type'          => $reminder['source_type'] ?? 'reminder',
+                                                    'instance_id'          => $reminder['instance_id'] ?? null,
+                                                    'reminder_id'          => $reminder['reminder_id'] ?? $reminder['id'],
+                                                    'cat_icon'             => $catIcon,
+                                                    'cat_color'            => $catColor,
+                                                    'accent'               => $accent,
+                                                    'is_overdue'           => $is_overdue,
+                                                    'is_due_soon'          => $is_due_soon,
+                                                ]), ENT_QUOTES, 'UTF-8');
+                                                ?>
+                                                <div class="reminder-item position-relative <?= $reminder['is_completed'] ? 'is-completed' : '' ?>"
+                                                     data-id="<?= $reminder['id'] ?>"
+                                                     data-title="<?= htmlspecialchars(strtolower($reminder['title'])) ?>"
+                                                     data-category="<?= htmlspecialchars($reminder['category']) ?>"
+                                                     data-priority="<?= htmlspecialchars($reminder['priority']) ?>"
+                                                     data-reminder='<?= $reminder_payload ?>'
+                                                     draggable="true">
+                                                    <div class="reminder-accent bg-<?= $accent ?>"></div>
+
+                                                    <div class="reminder-row">
+                                                        <!-- Checkbox (kept for bulk-delete compatibility) -->
+                                                        <input type="checkbox" class="form-check-input reminder-checkbox flex-shrink-0"
+                                                               value="<?= $reminder['id'] ?>"
+                                                               onclick="event.stopPropagation();">
+
+                                                        <!-- Category icon -->
+                                                        <div class="reminder-cat-icon flex-shrink-0"
+                                                             style="background-color: <?= $catColor ?>;"
+                                                             title="<?= ucfirst(htmlspecialchars($reminder['category'])) ?>">
+                                                            <i class="<?= $catIcon ?>"></i>
+                                                        </div>
+
+                                                        <!-- Main content -->
+                                                        <div class="reminder-main flex-grow-1 min-width-0">
+                                                            <div class="reminder-title <?= $reminder['is_completed'] ? 'text-decoration-line-through text-muted' : '' ?>">
+                                                                <?= htmlspecialchars($reminder['title']) ?>
+                                                                <?php if ($reminder['is_recurring']): ?>
+                                                                    <i class="fas fa-redo text-info ms-1" style="font-size:0.7rem;" title="Recurring"></i>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                            <div class="reminder-meta">
+                                                        <span class="text-muted">
+                                                            <i class="fas fa-clock me-1"></i><?= date('g:i A', strtotime($reminder['reminder_time'])) ?>
+                                                        </span>
+                                                                <span class="reminder-priority-dot priority-<?= $reminder['priority'] ?>" title="<?= ucfirst($reminder['priority']) ?> priority"></span>
+                                                                <?php if ($is_overdue): ?>
+                                                                    <span class="text-danger small fw-semibold ms-1">
+                                                                <?php
+                                                                $d = $now_dt->diff($datetime);
+                                                                echo $d->days > 0 ? $d->days . 'd overdue' : 'overdue';
+                                                                ?>
+                                                            </span>
+                                                                <?php elseif ($is_due_soon): ?>
+                                                                    <span class="text-warning small fw-semibold ms-1">
+                                                                <?php
+                                                                $d = $datetime->diff($now_dt);
+                                                                $hours = $d->h + ($d->days * 24);
+                                                                echo $hours > 0 ? "in {$hours}h" : "in {$d->i}m";
+                                                                ?>
+                                                            </span>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Quick actions (visible on hover) -->
+                                                        <div class="reminder-quick-actions flex-shrink-0">
+                                                            <?php if ($reminder['is_dismissed']): ?>
+                                                                <button type="button" class="btn btn-sm btn-light qa-btn" title="Undismiss / Restore"
+                                                                        onclick="event.stopPropagation();restoreReminder(<?= $reminder['id'] ?>, '<?= $reminder['source_type'] ?? 'reminder' ?>', <?= $reminder['instance_id'] ?? 'null' ?>);return false;">
+                                                                    <i class="fas fa-undo text-success"></i>
+                                                                </button>
+                                                            <?php elseif (!$reminder['is_completed']): ?>
+                                                                <button type="button" class="btn btn-sm btn-light qa-btn" title="Mark complete"
+                                                                        onclick="event.stopPropagation();<?= $reminder['source_type'] === 'instance' ? 'completeReminderInstance(' . $reminder['instance_id'] . ')' : 'completeReminder(' . $reminder['id'] . ')' ?>">
+                                                                    <i class="fas fa-check text-success"></i>
+                                                                </button>
+                                                                <div class="dropdown d-inline-block">
+                                                                    <button class="btn btn-sm btn-light qa-btn" type="button" data-bs-toggle="dropdown" title="Snooze" onclick="event.stopPropagation();">
+                                                                        <i class="fas fa-clock text-info"></i>
+                                                                    </button>
+                                                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                                                        <li><h6 class="dropdown-header">Snooze for</h6></li>
+                                                                        <?php
+                                                                        $allowedSnooze = array_filter(array_map('intval', explode(',', getSetting('snooze_options', '15,30,60,120,480,1440'))));
+                                                                        foreach ($allowedSnooze as $sm):
+                                                                            $sLabel = formatSnoozeDuration($sm);
+                                                                            ?>
+                                                                            <li><a class="dropdown-item" href="#" onclick="event.stopPropagation();quickSnooze(<?= $reminder['id'] ?>, <?= $sm ?>);return false;"><?= $sLabel ?></a></li>
+                                                                        <?php endforeach; ?>
+                                                                    </ul>
+                                                                </div>
+                                                            <?php endif; ?>
+                                                            <div class="dropdown d-inline-block">
+                                                                <button class="btn btn-sm btn-light qa-btn" type="button" data-bs-toggle="dropdown" title="More" onclick="event.stopPropagation();">
+                                                                    <i class="fas fa-ellipsis-v"></i>
+                                                                </button>
+                                                                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                                                    <?php if ($filter === 'dismissed'): ?>
+                                                                        <li><a class="dropdown-item" href="#" onclick="event.stopPropagation();restoreReminder(<?= $reminder['id'] ?>, '<?= $reminder['source_type'] ?? 'reminder' ?>', <?= $reminder['instance_id'] ?? 'null' ?>);return false;">
+                                                                                <i class="fas fa-undo me-2 text-success"></i>Restore
+                                                                            </a></li>
+                                                                    <?php else: ?>
+                                                                        <?php if (!$reminder['is_completed']): ?>
+                                                                            <li><a class="dropdown-item" href="#" onclick="event.stopPropagation();editReminder(<?= $reminder['source_type'] === 'instance' ? $reminder['reminder_id'] : (is_numeric($reminder['id']) ? $reminder['id'] : "'" . $reminder['id'] . "'") ?>);return false;">
+                                                                                    <i class="fas fa-edit me-2 text-primary"></i>Edit
+                                                                                </a></li>
+                                                                        <?php endif; ?>
+                                                                        <li><a class="dropdown-item" href="#" onclick="event.stopPropagation();<?= $reminder['source_type'] === 'instance' && !empty($reminder['instance_id']) ? 'dismissReminderInstance(' . $reminder['instance_id'] . ')' : 'dismissReminder(' . $reminder['id'] . ')' ?>;return false;">
+                                                                                <i class="fas fa-eye-slash me-2 text-warning"></i>Dismiss
+                                                                            </a></li>
+                                                                    <?php endif; ?>
+                                                                    <li><hr class="dropdown-divider my-1"></li>
+                                                                    <li><a class="dropdown-item text-danger" href="#" onclick="event.stopPropagation();deleteReminder(<?= $reminder['id'] ?>);return false;">
+                                                                            <i class="fas fa-trash me-2"></i>Delete
+                                                                        </a></li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endforeach; ?>
                                 <?php endif; ?>
+                            </div>
+
+                            <!-- Footer: per-page + pagination -->
+                            <?php if (!empty($reminders) && $total_pages > 1): ?>
+                                <div class="card-footer bg-body-tertiary border-0 p-2">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <small class="text-muted">Show</small>
+                                            <select class="form-select form-select-sm" style="width:auto;" onchange="changePerPage(this.value)">
+                                                <?php foreach ([12, 24, 36, 48, 60, 100] as $opt): ?>
+                                                    <option value="<?= $opt ?>" <?= $per_page == $opt ? 'selected' : '' ?>><?= $opt ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <nav>
+                                            <ul class="pagination pagination-sm mb-0">
+                                                <?php if ($page > 1): ?>
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $page - 1])) ?>">
+                                                            <i class="fas fa-chevron-left"></i>
+                                                        </a>
+                                                    </li>
+                                                <?php endif; ?>
+                                                <li class="page-item active"><span class="page-link"><?= $page ?> / <?= $total_pages ?></span></li>
+                                                <?php if ($page < $total_pages): ?>
+                                                    <li class="page-item">
+                                                        <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>">
+                                                            <i class="fas fa-chevron-right"></i>
+                                                        </a>
+                                                    </li>
+                                                <?php endif; ?>
+                                            </ul>
+                                        </nav>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT PANE: Detail -->
+                    <div class="col-12 col-lg-7 col-xl-8">
+                        <div class="card reminder-detail-card border-0 shadow-sm">
+                            <div id="reminderDetailEmpty" class="text-center py-5 px-4">
+                                <div class="mb-3">
+                                    <i class="fas fa-hand-pointer fa-3x text-muted opacity-25"></i>
+                                </div>
+                                <h5 class="text-muted fw-light">Select a reminder</h5>
+                                <p class="text-muted small mb-0">Click any reminder on the left to see its full details, or drag it onto a date group to reschedule.</p>
+                            </div>
+                            <div id="reminderDetailContent" class="d-none">
+                                <!-- Populated by JS when a reminder is clicked -->
                             </div>
                         </div>
                     </div>
                 </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
-    </div>
-
-    <!-- Pagination -->
-    <?php if ($total_pages > 1): ?>
-        <nav aria-label="Reminders pagination" class="mt-4">
-            <ul class="pagination justify-content-center">
-                <?php if ($page > 1): ?>
-                    <li class="page-item">
-                        <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $page - 1])) ?>">
-                            <i class="fas fa-chevron-left"></i> Previous
-                        </a>
-                    </li>
-                <?php endif; ?>
-
-                <?php
-                $start_page = max(1, $page - 2);
-                $end_page = min($total_pages, $page + 2);
-
-                if ($start_page > 1): ?>
-                    <li class="page-item">
-                        <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => 1])) ?>">1</a>
-                    </li>
-                    <?php if ($start_page > 2): ?>
-                        <li class="page-item disabled"><span class="page-link">...</span></li>
-                    <?php endif; ?>
-                <?php endif; ?>
-
-                <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
-                    <li class="page-item <?= $i == $page ? 'active' : '' ?>">
-                        <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $i])) ?>"><?= $i ?></a>
-                    </li>
-                <?php endfor; ?>
-
-                <?php if ($end_page < $total_pages): ?>
-                    <?php if ($end_page < $total_pages - 1): ?>
-                        <li class="page-item disabled"><span class="page-link">...</span></li>
-                    <?php endif; ?>
-                    <li class="page-item">
-                        <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $total_pages])) ?>"><?= $total_pages ?></a>
-                    </li>
-                <?php endif; ?>
-
-                <?php if ($page < $total_pages): ?>
-                    <li class="page-item">
-                        <a class="page-link" href="?<?= http_build_query(array_merge($_GET, ['page' => $page + 1])) ?>">
-                            Next <i class="fas fa-chevron-right"></i>
-                        </a>
-                    </li>
-                <?php endif; ?>
-            </ul>
-
-            <div class="text-center mt-2">
-                <small class="text-muted">
-                    Showing <?= min($offset + 1, $total_reminders) ?> to <?= min($offset + $per_page, $total_reminders) ?> of <?= $total_reminders ?> reminders
-                </small>
             </div>
-        </nav>
-    <?php endif; ?>
-    </div>
-        <!-- Calendar View Tab -->
-        <div class="tab-pane fade" id="calendar-view" role="tabpanel" aria-labelledby="calendar-tab">
-            <div class="card shadow-none border mb-3">
-                <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/illustrations/corner-6.png);"></div>
-                <div class="card-header z-1">
-                    <div class="row flex-between-center gx-0">
-                        <div class="col-lg-auto d-flex align-items-center">
-                            <h4 class="mb-0 text-primary fw-bold">Reminders <span class="text-info fw-medium">Calendar</span></h4>
-                        </div>
-                        <div class="col-md-auto p-3">
-                            <form class="row align-items-center g-3">
-                                <div class="col-md-auto position-relative">
-                                    <div class="dropdown font-sans-serif me-md-2">
-                                        <button class="btn btn-falcon-default text-600 btn-sm dropdown-toggle dropdown-caret-none" type="button" id="reminder-view-selector" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            <span id="reminder-current-view">Month View</span>
-                                            <svg class="svg-inline--fa fa-sort fa-w-10 ms-2 fs-10" aria-hidden="true" focusable="false" data-prefix="fas" data-icon="sort" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512">
-                                                <path fill="currentColor" d="M41 288h238c21.4 0 32.1 25.9 17 41L177 448c-9.4 9.4-24.6 9.4-33.9 0L24 329c-15.1-15.1-4.4-41 17-41zm255-105L177 64c-9.4-9.4-24.6-9.4-33.9 0L24 183c-15.1 15.1-4.4 41 17 41h238c21.4 0 32.1-25.9 17-41z"></path>
-                                            </svg>
-                                        </button>
-                                        <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="reminder-view-selector">
-                                            <a class="dropdown-item d-flex justify-content-between active" href="#" data-fc-view="dayGridMonth">Month View<span class="icon-check"></span></a>
-                                            <a class="dropdown-item d-flex justify-content-between" href="#" data-fc-view="timeGridWeek">Week View<span class="icon-check"></span></a>
-                                            <a class="dropdown-item d-flex justify-content-between" href="#" data-fc-view="timeGridDay">Day View<span class="icon-check"></span></a>
-                                            <a class="dropdown-item d-flex justify-content-between" href="#" data-fc-view="listWeek">List View<span class="icon-check"></span></a>
-                                            <a class="dropdown-item d-flex justify-content-between" href="#" data-fc-view="year">Year View<span class="icon-check"></span></a>
+
+            <!-- Calendar View Tab -->
+            <div class="tab-pane fade" id="calendar-view" role="tabpanel" aria-labelledby="calendar-tab">
+                <div class="card shadow-none border mb-3">
+                    <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/illustrations/corner-6.png);"></div>
+                    <div class="card-header z-1">
+                        <div class="row flex-between-center gx-0">
+                            <div class="col-lg-auto d-flex align-items-center">
+                                <h4 class="mb-0 text-primary fw-bold">Reminders <span class="text-info fw-medium">Calendar</span></h4>
+                            </div>
+                            <div class="col-md-auto p-3">
+                                <form class="row align-items-center g-3">
+                                    <div class="col-md-auto position-relative">
+                                        <div class="dropdown font-sans-serif me-md-2">
+                                            <button class="btn btn-falcon-default text-600 btn-sm dropdown-toggle dropdown-caret-none" type="button" id="reminder-view-selector" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                <span id="reminder-current-view">Month View</span>
+                                                <svg class="svg-inline--fa fa-sort fa-w-10 ms-2 fs-10" aria-hidden="true" focusable="false" data-prefix="fas" data-icon="sort" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512">
+                                                    <path fill="currentColor" d="M41 288h238c21.4 0 32.1 25.9 17 41L177 448c-9.4 9.4-24.6 9.4-33.9 0L24 329c-15.1-15.1-4.4-41 17-41zm255-105L177 64c-9.4-9.4-24.6-9.4-33.9 0L24 183c-15.1 15.1-4.4 41 17 41h238c21.4 0 32.1-25.9 17-41z"></path>
+                                                </svg>
+                                            </button>
+                                            <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="reminder-view-selector">
+                                                <a class="dropdown-item d-flex justify-content-between active" href="#" data-fc-view="dayGridMonth">Month View<span class="icon-check"></span></a>
+                                                <a class="dropdown-item d-flex justify-content-between" href="#" data-fc-view="timeGridWeek">Week View<span class="icon-check"></span></a>
+                                                <a class="dropdown-item d-flex justify-content-between" href="#" data-fc-view="timeGridDay">Day View<span class="icon-check"></span></a>
+                                                <a class="dropdown-item d-flex justify-content-between" href="#" data-fc-view="listWeek">List View<span class="icon-check"></span></a>
+                                                <a class="dropdown-item d-flex justify-content-between" href="#" data-fc-view="year">Year View<span class="icon-check"></span></a>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card overflow-hidden">
-                <div class="card-body p-0 scrollbar m-3">
-                    <div class="calendar-outline" id="reminderCalendar"></div>
-                </div>
-            </div>
-
-            <!-- Reminder Modal -->
-            <div class="modal fade" id="reminderModal" tabindex="-1" aria-labelledby="reminderModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered" role="document">
-                    <div class="modal-content position-relative border-0">
-                        <div class="modal-header px-5 position-relative modal-shape-header bg-shape">
-                            <div class="position-relative z-1">
-                                <h4 class="mb-0 text-white" id="reminderModalLabel">Reminder Details</h4>
+                                </form>
                             </div>
-                            <button class="btn-close position-absolute top-0 end-0 mt-2 me-2" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <div class="modal-body py-4 px-5" id="reminderDetails">
-                            <!-- Reminder details will be inserted here -->
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-success" id="completeReminderBtn">
-                                <i class="fas fa-check me-1"></i>Mark Complete
-                            </button>
-                            <button type="button" class="btn btn-warning" id="dismissReminderBtn">
-                                <i class="fas fa-eye-slash me-1"></i>Dismiss
-                            </button>
-                            <button type="button" class="btn btn-primary" id="editReminderBtn">
-                                <i class="fas fa-edit me-1"></i>Edit
-                            </button>
+                    </div>
+                </div>
+
+                <div class="card overflow-hidden">
+                    <div class="card-body p-0 scrollbar m-3">
+                        <div class="calendar-outline" id="reminderCalendar"></div>
+                    </div>
+                </div>
+
+                <!-- Reminder Modal -->
+                <div class="modal fade" id="reminderModal" tabindex="-1" aria-labelledby="reminderModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered" role="document">
+                        <div class="modal-content position-relative border-0">
+                            <div class="modal-header px-5 position-relative modal-shape-header bg-shape">
+                                <div class="position-relative z-1">
+                                    <h4 class="mb-0 text-white" id="reminderModalLabel">Reminder Details</h4>
+                                </div>
+                                <button class="btn-close position-absolute top-0 end-0 mt-2 me-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body py-4 px-5" id="reminderDetails">
+                                <!-- Reminder details will be inserted here -->
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-success" id="completeReminderBtn">
+                                    <i class="fas fa-check me-1"></i>Mark Complete
+                                </button>
+                                <button type="button" class="btn btn-warning" id="dismissReminderBtn">
+                                    <i class="fas fa-eye-slash me-1"></i>Dismiss
+                                </button>
+                                <button type="button" class="btn btn-primary" id="editReminderBtn">
+                                    <i class="fas fa-edit me-1"></i>Edit
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <!-- Settings View Tab -->
-        <div class="tab-pane fade" id="settings-view" role="tabpanel" aria-labelledby="settings-tab">
-            <div class="card shadow-none border mb-3">
-                <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/illustrations/corner-6.png);"></div>
-                <div class="card-header z-1">
-                    <div class="row flex-between-center gx-0">
-                        <div class="col-lg-auto d-flex align-items-center">
-                            <h4 class="mb-0 text-primary fw-bold">Reminder <span class="text-info fw-medium">Settings</span></h4>
+            <!-- Settings View Tab -->
+            <div class="tab-pane fade" id="settings-view" role="tabpanel" aria-labelledby="settings-tab">
+                <div class="card shadow-none border mb-3">
+                    <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/illustrations/corner-6.png);"></div>
+                    <div class="card-header z-1">
+                        <div class="row flex-between-center gx-0">
+                            <div class="col-lg-auto d-flex align-items-center">
+                                <h4 class="mb-0 text-primary fw-bold">Reminder <span class="text-info fw-medium">Settings</span></h4>
+                            </div>
+                            <div class="col-lg-auto pt-3 pt-lg-0">
+                                <small class="text-muted">Configure your reminder notification preferences</small>
+                            </div>
                         </div>
-                        <div class="col-lg-auto pt-3 pt-lg-0">
-                            <small class="text-muted">Configure your reminder notification preferences</small>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <!-- Email Notifications Settings -->
+                    <div class="col-12">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0 d-flex align-items-center">
+                                    <i class="fas fa-envelope text-primary me-2"></i>
+                                    Email Notification Settings
+                                </h5>
+                                <small class="text-muted">Control when and how you receive reminder emails</small>
+                            </div>
+                            <div class="card-body">
+                                <form id="reminderSettingsForm">
+                                    <div class="row g-4">
+                                        <!-- Morning Summary Email -->
+                                        <div class="col-md-6">
+                                            <div class="setting-item p-3 border rounded">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1 fw-semibold">
+                                                            <i class="fas fa-sun text-warning me-2"></i>
+                                                            Morning Summary Email
+                                                        </h6>
+                                                        <p class="text-muted small mb-2">
+                                                            Receive a daily summary of today's reminders and overdue items every morning at 8:00 AM
+                                                        </p>
+                                                        <div class="d-flex align-items-center text-muted small">
+                                                            <i class="fas fa-clock me-1"></i>
+                                                            <span>Sent daily at 8:00 AM</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-check form-switch ms-3">
+                                                        <input class="form-check-input" type="checkbox" id="morning_summary_enabled" name="morning_summary_enabled" checked>
+                                                        <label class="form-check-label" for="morning_summary_enabled"></label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Evening Progress Email -->
+                                        <div class="col-md-6">
+                                            <div class="setting-item p-3 border rounded">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1 fw-semibold">
+                                                            <i class="fas fa-moon text-info me-2"></i>
+                                                            Evening Progress Email
+                                                        </h6>
+                                                        <p class="text-muted small mb-2">
+                                                            Get an evening report showing completed, incomplete, and overdue reminders at 11:00 PM
+                                                        </p>
+                                                        <div class="d-flex align-items-center text-muted small">
+                                                            <i class="fas fa-clock me-1"></i>
+                                                            <span>Sent daily at 11:00 PM</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-check form-switch ms-3">
+                                                        <input class="form-check-input" type="checkbox" id="evening_progress_enabled" name="evening_progress_enabled" checked>
+                                                        <label class="form-check-label" for="evening_progress_enabled"></label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Due Reminders Email -->
+                                        <div class="col-md-6">
+                                            <div class="setting-item p-3 border rounded">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1 fw-semibold">
+                                                            <i class="fas fa-bell text-danger me-2"></i>
+                                                            Due Reminder Notifications
+                                                        </h6>
+                                                        <p class="text-muted small mb-2">
+                                                            Receive instant email notifications when reminders become due (checked every 5 minutes)
+                                                        </p>
+                                                        <div class="d-flex align-items-center text-muted small">
+                                                            <i class="fas fa-sync me-1"></i>
+                                                            <span>Checked every 5 minutes</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-check form-switch ms-3">
+                                                        <input class="form-check-input" type="checkbox" id="due_reminders_enabled" name="due_reminders_enabled" checked>
+                                                        <label class="form-check-label" for="due_reminders_enabled"></label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Send Even If No Reminders -->
+                                        <div class="col-md-6">
+                                            <div class="setting-item p-3 border rounded">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1 fw-semibold">
+                                                            <i class="fas fa-paper-plane text-success me-2"></i>
+                                                            Send Empty Summaries
+                                                        </h6>
+                                                        <p class="text-muted small mb-2">
+                                                            Send morning and evening emails even when you have no reminders scheduled
+                                                        </p>
+                                                        <div class="d-flex align-items-center text-muted small">
+                                                            <i class="fas fa-info-circle me-1"></i>
+                                                            <span>Applies to summary emails</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-check form-switch ms-3">
+                                                        <input class="form-check-input" type="checkbox" id="send_empty_summaries" name="send_empty_summaries" checked>
+                                                        <label class="form-check-label" for="send_empty_summaries"></label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Email Configuration -->
+                                    <div class="mt-4 pt-4 border-top">
+                                        <h6 class="mb-3 fw-semibold">
+                                            <i class="fas fa-at text-primary me-2"></i>
+                                            Email Configuration
+                                        </h6>
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Notification Email Address</label>
+                                                <input type="email" class="form-control" id="notification_email" name="notification_email" value="bryo4419@gmail.com">
+                                                <small class="text-muted">Email address where notifications will be sent</small>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Email Format</label>
+                                                <select class="form-select" id="email_format" name="email_format">
+                                                    <option value="html" selected>HTML (Rich formatting)</option>
+                                                    <option value="text">Plain Text</option>
+                                                </select>
+                                                <small class="text-muted">Choose your preferred email format</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Save Button -->
+                                    <div class="mt-4 pt-3 border-top text-end">
+                                        <button type="button" class="btn btn-outline-secondary me-2" id="resetSettingsBtn">
+                                            <i class="fas fa-undo me-1"></i>Reset to Defaults
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-1"></i>Save Settings
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="row g-4">
-                <!-- Email Notifications Settings -->
+            <!-- Snooze Tab -->
+            <div class="tab-pane fade" id="snooze-view" role="tabpanel" aria-labelledby="snooze-tab">
                 <div class="col-12">
                     <div class="card h-100">
                         <div class="card-header">
                             <h5 class="mb-0 d-flex align-items-center">
-                                <i class="fas fa-envelope text-primary me-2"></i>
-                                Email Notification Settings
+                                <i class="fas fa-clock text-warning me-2"></i>
+                                Snooze Settings
                             </h5>
-                            <small class="text-muted">Control when and how you receive reminder emails</small>
+                            <small class="text-muted">Configure snooze behavior and limits</small>
                         </div>
                         <div class="card-body">
-                            <form id="reminderSettingsForm">
-                                <div class="row g-4">
-                                    <!-- Morning Summary Email -->
-                                    <div class="col-md-6">
-                                        <div class="setting-item p-3 border rounded">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <div class="flex-grow-1">
-                                                    <h6 class="mb-1 fw-semibold">
-                                                        <i class="fas fa-sun text-warning me-2"></i>
-                                                        Morning Summary Email
-                                                    </h6>
-                                                    <p class="text-muted small mb-2">
-                                                        Receive a daily summary of today's reminders and overdue items every morning at 8:00 AM
-                                                    </p>
-                                                    <div class="d-flex align-items-center text-muted small">
-                                                        <i class="fas fa-clock me-1"></i>
-                                                        <span>Sent daily at 8:00 AM</span>
-                                                    </div>
+                            <div class="row g-4">
+                                <!-- Max Snooze Count -->
+                                <div class="col-md-6">
+                                    <div class="setting-item p-3 border rounded">
+                                        <div class="mb-3">
+                                            <h6 class="mb-2 fw-semibold">
+                                                <i class="fas fa-hashtag text-warning me-2"></i>
+                                                Maximum Snooze Count
+                                            </h6>
+                                            <p class="text-muted small mb-3">
+                                                How many times a reminder can be snoozed before requiring action
+                                            </p>
+                                            <div class="row align-items-center">
+                                                <div class="col-8">
+                                                    <input type="range" class="form-range" id="maxSnoozeCount"
+                                                           min="1" max="10" value="5" step="1">
                                                 </div>
-                                                <div class="form-check form-switch ms-3">
-                                                    <input class="form-check-input" type="checkbox" id="morning_summary_enabled" name="morning_summary_enabled" checked>
-                                                    <label class="form-check-label" for="morning_summary_enabled"></label>
+                                                <div class="col-4">
+                                                    <input type="number" class="form-control form-control-sm"
+                                                           id="maxSnoozeCountInput" min="1" max="20" value="5">
                                                 </div>
+                                            </div>
+                                            <div class="d-flex justify-content-between text-muted small mt-1">
+                                                <span>1 (Strict)</span>
+                                                <span id="snoozeCountLabel">5 times</span>
+                                                <span>10+ (Flexible)</span>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
 
-                                    <!-- Evening Progress Email -->
-                                    <div class="col-md-6">
-                                        <div class="setting-item p-3 border rounded">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <div class="flex-grow-1">
-                                                    <h6 class="mb-1 fw-semibold">
-                                                        <i class="fas fa-moon text-info me-2"></i>
-                                                        Evening Progress Email
-                                                    </h6>
-                                                    <p class="text-muted small mb-2">
-                                                        Get an evening report showing completed, incomplete, and overdue reminders at 11:00 PM
-                                                    </p>
-                                                    <div class="d-flex align-items-center text-muted small">
-                                                        <i class="fas fa-clock me-1"></i>
-                                                        <span>Sent daily at 11:00 PM</span>
-                                                    </div>
+                                <!-- Snooze Options -->
+                                <div class="col-md-6">
+                                    <div class="setting-item p-3 border rounded">
+                                        <div class="mb-3">
+                                            <h6 class="mb-2 fw-semibold">
+                                                <i class="fas fa-list text-info me-2"></i>
+                                                Available Snooze Options
+                                            </h6>
+                                            <p class="text-muted small mb-3">
+                                                Customize the quick snooze duration options (in minutes)
+                                            </p>
+                                            <div class="snooze-options-container">
+                                                <div class="row g-2" id="snoozeOptionsInputs">
+                                                    <!-- Dynamic inputs will be generated here -->
                                                 </div>
-                                                <div class="form-check form-switch ms-3">
-                                                    <input class="form-check-input" type="checkbox" id="evening_progress_enabled" name="evening_progress_enabled" checked>
-                                                    <label class="form-check-label" for="evening_progress_enabled"></label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Due Reminders Email -->
-                                    <div class="col-md-6">
-                                        <div class="setting-item p-3 border rounded">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <div class="flex-grow-1">
-                                                    <h6 class="mb-1 fw-semibold">
-                                                        <i class="fas fa-bell text-danger me-2"></i>
-                                                        Due Reminder Notifications
-                                                    </h6>
-                                                    <p class="text-muted small mb-2">
-                                                        Receive instant email notifications when reminders become due (checked every 5 minutes)
-                                                    </p>
-                                                    <div class="d-flex align-items-center text-muted small">
-                                                        <i class="fas fa-sync me-1"></i>
-                                                        <span>Checked every 5 minutes</span>
-                                                    </div>
-                                                </div>
-                                                <div class="form-check form-switch ms-3">
-                                                    <input class="form-check-input" type="checkbox" id="due_reminders_enabled" name="due_reminders_enabled" checked>
-                                                    <label class="form-check-label" for="due_reminders_enabled"></label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Send Even If No Reminders -->
-                                    <div class="col-md-6">
-                                        <div class="setting-item p-3 border rounded">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <div class="flex-grow-1">
-                                                    <h6 class="mb-1 fw-semibold">
-                                                        <i class="fas fa-paper-plane text-success me-2"></i>
-                                                        Send Empty Summaries
-                                                    </h6>
-                                                    <p class="text-muted small mb-2">
-                                                        Send morning and evening emails even when you have no reminders scheduled
-                                                    </p>
-                                                    <div class="d-flex align-items-center text-muted small">
-                                                        <i class="fas fa-info-circle me-1"></i>
-                                                        <span>Applies to summary emails</span>
-                                                    </div>
-                                                </div>
-                                                <div class="form-check form-switch ms-3">
-                                                    <input class="form-check-input" type="checkbox" id="send_empty_summaries" name="send_empty_summaries" checked>
-                                                    <label class="form-check-label" for="send_empty_summaries"></label>
+                                                <div class="mt-2">
+                                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="addSnoozeOption()">
+                                                        <i class="fas fa-plus me-1"></i>Add Option
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetSnoozeOptionsToDefault()">
+                                                        <i class="fas fa-undo me-1"></i>Reset to Default
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Email Configuration -->
-                                <div class="mt-4 pt-4 border-top">
-                                    <h6 class="mb-3 fw-semibold">
-                                        <i class="fas fa-at text-primary me-2"></i>
-                                        Email Configuration
-                                    </h6>
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label">Notification Email Address</label>
-                                            <input type="email" class="form-control" id="notification_email" name="notification_email" value="bryo4419@gmail.com">
-                                            <small class="text-muted">Email address where notifications will be sent</small>
+                                <!-- Snooze Analytics Preview -->
+                                <div class="col-12">
+                                    <div class="setting-item p-3 border rounded">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div>
+                                                <h6 class="mb-2 fw-semibold">
+                                                    <i class="fas fa-chart-bar text-success me-2"></i>
+                                                    Snooze Usage Analytics
+                                                </h6>
+                                                <p class="text-muted small mb-0">
+                                                    View your snooze patterns and productivity insights
+                                                </p>
+                                            </div>
+                                            <button class="btn btn-outline-success btn-sm" onclick="showSnoozeAnalytics()">
+                                                <i class="fas fa-chart-line me-1"></i>View Full Analytics
+                                            </button>
                                         </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">Email Format</label>
-                                            <select class="form-select" id="email_format" name="email_format">
-                                                <option value="html" selected>HTML (Rich formatting)</option>
-                                                <option value="text">Plain Text</option>
-                                            </select>
-                                            <small class="text-muted">Choose your preferred email format</small>
+
+                                        <div class="row g-3" id="snoozeAnalyticsPreview">
+                                            <div class="col-md-3">
+                                                <div class="text-center p-2 bg-light rounded">
+                                                    <div class="h5 mb-0 text-warning" id="totalSnoozes">-</div>
+                                                    <small class="text-muted">Total Snoozes (30d)</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="text-center p-2 bg-light rounded">
+                                                    <div class="h5 mb-0 text-info" id="avgSnoozeDuration">-</div>
+                                                    <small class="text-muted">Avg Duration</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="text-center p-2 bg-light rounded">
+                                                    <div class="h5 mb-0 text-primary" id="uniqueReminders">-</div>
+                                                    <small class="text-muted">Unique Reminders</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="text-center p-2 bg-light rounded">
+                                                    <div class="h5 mb-0 text-success" id="mostUsedDuration">-</div>
+                                                    <small class="text-muted">Preferred Duration</small>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
 
-                                <!-- Save Button -->
-                                <div class="mt-4 pt-3 border-top text-end">
-                                    <button type="button" class="btn btn-outline-secondary me-2" id="resetSettingsBtn">
-                                        <i class="fas fa-undo me-1"></i>Reset to Defaults
-                                    </button>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save me-1"></i>Save Settings
-                                    </button>
-                                </div>
-                            </form>
+                            <!-- Save Snooze Settings Button -->
+                            <div class="mt-4 pt-3 border-top text-end">
+                                <button type="button" class="btn btn-outline-secondary me-2" id="resetSnoozeSettingsBtn">
+                                    <i class="fas fa-undo me-1"></i>Reset Snooze Settings
+                                </button>
+                                <button type="button" class="btn btn-warning" id="saveSnoozeSettingsBtn">
+                                    <i class="fas fa-save me-1"></i>Save Snooze Settings
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
         </div>
-
-        <!-- Snooze Tab -->
-        <div class="tab-pane fade" id="snooze-view" role="tabpanel" aria-labelledby="snooze-tab">
-        <div class="col-12">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="mb-0 d-flex align-items-center">
-                        <i class="fas fa-clock text-warning me-2"></i>
-                        Snooze Settings
-                    </h5>
-                    <small class="text-muted">Configure snooze behavior and limits</small>
-                </div>
-                <div class="card-body">
-                    <div class="row g-4">
-                        <!-- Max Snooze Count -->
-                        <div class="col-md-6">
-                            <div class="setting-item p-3 border rounded">
-                                <div class="mb-3">
-                                    <h6 class="mb-2 fw-semibold">
-                                        <i class="fas fa-hashtag text-warning me-2"></i>
-                                        Maximum Snooze Count
-                                    </h6>
-                                    <p class="text-muted small mb-3">
-                                        How many times a reminder can be snoozed before requiring action
-                                    </p>
-                                    <div class="row align-items-center">
-                                        <div class="col-8">
-                                            <input type="range" class="form-range" id="maxSnoozeCount"
-                                                   min="1" max="10" value="5" step="1">
-                                        </div>
-                                        <div class="col-4">
-                                            <input type="number" class="form-control form-control-sm"
-                                                   id="maxSnoozeCountInput" min="1" max="20" value="5">
-                                        </div>
-                                    </div>
-                                    <div class="d-flex justify-content-between text-muted small mt-1">
-                                        <span>1 (Strict)</span>
-                                        <span id="snoozeCountLabel">5 times</span>
-                                        <span>10+ (Flexible)</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Snooze Options -->
-                        <div class="col-md-6">
-                            <div class="setting-item p-3 border rounded">
-                                <div class="mb-3">
-                                    <h6 class="mb-2 fw-semibold">
-                                        <i class="fas fa-list text-info me-2"></i>
-                                        Available Snooze Options
-                                    </h6>
-                                    <p class="text-muted small mb-3">
-                                        Customize the quick snooze duration options (in minutes)
-                                    </p>
-                                    <div class="snooze-options-container">
-                                        <div class="row g-2" id="snoozeOptionsInputs">
-                                            <!-- Dynamic inputs will be generated here -->
-                                        </div>
-                                        <div class="mt-2">
-                                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addSnoozeOption()">
-                                                <i class="fas fa-plus me-1"></i>Add Option
-                                            </button>
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetSnoozeOptionsToDefault()">
-                                                <i class="fas fa-undo me-1"></i>Reset to Default
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Snooze Analytics Preview -->
-                        <div class="col-12">
-                            <div class="setting-item p-3 border rounded">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <div>
-                                        <h6 class="mb-2 fw-semibold">
-                                            <i class="fas fa-chart-bar text-success me-2"></i>
-                                            Snooze Usage Analytics
-                                        </h6>
-                                        <p class="text-muted small mb-0">
-                                            View your snooze patterns and productivity insights
-                                        </p>
-                                    </div>
-                                    <button class="btn btn-outline-success btn-sm" onclick="showSnoozeAnalytics()">
-                                        <i class="fas fa-chart-line me-1"></i>View Full Analytics
-                                    </button>
-                                </div>
-
-                                <div class="row g-3" id="snoozeAnalyticsPreview">
-                                    <div class="col-md-3">
-                                        <div class="text-center p-2 bg-light rounded">
-                                            <div class="h5 mb-0 text-warning" id="totalSnoozes">-</div>
-                                            <small class="text-muted">Total Snoozes (30d)</small>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="text-center p-2 bg-light rounded">
-                                            <div class="h5 mb-0 text-info" id="avgSnoozeDuration">-</div>
-                                            <small class="text-muted">Avg Duration</small>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="text-center p-2 bg-light rounded">
-                                            <div class="h5 mb-0 text-primary" id="uniqueReminders">-</div>
-                                            <small class="text-muted">Unique Reminders</small>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <div class="text-center p-2 bg-light rounded">
-                                            <div class="h5 mb-0 text-success" id="mostUsedDuration">-</div>
-                                            <small class="text-muted">Preferred Duration</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Save Snooze Settings Button -->
-                    <div class="mt-4 pt-3 border-top text-end">
-                        <button type="button" class="btn btn-outline-secondary me-2" id="resetSnoozeSettingsBtn">
-                            <i class="fas fa-undo me-1"></i>Reset Snooze Settings
-                        </button>
-                        <button type="button" class="btn btn-warning" id="saveSnoozeSettingsBtn">
-                            <i class="fas fa-save me-1"></i>Save Snooze Settings
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        </div>
-
-    </div>
     </div>
 
     <!-- Add Reminder Modal -->
@@ -5733,6 +6008,437 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
             // Note: Chart rendering would require Chart.js library
             // You can add Chart.js integration here if needed
         }
+    </script>
+
+    <script>
+        /* ========================================
+           Reminders: Split-View Interactivity
+           ======================================== */
+        // Server-validated snooze durations (kept in sync with reminder_settings.snooze_options)
+        window.__snoozeOptionsHtml = (function() {
+            const opts = [
+                <?php
+                $allowedSnoozeJS = array_filter(array_map('intval', explode(',', getSetting('snooze_options', '15,30,60,120,480,1440'))));
+                foreach ($allowedSnoozeJS as $sm) {
+                    echo "        { m: " . $sm . ", label: " . json_encode(formatSnoozeDuration($sm)) . " },\n";
+                }
+                ?>
+            ];
+            return opts.map(function(o){
+                return '<li><a class="dropdown-item js-snooze-item" href="#" data-minutes="' + o.m + '">' + o.label + '</a></li>';
+            }).join('');
+        })();
+
+        (function() {
+            'use strict';
+
+            // ----- DOM refs -----
+            const container       = document.getElementById('reminders-container');
+            const detailEmpty     = document.getElementById('reminderDetailEmpty');
+            const detailContent   = document.getElementById('reminderDetailContent');
+            const searchInput     = document.getElementById('reminderSearch');
+            const searchClear     = document.getElementById('reminderSearchClear');
+            const categoryFilter  = document.getElementById('categoryFilter');
+            const priorityFilter  = document.getElementById('priorityFilter');
+            const quickAddForm    = document.getElementById('quickAddForm');
+            const quickAddTitle   = document.getElementById('quickAddTitle');
+
+            if (!container) return; // page didn't render the list pane
+
+            // ============================================
+            // 1) Row click -> render detail pane
+            // ============================================
+            container.addEventListener('click', function(e) {
+                // Ignore clicks on interactive children
+                if (e.target.closest('.reminder-quick-actions, .reminder-checkbox, .dropdown, button, a, input')) return;
+                const row = e.target.closest('.reminder-item');
+                if (!row) return;
+                selectReminderRow(row);
+            });
+
+            function selectReminderRow(row) {
+                document.querySelectorAll('.reminder-item.is-selected').forEach(el => el.classList.remove('is-selected'));
+                row.classList.add('is-selected');
+                try {
+                    const data = JSON.parse(row.dataset.reminder);
+                    renderDetail(data);
+                } catch (err) {
+                    console.error('Bad reminder payload', err);
+                }
+            }
+
+            function escapeHtml(s) {
+                if (s === null || s === undefined) return '';
+                return String(s).replace(/[&<>"']/g, m => ({
+                    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+                }[m]));
+            }
+
+            function fmtDate(iso) {
+                if (!iso) return '';
+                const d = new Date(iso + 'T00:00:00');
+                return d.toLocaleDateString(undefined, { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+            }
+            function fmtTime(t) {
+                if (!t) return '';
+                const [h, m] = t.split(':').map(Number);
+                const d = new Date(); d.setHours(h, m, 0, 0);
+                return d.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
+            }
+            function fmtAdvance(min) {
+                if (!min || min == 0) return 'None';
+                if (min < 60) return min + ' min before';
+                const h = Math.floor(min / 60), r = min % 60;
+                return h + 'h' + (r ? ' ' + r + 'm' : '') + ' before';
+            }
+
+            function renderDetail(r) {
+                detailEmpty.classList.add('d-none');
+                detailContent.classList.remove('d-none');
+
+                const accentColor = r.accent || 'primary';
+                const priorityLabel = (r.priority || 'medium').charAt(0).toUpperCase() + (r.priority || 'medium').slice(1);
+                const statusBadge = r.is_completed
+                    ? `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="fas fa-check-circle me-1"></i>Completed</span>`
+                    : r.is_dismissed
+                        ? `<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><i class="fas fa-eye-slash me-1"></i>Dismissed</span>`
+                        : r.is_overdue
+                            ? `<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="fas fa-exclamation-triangle me-1"></i>Overdue</span>`
+                            : r.is_due_soon
+                                ? `<span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="fas fa-bell me-1"></i>Due Soon</span>`
+                                : `<span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="fas fa-clock me-1"></i>Upcoming</span>`;
+
+                const actionButtons = r.is_dismissed ? `
+            <button class="btn btn-success" onclick="restoreReminder(${r.id}, '${r.source_type || 'reminder'}', ${r.instance_id !== null && r.instance_id !== undefined ? r.instance_id : 'null'})">
+                <i class="fas fa-undo me-1"></i>Undismiss
+            </button>
+            <button class="btn btn-outline-danger ms-auto" onclick="deleteReminder(${r.id})">
+                <i class="fas fa-trash me-1"></i>Delete
+            </button>
+        ` : r.is_completed ? `
+            <button class="btn btn-outline-danger" onclick="deleteReminder(${r.id})"><i class="fas fa-trash me-1"></i>Delete</button>
+        ` : `
+            <button class="btn btn-success" onclick="${r.source_type === 'instance' ? `completeReminderInstance(${r.instance_id})` : `completeReminder(${r.id})`}">
+                <i class="fas fa-check me-1"></i>Mark Complete
+            </button>
+            <button class="btn btn-primary" onclick="editReminder(${r.source_type === 'instance' ? r.reminder_id : r.id})">
+                <i class="fas fa-edit me-1"></i>Edit
+            </button>
+            <div class="btn-group">
+                <button class="btn btn-outline-info dropdown-toggle" data-bs-toggle="dropdown"><i class="fas fa-clock me-1"></i>Snooze</button>
+                <ul class="dropdown-menu">
+                    ${window.__snoozeOptionsHtml || '<li><a class="dropdown-item" href="#" onclick="quickSnooze(' + r.id + ', 15);return false;">15 minutes</a></li>'}
+                </ul>
+            </div>
+            <button class="btn btn-outline-warning" onclick="${r.source_type === 'instance' && r.instance_id ? `dismissReminderInstance(${r.instance_id})` : `dismissReminder(${r.id})`}">
+                <i class="fas fa-eye-slash me-1"></i>Dismiss
+            </button>
+            <button class="btn btn-outline-danger ms-auto" onclick="deleteReminder(${r.id})">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+
+                detailContent.innerHTML = `
+            <div class="detail-hero border-top border-${accentColor}" style="border-top-width:4px !important;">
+                <div class="d-flex justify-content-between align-items-start mb-2 gap-2">
+                    ${statusBadge}
+                    <div class="d-flex gap-1">
+                        <span class="badge" style="background-color:${r.cat_color};color:#fff;">
+                            <i class="${r.cat_icon} me-1"></i>${escapeHtml(r.category)}
+                        </span>
+                        ${r.is_recurring ? '<span class="badge bg-info-subtle text-info border border-info-subtle"><i class="fas fa-redo me-1"></i>Recurring</span>' : ''}
+                    </div>
+                </div>
+                <h3 class="fw-bold mb-2 ${r.is_completed ? 'text-decoration-line-through text-muted' : ''}">${escapeHtml(r.title)}</h3>
+                ${r.description ? `<p class="text-muted mb-0">${escapeHtml(r.description)}</p>` : '<p class="text-muted small fst-italic mb-0">No description</p>'}
+            </div>
+
+            <div class="detail-section">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="detail-label">Date</div>
+                        <div class="fw-semibold"><i class="fas fa-calendar text-${accentColor} me-2"></i>${fmtDate(r.reminder_date)}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="detail-label">Time</div>
+                        <div class="fw-semibold"><i class="fas fa-clock text-${accentColor} me-2"></i>${fmtTime(r.reminder_time)}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="detail-label">Priority</div>
+                        <div class="fw-semibold">
+                            <span class="reminder-priority-dot priority-${r.priority} me-2"></span>${priorityLabel}
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="detail-label">Email Notifications</div>
+                        <div class="fw-semibold">
+                            <i class="fas fa-envelope text-muted me-2"></i>${escapeHtml((r.email_frequency || 'none').charAt(0).toUpperCase() + (r.email_frequency || 'none').slice(1))}
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="detail-label">Advance Notification</div>
+                        <div class="fw-semibold"><i class="fas fa-bell text-muted me-2"></i>${fmtAdvance(r.advance_notification)}</div>
+                    </div>
+                    ${r.is_recurring && r.recurring_days ? `
+                    <div class="col-sm-6">
+                        <div class="detail-label">Repeats Every</div>
+                        <div class="fw-semibold"><i class="fas fa-redo text-muted me-2"></i>${r.recurring_days} day${r.recurring_days > 1 ? 's' : ''}</div>
+                    </div>` : ''}
+                </div>
+            </div>
+
+            <div class="detail-actions">${actionButtons}</div>
+        `;
+            }
+
+            // ============================================
+            // 2) Live search + filter
+            // ============================================
+            function applyFilters() {
+                const q       = (searchInput?.value || '').trim().toLowerCase();
+                const catVal  = categoryFilter?.value || '';
+                const priVal  = priorityFilter?.value || '';
+
+                let visibleCount = 0;
+                document.querySelectorAll('.reminder-item').forEach(row => {
+                    const title = row.dataset.title || '';
+                    const cat   = row.dataset.category || '';
+                    const pri   = row.dataset.priority || '';
+                    const match = (!q || title.includes(q))
+                        && (!catVal || cat === catVal)
+                        && (!priVal || pri === priVal);
+                    row.style.display = match ? '' : 'none';
+                    if (match) visibleCount++;
+                });
+
+                // Hide groups that have no visible items
+                document.querySelectorAll('.reminder-group').forEach(group => {
+                    const visible = group.querySelectorAll('.reminder-item:not([style*="display: none"])').length;
+                    group.style.display = visible > 0 ? '' : 'none';
+                });
+
+                if (searchClear) searchClear.classList.toggle('d-none', q === '');
+            }
+
+            if (searchInput) {
+                let t;
+                searchInput.addEventListener('input', () => { clearTimeout(t); t = setTimeout(applyFilters, 120); });
+            }
+            if (searchClear) {
+                searchClear.addEventListener('click', () => { searchInput.value = ''; applyFilters(); searchInput.focus(); });
+            }
+            // Category filter triggers a server reload so stats + pagination stay accurate
+            if (categoryFilter) {
+                categoryFilter.addEventListener('change', function() {
+                    const params = new URLSearchParams(window.location.search);
+                    const val = this.value;
+                    if (val) params.set('category', val); else params.delete('category');
+                    params.delete('page');
+                    window.location.search = params.toString();
+                });
+            }
+            // Priority is local-only (cheaper)
+            if (priorityFilter) priorityFilter.addEventListener('change', applyFilters);
+
+            // ============================================
+            // 3) Inline quick-add
+            // ============================================
+            if (quickAddTitle) {
+                quickAddTitle.addEventListener('focus', () => quickAddForm.classList.add('expanded'));
+                document.addEventListener('click', (e) => {
+                    if (!quickAddForm.contains(e.target) && quickAddTitle.value.trim() === '') {
+                        quickAddForm.classList.remove('expanded');
+                    }
+                });
+            }
+            if (quickAddForm) {
+                quickAddForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const fd = new FormData(quickAddForm);
+                    fd.append('action', 'quick_add_reminder');
+                    fd.append('priority', 'medium');
+                    fetch('', { method:'POST', body: fd })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                if (typeof showToast === 'function') showToast('Added', data.message || 'Reminder added!', 'success');
+                                setTimeout(() => location.reload(), 400);
+                            } else {
+                                if (typeof showToast === 'function') showToast('Error', data.message || 'Failed', 'danger');
+                                else alert(data.message || 'Failed');
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            if (typeof showToast === 'function') showToast('Error', 'Network error', 'danger');
+                        });
+                });
+            }
+
+            // ============================================
+            // 4) Drag-to-reschedule
+            // ============================================
+            document.querySelectorAll('.reminder-item').forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    item.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', item.dataset.id);
+                });
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    document.querySelectorAll('.reminder-group-header.drop-active').forEach(el => el.classList.remove('drop-active'));
+                });
+            });
+
+            function bucketToDate(bucket) {
+                const today = new Date(); today.setHours(0,0,0,0);
+                const pad = n => String(n).padStart(2, '0');
+                const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+                switch (bucket) {
+                    case 'today':    return fmt(today);
+                    case 'tomorrow': { const d = new Date(today); d.setDate(d.getDate()+1); return fmt(d); }
+                    case 'week':     { const d = new Date(today); d.setDate(d.getDate()+3); return fmt(d); }
+                    case 'later':    { const d = new Date(today); d.setDate(d.getDate()+14); return fmt(d); }
+                    case 'overdue':  { const d = new Date(today); d.setDate(d.getDate()-1); return fmt(d); }
+                    case 'done':     return null; // cannot drag to "done" group
+                    default: return null;
+                }
+            }
+
+            document.querySelectorAll('.reminder-group-header').forEach(header => {
+                header.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    header.classList.add('drop-active');
+                });
+                header.addEventListener('dragleave', () => header.classList.remove('drop-active'));
+                header.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    header.classList.remove('drop-active');
+                    const id = e.dataTransfer.getData('text/plain');
+                    const bucket = header.dataset.droptarget;
+                    const newDate = bucketToDate(bucket);
+                    if (!id || !newDate) return;
+
+                    const fd = new FormData();
+                    fd.append('action', 'reschedule_reminder');
+                    fd.append('id', id);
+                    fd.append('new_date', newDate);
+                    fetch('', { method:'POST', body: fd })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                if (typeof showToast === 'function') showToast('Rescheduled', `Moved to ${newDate}`, 'success');
+                                setTimeout(() => location.reload(), 350);
+                            } else {
+                                if (typeof showToast === 'function') showToast('Error', data.message || 'Failed', 'danger');
+                            }
+                        });
+                });
+            });
+
+            // Delegated handler for snooze options rendered into the detail pane
+            document.addEventListener('click', function(e) {
+                const link = e.target.closest('.js-snooze-item');
+                if (!link) return;
+                e.preventDefault();
+                const minutes = parseInt(link.dataset.minutes, 10);
+                const detailHost = link.closest('#reminderDetailContent');
+                if (!detailHost) return;
+                const selected = document.querySelector('.reminder-item.is-selected');
+                if (!selected) return;
+                const id = parseInt(selected.dataset.id, 10);
+                if (!Number.isFinite(id) || !Number.isFinite(minutes)) return;
+                window.quickSnooze(id, minutes);
+            });
+
+            // ============================================
+            // 5) Quick snooze (used by buttons in rows + detail pane)
+            // Field name MUST be 'minutes' (backend: case 'snooze_reminder' reads $_POST['minutes'])
+            // Durations MUST come from the server-allowed list: 15,30,60,120,480,1440
+            // ============================================
+            window.quickSnooze = function(id, minutes) {
+                const fd = new FormData();
+                fd.append('action', 'snooze_reminder');
+                fd.append('id', id);
+                fd.append('minutes', minutes);
+                fetch('', { method:'POST', body: fd })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            if (typeof showToast === 'function') showToast('Snoozed', data.message || 'Reminder snoozed', 'success');
+                            setTimeout(() => location.reload(), 400);
+                        } else {
+                            if (typeof showToast === 'function') showToast('Error', data.message || 'Failed to snooze', 'danger');
+                            else alert(data.message || 'Failed to snooze');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Snooze failed', err);
+                        if (typeof showToast === 'function') showToast('Error', 'Network error', 'danger');
+                    });
+            };
+
+            // ============================================
+            // 6) Bulk-action bar visibility is owned by the original JS
+            // (see updateBulkActions / selectAllReminders / bulkDeleteBtn handlers above).
+            // We just don't re-bind here, to avoid double-fires.
+            // ============================================
+
+            // Bulk Mark Complete (new — mirrors bulk delete pattern)
+            const bulkCompleteBtn = document.getElementById('bulkCompleteBtn');
+            if (bulkCompleteBtn) {
+                bulkCompleteBtn.addEventListener('click', function() {
+                    // selectedReminders is a Set declared in the original script higher up
+                    if (typeof selectedReminders === 'undefined' || selectedReminders.size === 0) {
+                        if (typeof showToast === 'function') showToast('Nothing selected', 'Pick at least one reminder', 'warning');
+                        return;
+                    }
+                    if (!confirm(`Mark ${selectedReminders.size} reminder(s) as complete?`)) return;
+
+                    bulkCompleteBtn.disabled = true;
+                    const originalHTML = bulkCompleteBtn.innerHTML;
+                    bulkCompleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Working...';
+
+                    const fd = new FormData();
+                    fd.append('action', 'bulk_complete_reminders');
+                    fd.append('ids', JSON.stringify([...selectedReminders]));
+
+                    fetch('', { method:'POST', body: fd })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                if (typeof showToast === 'function') showToast('Done', data.message, 'success');
+                                setTimeout(() => location.reload(), 400);
+                            } else {
+                                if (typeof showToast === 'function') showToast('Error', data.message || 'Failed', 'danger');
+                                else alert(data.message || 'Failed');
+                                bulkCompleteBtn.disabled = false;
+                                bulkCompleteBtn.innerHTML = originalHTML;
+                            }
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            if (typeof showToast === 'function') showToast('Error', 'Network error', 'danger');
+                            bulkCompleteBtn.disabled = false;
+                            bulkCompleteBtn.innerHTML = originalHTML;
+                        });
+                });
+            }
+
+            // ============================================
+            // 7) Auto-select first reminder on load (desktop only)
+            // ============================================
+            if (window.matchMedia('(min-width: 992px)').matches) {
+                const first = document.querySelector('.reminder-item');
+                if (first) selectReminderRow(first);
+            }
+        })();
     </script>
 
 <?php include "footer.php"; ?>

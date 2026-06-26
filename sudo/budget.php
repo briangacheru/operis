@@ -75,13 +75,13 @@ if (isset($_SESSION['alert'])) {
                 <div class="card-body d-flex flex-column justify-content-end">
                     <div class="row justify-content-between">
                         <div class="col-auto align-self-end">
-                                <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info amount-container" id="currentMonthIncome">
-                                    <span class="blurred-text" id="incomeAmount"><?php echo "Ksh " . number_format($currentMonthIncome); ?></span>
-                                </div>
-                                <!-- Eye Icon for Toggling -->
-                                <button class="btn btn-link btn-sm position-absolute top-0 end-0 text-secondary" onclick="toggleAmountVisibility('incomeAmount', this)">
-                                    <span class="fas fa-eye"></span>
-                                </button>
+                            <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info amount-container" id="currentMonthIncome">
+                                <span class="blurred-text" id="incomeAmount"><?php echo "Ksh " . number_format($currentMonthIncome); ?></span>
+                            </div>
+                            <!-- Eye Icon for Toggling -->
+                            <button class="btn btn-link btn-sm position-absolute top-0 end-0 text-secondary" onclick="toggleAmountVisibility('incomeAmount', this)">
+                                <span class="fas fa-eye"></span>
+                            </button>
                             <p class="fs-11 mb-0 text-nowrap" data-bs-toggle="tooltip" data-bs-placement="top" title="Previous month">vs Ksh. <?php echo number_format($previousMonthIncome); ?></p>
                             <span class="badge <?php echo $badgeClass; ?> rounded-pill fs-11" data-bs-toggle="tooltip" data-bs-placement="top" title="Percentage change">
                                 <?php
@@ -115,8 +115,7 @@ if (isset($_SESSION['alert'])) {
                                     SUM(CASE WHEN category = 'Expense' AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m') 
                                         THEN amount + IFNULL(transactionCost, 0) ELSE 0 END) AS previousMonthExpense
                                 FROM (SELECT category, amount, transactionCost, expenseDate 
-                                    FROM tblbudget WHERE is_deleted = 0 UNION ALL SELECT category, amount, transactionCost, od_date AS expenseDate 
-                                    FROM tbloverdrafts WHERE is_deleted = 0) AS combined";
+                                    FROM tblbudget WHERE is_deleted = 0) AS combined";
 
                     $resultExpense = mysqli_query($con, $queryExpense);
                     if ($resultExpense) {
@@ -230,8 +229,8 @@ if (isset($_SESSION['alert'])) {
                                     <span class="fas fa-eye"></span>
                                 </button>
                             </div>
-                                <p class="fs-11 mb-0 text-nowrap">vs Ksh <?php echo number_format($previousMonthSavings); ?></p>
-                                    <span class="badge <?php echo $badgeClassSavings; ?> rounded-pill fs-11">
+                            <p class="fs-11 mb-0 text-nowrap">vs Ksh <?php echo number_format($previousMonthSavings); ?></p>
+                            <span class="badge <?php echo $badgeClassSavings; ?> rounded-pill fs-11">
                                         <?php
                                         if ($percentageChangeSavings > 0) {
                                             echo "+" . $percentageChangeSavings . "%";
@@ -266,33 +265,33 @@ if (isset($_SESSION['alert'])) {
                                 </button>
                             </div>
                             <div class="d-flex flex-between-center mb-2">
-                                    <?php
-                                    $currentYearIncome = 0;
-                                    // Query to calculate the total income for the current year
-                                    $query = "
+                                <?php
+                                $currentYearIncome = 0;
+                                // Query to calculate the total income for the current year
+                                $query = "
                                         SELECT SUM(amount) AS totalIncome
                                         FROM tblbudget
                                         WHERE category = 'Income' 
                                           AND YEAR(expenseDate) = YEAR(CURDATE()) 
                                           AND is_deleted = 0
                                     ";
-                                    $result = mysqli_query($con, $query);
-                                    if ($result) {
-                                        $row = mysqli_fetch_assoc($result);
-                                        $currentYearIncome = $row['totalIncome'] ?? 0;
-                                    }
-                                    ?>
-                                    <div class="d-flex align-items-center">
-                                        <span class="dot bg-primary"></span>
-                                        <span class="fw-semi-bold"><?php echo date("Y"); ?> Income</span>
-                                    </div>
-                                    <span class="text-900 blur-financial-data" id="financialIncomeAmount">
+                                $result = mysqli_query($con, $query);
+                                if ($result) {
+                                    $row = mysqli_fetch_assoc($result);
+                                    $currentYearIncome = $row['totalIncome'] ?? 0;
+                                }
+                                ?>
+                                <div class="d-flex align-items-center">
+                                    <span class="dot bg-primary"></span>
+                                    <span class="fw-semi-bold"><?php echo date("Y"); ?> Income</span>
+                                </div>
+                                <span class="text-900 blur-financial-data" id="financialIncomeAmount">
                                         Ksh: <?php echo number_format($currentYearIncome); ?>
                                     </span>
-                                    <span class="badge badge-subtle-primary rounded-pill fs-11">
+                                <span class="badge badge-subtle-primary rounded-pill fs-11">
                                         100%
                                     </span>
-                                </div>
+                            </div>
                             <div class="d-flex flex-between-center mb-2">
                                 <?php
                                 $currentYearIncome = 0;
@@ -303,9 +302,7 @@ if (isset($_SESSION['alert'])) {
                                         SUM(CASE WHEN category = 'Expense' AND YEAR(expenseDate) = YEAR(CURDATE()) 
                                             THEN amount + IFNULL(transactionCost, 0) ELSE 0 END) AS totalExpenses
                                     FROM (SELECT category, amount, transactionCost, expenseDate 
-                                        FROM tblbudget WHERE is_deleted = 0 UNION ALL 
-                                        SELECT category, amount, transactionCost, od_date AS expenseDate 
-                                        FROM tbloverdrafts WHERE is_deleted = 0) AS combined";
+                                        FROM tblbudget WHERE is_deleted = 0) AS combined";
 
                                 $result = mysqli_query($con, $query);
                                 if ($result) {
@@ -392,38 +389,22 @@ if (isset($_SESSION['alert'])) {
                                 -- Current Month Transaction Costs
                                 (SELECT SUM(transactionCost) 
                                  FROM tblbudget 
-                                 WHERE is_deleted = 0 AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')) 
-                                + 
-                                (SELECT SUM(transactionCost) 
-                                 FROM tbloverdrafts 
-                                 WHERE is_deleted = 0 AND DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')) AS totalTransactionCostCurrentMonth,
+                                 WHERE is_deleted = 0 AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')) AS totalTransactionCostCurrentMonth,
                                 
                                 -- Current Year Transaction Costs
                                 (SELECT SUM(transactionCost) 
                                  FROM tblbudget 
-                                 WHERE is_deleted = 0 AND YEAR(expenseDate) = YEAR(CURDATE())) 
-                                + 
-                                (SELECT SUM(transactionCost) 
-                                 FROM tbloverdrafts 
-                                 WHERE is_deleted = 0 AND YEAR(od_date) = YEAR(CURDATE())) AS totalTransactionCostCurrentYear,
+                                 WHERE is_deleted = 0 AND YEAR(expenseDate) = YEAR(CURDATE())) AS totalTransactionCostCurrentYear,
                             
                                 -- Previous Month Transaction Costs
                                 (SELECT SUM(transactionCost) 
                                  FROM tblbudget 
-                                 WHERE is_deleted = 0 AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m')) 
-                                + 
-                                (SELECT SUM(transactionCost) 
-                                 FROM tbloverdrafts 
-                                 WHERE is_deleted = 0 AND DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m')) AS totalTransactionCostPreviousMonth,
+                                 WHERE is_deleted = 0 AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m')) AS totalTransactionCostPreviousMonth,
                                 
                                 -- Previous Year Transaction Costs
                                 (SELECT SUM(transactionCost) 
                                  FROM tblbudget 
-                                 WHERE is_deleted = 0 AND YEAR(expenseDate) = YEAR(CURDATE()) - 1) 
-                                + 
-                                (SELECT SUM(transactionCost) 
-                                 FROM tbloverdrafts 
-                                 WHERE is_deleted = 0 AND YEAR(od_date) = YEAR(CURDATE()) - 1) AS totalTransactionCostPreviousYear";
+                                 WHERE is_deleted = 0 AND YEAR(expenseDate) = YEAR(CURDATE()) - 1) AS totalTransactionCostPreviousYear";
 
                                 $result = mysqli_query($con, $query);
 
@@ -463,16 +444,14 @@ if (isset($_SESSION['alert'])) {
                             </h6>
                         </div>
                         <?php
-                        $currentMonthQuery = "SELECT SUM(amount + transactionCost) AS totalAmount
-                        FROM tbloverdrafts WHERE MONTH(od_date) = MONTH(CURRENT_DATE()) AND YEAR(od_date) = YEAR(CURRENT_DATE())";
+                        $currentMonthQuery = "SELECT 0 AS totalAmount";
 
                         $currentMonthResult = mysqli_query($con, $currentMonthQuery);
                         $currentMonthRow = mysqli_fetch_assoc($currentMonthResult);
                         $currentMonthTotal = isset($currentMonthRow['totalAmount']) ? $currentMonthRow['totalAmount'] : 0;
                         $currentMonthWOWP = ($currentMonthExpense - $currentMonthTotal);
 
-                        $previousMonthQuery = "SELECT SUM(amount + transactionCost) AS totalAmount
-                        FROM tbloverdrafts WHERE MONTH(od_date) = MONTH(CURRENT_DATE() - INTERVAL 1 MONTH) AND YEAR(od_date) = YEAR(CURRENT_DATE() - INTERVAL 1 MONTH)";
+                        $previousMonthQuery = "SELECT 0 AS totalAmount";
 
                         $previousMonthResult = mysqli_query($con, $previousMonthQuery);
                         $previousMonthRow = mysqli_fetch_assoc($previousMonthResult);
@@ -488,179 +467,13 @@ if (isset($_SESSION['alert'])) {
             </div>
         </div>
     </div>
-    <div class="row  g-3 mb-3">
-    <div class="col">
-        <div class="card mb-3">
-            <div class="card-body p-0">
-                <div class="tab-content">
-                    <div class="tab-pane preview-tab-pane active" role="tabpanel" aria-labelledby="tab-dom-41cf422d-2a1d-40e2-b92a-ceac8cdfaca0" id="dom-41cf422d-2a1d-40e2-b92a-ceac8cdfaca0">
-                        <div class="card shadow-none">
-                            <form id="tasksForm" method="post">
-                                <div class="card-header">
-                                    <div class="row flex-between-center">
-                                        <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
-                                            <h4 class="mb-0">
-                                                <span class="text-primary">Transaction History</span>
-                                                <span class="text-warning">
-                                                </span>
-                                            </h4>
-                                        </div>
-                                        <div class="col-6 col-sm-auto ms-auto text-end ps-0">
-                                            <div class="d-none" id="table-simple-pagination-actions">
-                                                <div class="d-flex">
-                                                </div>
-                                            </div>
-                                            <div class="d-flex align-items-center" id="table-simple-pagination-replace-element">
-                                                <form method="post" action="">
-                                                    <a class="btn btn-falcon-info btn-sm mx-2" data-bs-toggle="modal" data-bs-target="#addTransactionModal" data-bs-toggle="tooltip" data-bs-placement="top" title="Add a new transaction" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Add Transaction</span></a>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Loader -->
-                                <div id="loading-spinner" class="text-center py-5">
-                                    <div class="spinner-grow text-primary" role="status">
-                                        <span class="visually-hidden">Loading...</span>
-                                    </div>
-                                </div>
-                                <div class="card-body px-0 pt-0" id="transaction-table">
-                                    <table class="table table-sm mb-0 overflow-hidden fs-10" >
-                                        <thead class="bg-200">
-                                        <tr>
-                                            <th class="text-900 no-sort white-space-nowrap">
-                                                <div class="form-check mb-0 d-flex align-items-center">
-                                                    <input class="form-check-input" id="checkbox-select-all" type="checkbox" onclick="selectAllTasks(this)" data-bulk-select='{"body":"table-simple-pagination-body","actions":"table-simple-pagination-actions","replacedElement":"table-simple-pagination-replace-element"}' />
-                                                </div>
-                                            </th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Category</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Description</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Amount (Ksh)</th>
-                                            <th class="text-900 sort pe-1 text-center white-space-nowrap">Platform</th>
-                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Date</th>
-                                            <th class="text-900 no-sort pe-1 align-middle data-table-row-action"></th>
-                                        </tr>
-                                        </thead>
-                                        <tbody class="list" id="table-simple-pagination-body">
-                                        <?php
-                                        $query=mysqli_query($con,"SELECT 
-        budgetID AS id, category, subcategory, description, tag, amount, transactionCost, expenseDate AS date, 'tblbudget' AS table_source FROM tblbudget WHERE is_deleted = 0
-    UNION ALL SELECT id, category, subcategory, description, tag, amount, transactionCost, od_date AS date, 'tbloverdrafts' AS table_source FROM tbloverdrafts WHERE is_deleted = 0 ORDER BY date DESC LIMIT 10");
-                                        $cnt=1;
-                                        while($row=mysqli_fetch_array($query))
-                                        {
 
-                                            ?>
-                                            <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100">
-                                                <td class="align-middle" style="width: 28px;">
-                                                    <div class="form-check mb-0">
-                                                        <input class="form-check-input" type="checkbox" id="simple-pagination-item-<?php echo $cnt; ?>" data-bulk-select-row="data-bulk-select-row" value="<?php echo $row['id']; ?>" name="taskIds[]"/>
-                                                    </div>
-                                                </td>
-                                                <td class="align-middle text-start product">
-                                                    <div class="d-flex align-items-center position-relative">
-                                                        <div class="flex-1">
-                                                            <h6 class="mb-0 fw-semi-bold text-nowrap">
-                                                                <?php
-                                                                if ($row["category"] === "Expense") {
-                                                                    echo '<span class="badge fs-10 rounded-pill badge-subtle-danger">Expense</span>';
-                                                                } elseif ($row["category"] === "Savings") {
-                                                                    echo '<span class="badge fs-10 rounded-pill badge-subtle-success">Savings</span>';
-                                                                } elseif ($row["category"] === "Income") {
-                                                                    echo '<span class="badge fs-10 rounded-pill badge-subtle-primary">Income</span>';
-                                                                } else {
-                                                                    echo htmlspecialchars($row["category"]);
-                                                                }
-                                                                ?>
-                                                            </h6>
-                                                            <p class="fw-semi-bold mb-0 text-300">
-                                                                <?php
-                                                                if (isset($row['table_source']) && $row['table_source'] === 'tblbudget') {
-                                                                    echo 'TNSN';
-                                                                } elseif (isset($row['table_source']) && $row['table_source'] === 'tbloverdrafts') {
-                                                                    echo 'OVDT';}
-                                                                ?> | #<?php echo $row["id"]; ?>
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td class="align-middle text-start product">
-                                                    <div class="d-flex align-items-center position-relative">
-                                                        <div class="flex-1">
-                                                            <h6 class="mb-0 fw-semi-bold text-nowrap"> <?php echo $row["subcategory"];?></h6>
-                                                            <p class="fw-semi-bold mb-0 text-500"><?php echo $row["description"];?></p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td class="align-middle text-start amount">
-                                                        <div class="flex-1">
-                                                            <h6 class="mb-0 fw-semi-bold text-nowrap"> <?php echo $row["amount"]; ?></h6>
-                                                            <p class="fw-semi-bold mb-0 text-500">
-                                                                <span class="badge  badge-subtle-secondary"><?php echo $row["transactionCost"];?></span>
-                                                            </p>
-                                                        </div>
-                                                </td>
-                                                <td class="align-middle text-start product">
-                                                    <div class="d-flex align-items-center position-relative">
-                                                        <div class="flex-1">
-                                                            <h6 class="mb-1 fw-semi-bold text-nowrap">
-                                                                    <?php
-                                                                    if ($row["tag"] === "Mpesa") {
-                                                                        echo '<span class="badge fs-10 w-100 rounded-pill badge-subtle-success">Mpesa</span>';
-                                                                    } elseif ($row["tag"] === "Cash") {
-                                                                        echo '<span class="badge fs-10 w-100 rounded-pill badge-subtle-warning">Cash</span>';
-                                                                    } elseif (strtolower($row["tag"]) === "paypal") {
-                                                                        echo '<span class="badge fs-10 w-100 rounded-pill badge-subtle-primary">PayPal</span>';
-                                                                    } elseif ($row["tag"] === "Card") {
-                                                                        echo '<span class="badge fs-10 w-100 rounded-pill badge-subtle-info">Card</span>';
-                                                                    } else {
-                                                                        echo htmlspecialchars($row["tag"]);
-                                                                    }
-                                                                    ?>
-                                                            </h6>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td class="align-middle text-start amount">
-                                                    <h6 class="mb-0 fw-semi-bold mb-0 text-500"><?php $originalDate = $row["date"];
-                                                        $formattedDate = date("M j, Y", strtotime($originalDate));
-                                                        echo $formattedDate;?>
-                                                    </h6>
-                                                </td>
-                                                <td class="align-middle white-space-nowrap text-end position-relative">
-                                                    <div class="hover-actions bg-100">
-                                                        <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"  data-bs-target="#viewTransactionModal" data-bs-toggle="tooltip" data-bs-placement="top" title="View Transaction"
-                                                           onclick="loadViewModal('<?php echo $row['id']; ?>', '<?php echo addslashes($row['category']); ?>', '<?php echo addslashes($row['subcategory']); ?>', '<?php echo addslashes($row['tag']); ?>', '<?php echo addslashes($row['description']); ?>', '<?php echo $row['amount']; ?>', '<?php echo date('M j, Y \a\\t H:i', strtotime($row['date'])); ?>')"><span class="far fa-eye"></span></a>
-                                                        <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"  data-bs-target="#editTransactionModal" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Transaction"
-                                                           onclick="loadEditModal('<?php echo $row['id']; ?>', '<?php echo addslashes($row['category']); ?>', '<?php echo addslashes($row['subcategory']); ?>', '<?php echo addslashes($row['tag']); ?>', '<?php echo addslashes($row['description']); ?>', '<?php echo $row['amount']; ?>', '<?php echo date('Y-m-d\TH:i', strtotime($row['date'])); ?>')"><span class="far fa-edit"></span></a>
-                                                        <a class="btn bg-danger-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"   data-bs-target="#deleteTransactionModal" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Transaction"
-                                                           onclick="loadDeleteModal('<?php echo $row['id']; ?>')"><span class="fas fa-trash"></span></a>
-                                                    </div>
-                                                    <div class="dropdown font-sans-serif btn-reveal-trigger">
-                                                        <button class="btn btn-link text-600 btn-sm dropdown-toggle dropdown-caret-none btn-reveal-sm transition-none" type="button" id="crm-recent-leads-4" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-chevron-left fs-11"></span></button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <?php
-                                            $cnt=$cnt+1;
-                                        }
-                                        ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div class="card-footer bg-body-tertiary p-0">
-                                    <a class="btn btn-sm btn-link d-block w-100 py-2" href="transactions">Show all transactions<span class="fas fa-chevron-right ms-1 fs-11"></span></a>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    </div>
     <div class="row g-3">
         <?php
+        // ==========================================
+        // 1. CURRENT MONTH (INTERVAL 0 MONTH)
+        // ==========================================
+
         // Query to get expenses breakdown for current month including total expense
         $query = "
 WITH total_expense AS (
@@ -670,27 +483,23 @@ WITH total_expense AS (
         SELECT amount, transactionCost FROM tblbudget 
         WHERE category = 'Expense' AND is_deleted = 0 
           AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 0 MONTH, '%Y-%m')
-        UNION ALL
-        SELECT amount, transactionCost FROM tbloverdrafts 
-        WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 0 MONTH, '%Y-%m')
     ) AS all_expenses
 ),
 subcategory_expense AS (
     SELECT 
         subcategory,
+        MAX(tag) AS tag, 
         SUM(amount + IFNULL(transactionCost, 0)) AS total_amount
     FROM (
-        SELECT subcategory, amount, transactionCost FROM tblbudget 
+        SELECT subcategory, tag, amount, transactionCost FROM tblbudget 
         WHERE category = 'Expense' AND is_deleted = 0 
           AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 0 MONTH, '%Y-%m')
-        UNION ALL
-        SELECT subcategory, amount, transactionCost FROM tbloverdrafts 
-        WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 0 MONTH, '%Y-%m')
     ) AS combined 
     GROUP BY subcategory
 )
 SELECT 
     se.subcategory,
+    se.tag, 
     se.total_amount,
     ROUND((se.total_amount / te.grand_total) * 100, 2) AS percentage
 FROM subcategory_expense se
@@ -716,7 +525,7 @@ ORDER BY se.total_amount DESC;
         $detailedTransactionsQuery0Months = "
 SELECT 
     'budget' as source,
-    subcategory,
+    subcategory, tag,
     amount,
     transactionCost,
     description,
@@ -725,16 +534,6 @@ FROM tblbudget
 WHERE category = 'Expense' 
     AND is_deleted = 0 
     AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 0 MONTH, '%Y-%m')
-UNION ALL
-SELECT 
-    'overdraft' as source,
-    subcategory,
-    amount,
-    transactionCost,
-    description,
-    od_date as transaction_date
-FROM tbloverdrafts 
-WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 0 MONTH, '%Y-%m')
 ORDER BY subcategory, transaction_date;
 ";
 
@@ -766,8 +565,19 @@ ORDER BY subcategory, transaction_date;
                 </div>
                 <div class="card-body p-0">
                     <?php if (!empty($rows)) : ?>
-                        <?php foreach ($rows as $row) :
+                        <?php
+                        $iconMap = [
+                            'PayPal' => 'paypal.png',
+                            'Mpesa' => 'mpesa.png',
+                            'Card' => 'credit-card.png',
+                            'Cash' => 'cash.png',
+                            'Airtel Money' => 'airtel.png'
+                        ];
+                        foreach ($rows as $row) :
                             $subcategory = htmlspecialchars($row['subcategory']);
+                            $raw_tag = trim($row['tag'] ?? '');
+                            $tag = htmlspecialchars($raw_tag);
+                            $iconFile = $iconMap[$raw_tag] ?? 'default.png';
                             $amount = number_format($row['total_amount'], 2);
                             $percentage = round($row['percentage']);
                             $progressBarColor = $percentage >= 2 ? 'bg-danger-subtle' : 'bg-warning-subtle';
@@ -776,12 +586,8 @@ ORDER BY subcategory, transaction_date;
                             ?>
                             <div class="row g-0 align-items-center py-2 position-relative border-bottom border-200">
                                 <div class="col ps-x1 py-1 position-static">
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-xl me-3">
-                                            <div class="avatar-name rounded-circle <?= $progressBarColor ?> text-dark">
-                                                <span class="fs-9 <?= $textColor ?>"> <?= $subcategory[0] ?></span>
-                                            </div>
-                                        </div>
+                                    <div class="d-flex align-items-center position-relative">
+                                        <img class="rounded-1 border border-200" src="../assets/img/icons/<?= $iconFile ?>" alt="<?= $tag?>">
                                         <div class="flex-1">
                                             <h6 class="mb-0 d-flex align-items-center">
                                                 <a href="#" class="text-800 stretched-link" data-bs-toggle="modal"
@@ -865,7 +671,12 @@ ORDER BY subcategory, transaction_date;
                 </div>
             </div>
         </div>
+
         <?php
+        // ==========================================
+        // 2. PREVIOUS MONTH (INTERVAL 1 MONTH)
+        // ==========================================
+
         // Query to get expenses breakdown for one months ago including total expense
         $query = "
 WITH total_expense AS (
@@ -875,27 +686,23 @@ WITH total_expense AS (
         SELECT amount, transactionCost FROM tblbudget 
         WHERE category = 'Expense' AND is_deleted = 0 
           AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m')
-        UNION ALL
-        SELECT amount, transactionCost FROM tbloverdrafts 
-        WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m')
     ) AS all_expenses
 ),
 subcategory_expense AS (
     SELECT 
         subcategory,
+        MAX(tag) AS tag, 
         SUM(amount + IFNULL(transactionCost, 0)) AS total_amount
     FROM (
-        SELECT subcategory, amount, transactionCost FROM tblbudget 
+        SELECT subcategory, tag, amount, transactionCost FROM tblbudget 
         WHERE category = 'Expense' AND is_deleted = 0 
           AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m')
-        UNION ALL
-        SELECT subcategory, amount, transactionCost FROM tbloverdrafts 
-        WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m')
     ) AS combined 
     GROUP BY subcategory
 )
 SELECT 
-    se.subcategory,
+    se.subcategory, 
+    se.tag,
     se.total_amount,
     ROUND((se.total_amount / te.grand_total) * 100, 2) AS percentage
 FROM subcategory_expense se
@@ -921,7 +728,7 @@ ORDER BY se.total_amount DESC;
         $detailedTransactionsQuery1Months = "
 SELECT 
     'budget' as source,
-    subcategory,
+    subcategory, tag,
     amount,
     transactionCost,
     description,
@@ -930,16 +737,6 @@ FROM tblbudget
 WHERE category = 'Expense' 
     AND is_deleted = 0 
     AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m')
-UNION ALL
-SELECT 
-    'overdraft' as source,
-    subcategory,
-    amount,
-    transactionCost,
-    description,
-    od_date as transaction_date
-FROM tbloverdrafts 
-WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m')
 ORDER BY subcategory, transaction_date;
 ";
 
@@ -971,8 +768,19 @@ ORDER BY subcategory, transaction_date;
                 </div>
                 <div class="card-body p-0">
                     <?php if (!empty($rows)) : ?>
-                        <?php foreach ($rows as $row) :
+                        <?php
+                        $iconMap = [
+                            'PayPal' => 'paypal.png',
+                            'Mpesa' => 'mpesa.png',
+                            'Card' => 'credit-card.png',
+                            'Cash' => 'cash.png',
+                            'Airtel Money' => 'airtel.png'
+                        ];
+                        foreach ($rows as $row) :
                             $subcategory = htmlspecialchars($row['subcategory']);
+                            $raw_tag = trim($row['tag'] ?? '');
+                            $tag = htmlspecialchars($raw_tag);
+                            $iconFile = $iconMap[$raw_tag] ?? 'default.png';
                             $amount = number_format($row['total_amount'], 2);
                             $percentage = round($row['percentage']);
                             $progressBarColor = $percentage >= 2 ? 'bg-danger-subtle' : 'bg-warning-subtle';
@@ -981,12 +789,8 @@ ORDER BY subcategory, transaction_date;
                             ?>
                             <div class="row g-0 align-items-center py-2 position-relative border-bottom border-200">
                                 <div class="col ps-x1 py-1 position-static">
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-xl me-3">
-                                            <div class="avatar-name rounded-circle <?= $progressBarColor ?> text-dark">
-                                                <span class="fs-9 <?= $textColor ?>"> <?= $subcategory[0] ?></span>
-                                            </div>
-                                        </div>
+                                    <div class="d-flex align-items-center position-relative">
+                                        <img class="rounded-1 border border-200" src="../assets/img/icons/<?= $iconFile ?>" alt="<?= $tag?>" width="40">
                                         <div class="flex-1">
                                             <h6 class="mb-0 d-flex align-items-center">
                                                 <a href="#" class="text-800 stretched-link" data-bs-toggle="modal"
@@ -1074,6 +878,10 @@ ORDER BY subcategory, transaction_date;
 
     <div class="row g-3">
         <?php
+        // ==========================================
+        // 1. TWO MONTHS AGO (INTERVAL 2 MONTH)
+        // ==========================================
+
         // Query to get expenses breakdown for two months ago including total expense
         $query = "
 WITH total_expense AS (
@@ -1083,27 +891,23 @@ WITH total_expense AS (
         SELECT amount, transactionCost FROM tblbudget 
         WHERE category = 'Expense' AND is_deleted = 0 
           AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 2 MONTH, '%Y-%m')
-        UNION ALL
-        SELECT amount, transactionCost FROM tbloverdrafts 
-        WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 2 MONTH, '%Y-%m')
     ) AS all_expenses
 ),
 subcategory_expense AS (
     SELECT 
         subcategory,
+        tag, 
         SUM(amount + IFNULL(transactionCost, 0)) AS total_amount
     FROM (
-        SELECT subcategory, amount, transactionCost FROM tblbudget 
+        SELECT subcategory, tag, amount, transactionCost FROM tblbudget 
         WHERE category = 'Expense' AND is_deleted = 0 
           AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 2 MONTH, '%Y-%m')
-        UNION ALL
-        SELECT subcategory, amount, transactionCost FROM tbloverdrafts 
-        WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 2 MONTH, '%Y-%m')
     ) AS combined 
     GROUP BY subcategory
 )
 SELECT 
-    se.subcategory,
+    se.subcategory, 
+    se.tag,
     se.total_amount,
     ROUND((se.total_amount / te.grand_total) * 100, 2) AS percentage
 FROM subcategory_expense se
@@ -1129,7 +933,7 @@ ORDER BY se.total_amount DESC;
         $detailedTransactionsQuery2Months = "
 SELECT 
     'budget' as source,
-    subcategory,
+    subcategory, tag,
     amount,
     transactionCost,
     description,
@@ -1138,16 +942,6 @@ FROM tblbudget
 WHERE category = 'Expense' 
     AND is_deleted = 0 
     AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 2 MONTH, '%Y-%m')
-UNION ALL
-SELECT 
-    'overdraft' as source,
-    subcategory,
-    amount,
-    transactionCost,
-    description,
-    od_date as transaction_date
-FROM tbloverdrafts 
-WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 2 MONTH, '%Y-%m')
 ORDER BY subcategory, transaction_date;
 ";
 
@@ -1179,8 +973,19 @@ ORDER BY subcategory, transaction_date;
                 </div>
                 <div class="card-body p-0">
                     <?php if (!empty($rows)) : ?>
-                        <?php foreach ($rows as $row) :
+                        <?php
+                        $iconMap = [
+                            'PayPal' => 'paypal.png',
+                            'Mpesa' => 'mpesa.png',
+                            'Card' => 'credit-card.png',
+                            'Cash' => 'cash.png',
+                            'Airtel Money' => 'airtel.png'
+                        ];
+                        foreach ($rows as $row) :
                             $subcategory = htmlspecialchars($row['subcategory']);
+                            $raw_tag = trim($row['tag'] ?? '');
+                            $tag = htmlspecialchars($raw_tag);
+                            $iconFile = $iconMap[$raw_tag] ?? 'default.png';
                             $amount = number_format($row['total_amount'], 2);
                             $percentage = round($row['percentage']);
                             $progressBarColor = $percentage >= 2 ? 'bg-danger-subtle' : 'bg-warning-subtle';
@@ -1189,12 +994,8 @@ ORDER BY subcategory, transaction_date;
                             ?>
                             <div class="row g-0 align-items-center py-2 position-relative border-bottom border-200">
                                 <div class="col ps-x1 py-1 position-static">
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-xl me-3">
-                                            <div class="avatar-name rounded-circle <?= $progressBarColor ?> text-dark">
-                                                <span class="fs-9 <?= $textColor ?>"> <?= $subcategory[0] ?></span>
-                                            </div>
-                                        </div>
+                                    <div class="d-flex align-items-center position-relative">
+                                        <img class="rounded-1 border border-200" src="../assets/img/icons/<?= $iconFile ?>" alt="<?= $tag?>" width="45">
                                         <div class="flex-1">
                                             <h6 class="mb-0 d-flex align-items-center">
                                                 <a href="#" class="text-800 stretched-link" data-bs-toggle="modal"
@@ -1278,7 +1079,12 @@ ORDER BY subcategory, transaction_date;
                 </div>
             </div>
         </div>
+
         <?php
+        // ==========================================
+        // 2. THREE MONTHS AGO (INTERVAL 3 MONTH)
+        // ==========================================
+
         // Query to get expenses breakdown for three months ago including total expense
         $query = "
 WITH total_expense AS (
@@ -1288,27 +1094,23 @@ WITH total_expense AS (
         SELECT amount, transactionCost FROM tblbudget 
         WHERE category = 'Expense' AND is_deleted = 0 
           AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 3 MONTH, '%Y-%m')
-        UNION ALL
-        SELECT amount, transactionCost FROM tbloverdrafts 
-        WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 3 MONTH, '%Y-%m')
     ) AS all_expenses
 ),
 subcategory_expense AS (
     SELECT 
         subcategory,
+        MAX(tag) AS tag, 
         SUM(amount + IFNULL(transactionCost, 0)) AS total_amount
     FROM (
-        SELECT subcategory, amount, transactionCost FROM tblbudget 
+        SELECT subcategory, tag, amount, transactionCost FROM tblbudget 
         WHERE category = 'Expense' AND is_deleted = 0 
           AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 3 MONTH, '%Y-%m')
-        UNION ALL
-        SELECT subcategory, amount, transactionCost FROM tbloverdrafts 
-        WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 3 MONTH, '%Y-%m')
     ) AS combined 
     GROUP BY subcategory
 )
 SELECT 
-    se.subcategory,
+    se.subcategory, 
+    se.tag,
     se.total_amount,
     ROUND((se.total_amount / te.grand_total) * 100, 2) AS percentage
 FROM subcategory_expense se
@@ -1331,10 +1133,11 @@ ORDER BY se.total_amount DESC;
         }
 
         // Query to get detailed transactions for each subcategory
+        // FIXED: Added missing comma after 'tag'
         $detailedTransactionsQuery3Months = "
 SELECT 
     'budget' as source,
-    subcategory,
+    subcategory, tag,
     amount,
     transactionCost,
     description,
@@ -1343,16 +1146,6 @@ FROM tblbudget
 WHERE category = 'Expense' 
     AND is_deleted = 0 
     AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 3 MONTH, '%Y-%m')
-UNION ALL
-SELECT 
-    'overdraft' as source,
-    subcategory,
-    amount,
-    transactionCost,
-    description,
-    od_date as transaction_date
-FROM tbloverdrafts 
-WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 3 MONTH, '%Y-%m')
 ORDER BY subcategory, transaction_date;
 ";
 
@@ -1384,8 +1177,20 @@ ORDER BY subcategory, transaction_date;
                 </div>
                 <div class="card-body p-0">
                     <?php if (!empty($rows)) : ?>
-                        <?php foreach ($rows as $row) :
+                        <?php
+                        $iconMap = [
+                            'PayPal' => 'paypal.png',
+                            'Mpesa' => 'mpesa.png',
+                            'Card' => 'credit-card.png',
+                            'Cash' => 'cash.png',
+                            'Airtel Money' => 'airtel.png'
+                        ];
+                        foreach ($rows as $row) :
                             $subcategory = htmlspecialchars($row['subcategory']);
+                            $raw_tag = trim($row['tag'] ?? '');
+                            $tag = htmlspecialchars($raw_tag);
+                            $iconFile = $iconMap[$raw_tag] ?? 'default.png';
+                            // Removed duplicate $subcategory assignment
                             $amount = number_format($row['total_amount'], 2);
                             $percentage = round($row['percentage']);
                             $progressBarColor = $percentage >= 2 ? 'bg-danger-subtle' : 'bg-warning-subtle';
@@ -1394,12 +1199,8 @@ ORDER BY subcategory, transaction_date;
                             ?>
                             <div class="row g-0 align-items-center py-2 position-relative border-bottom border-200">
                                 <div class="col ps-x1 py-1 position-static">
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-xl me-3">
-                                            <div class="avatar-name rounded-circle <?= $progressBarColor ?> text-dark">
-                                                <span class="fs-9 <?= $textColor ?>"> <?= $subcategory[0] ?></span>
-                                            </div>
-                                        </div>
+                                    <div class="d-flex align-items-center position-relative">
+                                        <img class="rounded-1 border border-200" src="../assets/img/icons/<?= $iconFile ?>" alt="<?= $tag?>" width="45">
                                         <div class="flex-1">
                                             <h6 class="mb-0 d-flex align-items-center">
                                                 <a href="#" class="text-800 stretched-link" data-bs-toggle="modal"
@@ -1485,8 +1286,13 @@ ORDER BY subcategory, transaction_date;
         </div>
     </div>
 
+
     <div class="row g-3">
         <?php
+        // ==========================================
+        // 1. FOUR MONTHS AGO (INTERVAL 4 MONTH)
+        // ==========================================
+
         // Query to get expenses breakdown for four months ago including total expense
         $query = "
 WITH total_expense AS (
@@ -1496,27 +1302,23 @@ WITH total_expense AS (
         SELECT amount, transactionCost FROM tblbudget 
         WHERE category = 'Expense' AND is_deleted = 0 
           AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 4 MONTH, '%Y-%m')
-        UNION ALL
-        SELECT amount, transactionCost FROM tbloverdrafts 
-        WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 4 MONTH, '%Y-%m')
     ) AS all_expenses
 ),
 subcategory_expense AS (
     SELECT 
         subcategory,
+        MAX(tag) AS tag, 
         SUM(amount + IFNULL(transactionCost, 0)) AS total_amount
     FROM (
-        SELECT subcategory, amount, transactionCost FROM tblbudget 
+        SELECT subcategory, tag, amount, transactionCost FROM tblbudget 
         WHERE category = 'Expense' AND is_deleted = 0 
           AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 4 MONTH, '%Y-%m')
-        UNION ALL
-        SELECT subcategory, amount, transactionCost FROM tbloverdrafts 
-        WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 4 MONTH, '%Y-%m')
     ) AS combined 
     GROUP BY subcategory
 )
 SELECT 
     se.subcategory,
+    se.tag,
     se.total_amount,
     ROUND((se.total_amount / te.grand_total) * 100, 2) AS percentage
 FROM subcategory_expense se
@@ -1542,7 +1344,7 @@ ORDER BY se.total_amount DESC;
         $detailedTransactionsQuery4Months = "
 SELECT 
     'budget' as source,
-    subcategory,
+    subcategory, tag,
     amount,
     transactionCost,
     description,
@@ -1551,16 +1353,6 @@ FROM tblbudget
 WHERE category = 'Expense' 
     AND is_deleted = 0 
     AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 4 MONTH, '%Y-%m')
-UNION ALL
-SELECT 
-    'overdraft' as source,
-    subcategory,
-    amount,
-    transactionCost,
-    description,
-    od_date as transaction_date
-FROM tbloverdrafts 
-WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 4 MONTH, '%Y-%m')
 ORDER BY subcategory, transaction_date;
 ";
 
@@ -1592,8 +1384,19 @@ ORDER BY subcategory, transaction_date;
                 </div>
                 <div class="card-body p-0">
                     <?php if (!empty($rows)) : ?>
-                        <?php foreach ($rows as $row) :
+                        <?php
+                        $iconMap = [
+                            'PayPal' => 'paypal.png',
+                            'Mpesa' => 'mpesa.png',
+                            'Card' => 'credit-card.png',
+                            'Cash' => 'cash.png',
+                            'Airtel Money' => 'airtel.png'
+                        ];
+                        foreach ($rows as $row) :
                             $subcategory = htmlspecialchars($row['subcategory']);
+                            $raw_tag = trim($row['tag'] ?? '');
+                            $tag = htmlspecialchars($raw_tag);
+                            $iconFile = $iconMap[$raw_tag] ?? 'default.png';
                             $amount = number_format($row['total_amount'], 2);
                             $percentage = round($row['percentage']);
                             $progressBarColor = $percentage >= 2 ? 'bg-danger-subtle' : 'bg-warning-subtle';
@@ -1602,12 +1405,8 @@ ORDER BY subcategory, transaction_date;
                             ?>
                             <div class="row g-0 align-items-center py-2 position-relative border-bottom border-200">
                                 <div class="col ps-x1 py-1 position-static">
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-xl me-3">
-                                            <div class="avatar-name rounded-circle <?= $progressBarColor ?> text-dark">
-                                                <span class="fs-9 <?= $textColor ?>"> <?= $subcategory[0] ?></span>
-                                            </div>
-                                        </div>
+                                    <div class="d-flex align-items-center position-relative">
+                                        <img class="rounded-1 border border-200" src="../assets/img/icons/<?= $iconFile ?>" alt="<?= $tag ?>" width="40">
                                         <div class="flex-1">
                                             <h6 class="mb-0 d-flex align-items-center">
                                                 <a href="#" class="text-800 stretched-link" data-bs-toggle="modal"
@@ -1691,7 +1490,12 @@ ORDER BY subcategory, transaction_date;
                 </div>
             </div>
         </div>
+
         <?php
+        // ==========================================
+        // 2. FIVE MONTHS AGO (INTERVAL 5 MONTH)
+        // ==========================================
+
         // Query to get expenses breakdown for five months ago including total expense
         $query = "
 WITH total_expense AS (
@@ -1701,27 +1505,23 @@ WITH total_expense AS (
         SELECT amount, transactionCost FROM tblbudget 
         WHERE category = 'Expense' AND is_deleted = 0 
           AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 5 MONTH, '%Y-%m')
-        UNION ALL
-        SELECT amount, transactionCost FROM tbloverdrafts 
-        WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 5 MONTH, '%Y-%m')
     ) AS all_expenses
 ),
 subcategory_expense AS (
     SELECT 
         subcategory,
+        MAX(tag) AS tag, 
         SUM(amount + IFNULL(transactionCost, 0)) AS total_amount
     FROM (
-        SELECT subcategory, amount, transactionCost FROM tblbudget 
+        SELECT subcategory, tag, amount, transactionCost FROM tblbudget 
         WHERE category = 'Expense' AND is_deleted = 0 
           AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 5 MONTH, '%Y-%m')
-        UNION ALL
-        SELECT subcategory, amount, transactionCost FROM tbloverdrafts 
-        WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 5 MONTH, '%Y-%m')
     ) AS combined 
     GROUP BY subcategory
 )
 SELECT 
     se.subcategory,
+    se.tag,
     se.total_amount,
     ROUND((se.total_amount / te.grand_total) * 100, 2) AS percentage
 FROM subcategory_expense se
@@ -1747,7 +1547,7 @@ ORDER BY se.total_amount DESC;
         $detailedTransactionsQuery5Months = "
 SELECT 
     'budget' as source,
-    subcategory,
+    subcategory, tag,
     amount,
     transactionCost,
     description,
@@ -1756,16 +1556,6 @@ FROM tblbudget
 WHERE category = 'Expense' 
     AND is_deleted = 0 
     AND DATE_FORMAT(expenseDate, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 5 MONTH, '%Y-%m')
-UNION ALL
-SELECT 
-    'overdraft' as source,
-    subcategory,
-    amount,
-    transactionCost,
-    description,
-    od_date as transaction_date
-FROM tbloverdrafts 
-WHERE DATE_FORMAT(od_date, '%Y-%m') = DATE_FORMAT(CURDATE() - INTERVAL 5 MONTH, '%Y-%m')
 ORDER BY subcategory, transaction_date;
 ";
 
@@ -1797,8 +1587,19 @@ ORDER BY subcategory, transaction_date;
                 </div>
                 <div class="card-body p-0">
                     <?php if (!empty($rows)) : ?>
-                        <?php foreach ($rows as $row) :
+                        <?php
+                        $iconMap = [
+                            'PayPal' => 'paypal.png',
+                            'Mpesa' => 'mpesa.png',
+                            'Card' => 'credit-card.png',
+                            'Cash' => 'cash.png',
+                            'Airtel Money' => 'airtel.png'
+                        ];
+                        foreach ($rows as $row) :
                             $subcategory = htmlspecialchars($row['subcategory']);
+                            $raw_tag = trim($row['tag'] ?? '');
+                            $tag = htmlspecialchars($raw_tag);
+                            $iconFile = $iconMap[$raw_tag] ?? 'default.png';
                             $amount = number_format($row['total_amount'], 2);
                             $percentage = round($row['percentage']);
                             $progressBarColor = $percentage >= 2 ? 'bg-danger-subtle' : 'bg-warning-subtle';
@@ -1807,12 +1608,9 @@ ORDER BY subcategory, transaction_date;
                             ?>
                             <div class="row g-0 align-items-center py-2 position-relative border-bottom border-200">
                                 <div class="col ps-x1 py-1 position-static">
-                                    <div class="d-flex align-items-center">
-                                        <div class="avatar avatar-xl me-3">
-                                            <div class="avatar-name rounded-circle <?= $progressBarColor ?> text-dark">
-                                                <span class="fs-9 <?= $textColor ?>"> <?= $subcategory[0] ?></span>
-                                            </div>
-                                        </div>
+                                    <!-- UPDATED HTML: Replaced letter avatar with payment icon image -->
+                                    <div class="d-flex align-items-center position-relative">
+                                        <img class="rounded-1 border border-200" src="../assets/img/icons/<?= $iconFile ?>" alt="<?= $tag ?>" width="40">
                                         <div class="flex-1">
                                             <h6 class="mb-0 d-flex align-items-center">
                                                 <a href="#" class="text-800 stretched-link" data-bs-toggle="modal"
@@ -1960,7 +1758,7 @@ ORDER BY subcategory, transaction_date;
                             ";
                         }
                     } else {
-                        echo "<div class='text-center fs-10 m-3'>No expenses found for {$currentMonth}.</div>";
+                        echo "<div class='text-center fs-10 m-3'>No savings found for {$currentMonth}.</div>";
                     }
                     ?>
                 </div>
@@ -2348,63 +2146,63 @@ ORDER BY subcategory, transaction_date;
             const descriptionDatalist = document.getElementById("descriptionList");
 
             categoryField.addEventListener("change", async function () {
-            const category = categoryField.value;
+                const category = categoryField.value;
 
-            // Reset subcategory and description datalists
-            subCategoryDatalist.innerHTML = '';
-            descriptionDatalist.innerHTML = '';
-            subCategoryField.value = '';
-            descriptionField.value = '';
+                // Reset subcategory and description datalists
+                subCategoryDatalist.innerHTML = '';
+                descriptionDatalist.innerHTML = '';
+                subCategoryField.value = '';
+                descriptionField.value = '';
 
-            if (category === "Savings") {
-            // Populate subcategory datalist for Savings
-            const savingsOptions = ["MMF", "Sacco"];
-            savingsOptions.forEach(option => {
-            const opt = document.createElement("option");
-            opt.value = option;
-            subCategoryDatalist.appendChild(opt);
-        });
+                if (category === "Savings") {
+                    // Populate subcategory datalist for Savings
+                    const savingsOptions = ["MMF", "Sacco"];
+                    savingsOptions.forEach(option => {
+                        const opt = document.createElement("option");
+                        opt.value = option;
+                        subCategoryDatalist.appendChild(opt);
+                    });
 
-            // Fetch goal names for the Description field
-            try {
-            const response = await fetch("fetch-savings-goals.php");
-            const goals = await response.json(); // Assuming JSON response from the server
+                    // Fetch goal names for the Description field
+                    try {
+                        const response = await fetch("fetch-savings-goals.php");
+                        const goals = await response.json(); // Assuming JSON response from the server
 
-            goals.forEach(goal => {
-            const opt = document.createElement("option");
-            opt.value = goal.goalName;
-            descriptionDatalist.appendChild(opt);
-        });
-        } catch (error) {
-            console.error("Error fetching savings goals:", error);
-        }
-        } else if (category === "Income") {
-            // Populate subcategory datalist for Income
-            const incomeOptions = ["Writing"];
-            incomeOptions.forEach(option => {
-            const opt = document.createElement("option");
-            opt.value = option;
-            subCategoryDatalist.appendChild(opt);
-        });
+                        goals.forEach(goal => {
+                            const opt = document.createElement("option");
+                            opt.value = goal.goalName;
+                            descriptionDatalist.appendChild(opt);
+                        });
+                    } catch (error) {
+                        console.error("Error fetching savings goals:", error);
+                    }
+                } else if (category === "Income") {
+                    // Populate subcategory datalist for Income
+                    const incomeOptions = ["Writing"];
+                    incomeOptions.forEach(option => {
+                        const opt = document.createElement("option");
+                        opt.value = option;
+                        subCategoryDatalist.appendChild(opt);
+                    });
 
-            // Populate description datalist for Income
-            const incomeDescriptions = ["Freelance"];
-            incomeDescriptions.forEach(option => {
-            const opt = document.createElement("option");
-            opt.value = option;
-            descriptionDatalist.appendChild(opt);
-        });
-        }
-        });
+                    // Populate description datalist for Income
+                    const incomeDescriptions = ["Freelance"];
+                    incomeDescriptions.forEach(option => {
+                        const opt = document.createElement("option");
+                        opt.value = option;
+                        descriptionDatalist.appendChild(opt);
+                    });
+                }
+            });
 
             // Enable manual updates (allow users to type custom values)
             subCategoryField.addEventListener("input", function () {
-            subCategoryField.setAttribute("value", subCategoryField.value);
-        });
+                subCategoryField.setAttribute("value", subCategoryField.value);
+            });
 
             descriptionField.addEventListener("input", function () {
-            descriptionField.setAttribute("value", descriptionField.value);
-        });
+                descriptionField.setAttribute("value", descriptionField.value);
+            });
         });
     </script>
 

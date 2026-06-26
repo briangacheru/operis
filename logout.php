@@ -17,7 +17,7 @@ if (isset($_REQUEST['logout'])) {
     // Update is_online and last_seen before logging out
     if (isset($_SESSION['sessionWriter'])) {
         $userEmail = $_SESSION['sessionWriter'];
-        $lastSeen = date('Y-m-d H:i:s');
+        $lastSeen = gmdate('Y-m-d H:i:s');
 
         $updateStatusSql = "UPDATE tblwriters SET is_online = 0, last_seen = ? WHERE email = ?";
         $stmt = $con->prepare($updateStatusSql);
@@ -56,6 +56,14 @@ if (isset($_REQUEST['logout'])) {
 
         // Clear the "Remember Me" cookie
         setcookie('rememberme', '', time() - 3600, '/', '', isset($_SERVER["HTTPS"]), true);
+    }
+
+    require_once 'session_tracker.php';
+    $sid = session_id();
+    if ($delSess = $con->prepare("DELETE FROM tblwriter_sessions WHERE session_id = ?")) {
+        $delSess->bind_param('s', $sid);
+        $delSess->execute();
+        $delSess->close();
     }
 
     // Clear all session variables

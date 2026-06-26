@@ -27,6 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             if (password_verify($password, $hashedPasswordFromDatabase)) {
                 $_SESSION['sessionWriter'] = $email;
+                require_once 'session_tracker.php';
+                record_writer_session($con, $email);
 
                 if (isset($_POST['remember'])) {
                     $rememberToken = bin2hex(random_bytes(16));
@@ -40,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
 
                 // Update user status to online
-                updateUserStatus($email, 'admin', true);
+                updateUserStatus($email, 'writer', true);
 
                 $loginMessage = "
                     <div class='alert alert-success alert-dismissible fade show' role='alert'>
@@ -353,7 +355,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <script src="vendors/is/is.min.js"></script>
 <script src="vendors/fontawesome/all.min.js"></script>
 <script src="vendors/lodash/lodash.min.js"></script>
-<script src="https://polyfill.io/v3/polyfill.min.js?features=window.scroll"></script>
 <script src="vendors/list.js/list.min.js"></script>
 <script src="assets/js/theme.js"></script>
 <script src="assets/js/myjs.js"></script>

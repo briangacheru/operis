@@ -10,7 +10,7 @@ date_default_timezone_set('Africa/Nairobi');
 
 include('dbcon.php');
 include('functions.php');
-
+require_once 'session_tracker.php';
 
 $self = $_SERVER["PHP_SELF"];
 $allowed_pages = ['login.php', 'reset-password.php', 'forgot-password.php'];
@@ -72,6 +72,7 @@ if (!isset($_SESSION['sessionWriter']) && isset($_COOKIE['rememberme'])) {
     if ($result->num_rows == 1) {
         $row = $result->fetch_assoc();
         $_SESSION['sessionWriter'] = $row['email'];
+        record_writer_session($con, $row['email']);
 
         // Log automatic login via remember me token
         if (isset($activityLogger)) {
@@ -86,6 +87,7 @@ if (!isset($_SESSION['sessionWriter']) && isset($_COOKIE['rememberme'])) {
         $email = $_SESSION['sessionWriter'];
         $userType = 'writer';
         updateUserStatus($email, $userType, true);
+        touch_writer_session($con, $email);
 
         // Check for last page cookies and redirect
         if (isset($_COOKIE['last_page_before_timeout'])) {

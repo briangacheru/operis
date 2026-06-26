@@ -763,8 +763,39 @@ if ($query->rowCount() > 0) {
                 $query->execute();
                 $results=$query->fetchAll(PDO::FETCH_OBJ);
                 $totalusersquery=$query->rowCount();
+
+                // Writers online = last_seen within the last 5 minutes
+                $onlineWritersList = [];
+                $sqlOnline = "SELECT username FROM tblwriters 
+                  WHERE is_deleted = 0 
+                  AND is_active = 1 
+                  AND is_verified = 1 
+                  AND last_seen IS NOT NULL 
+                  AND last_seen >= (UTC_TIMESTAMP() - INTERVAL 5 MINUTE)
+                  ORDER BY username ASC";
+                $qOnline = $dbh->prepare($sqlOnline);
+                $qOnline->execute();
+                $onlineRows = $qOnline->fetchAll(PDO::FETCH_OBJ);
+                $onlineCount = $qOnline->rowCount();
+                foreach ($onlineRows as $w) {
+                    $onlineWritersList[] = htmlentities($w->username);
+                }
+                $tooltipText = $onlineCount > 0
+                    ? implode(", ", $onlineWritersList)
+                    : "No writers online right now";
                 ?>
-                <h6>Verified Users</h6>
+                <h6>
+                    Verified Writers
+                    <span class="ms-2 badge rounded-pill badge-subtle-success"
+                          data-bs-toggle="tooltip"
+                          data-bs-placement="right"
+                          data-bs-html="true"
+                          title="<?php echo $tooltipText; ?>"
+                          style="cursor: help;">
+            <span class="fas fa-circle text-success me-1" style="font-size:6px; vertical-align: middle;"></span>
+            <?php echo $onlineCount; ?> online
+        </span>
+                </h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-warning" data-countup='{"endValue":<?php echo htmlentities($totalusersquery);?>}'>0</div>
                 <a class="fw-semi-bold fs-10 text-nowrap text-warning" href="usermanagement">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
             </div>

@@ -108,7 +108,6 @@ if (isset($_SESSION['alert'])) {
                     const income = sortedData.map(d => parseFloat(d.income) || 0);
                     const expenses = sortedData.map(d => parseFloat(d.expenses) || 0);
                     const savings = sortedData.map(d => parseFloat(d.savings) || 0);
-                    const writer_payment = sortedData.map(d => parseFloat(d.writer_payment) || 0);
 
                     const options = {
                         chart: {
@@ -132,8 +131,7 @@ if (isset($_SESSION['alert'])) {
                         series: [
                             { name: 'Income', data: income },
                             { name: 'Expenses', data: expenses },
-                            { name: 'Savings', data: savings },
-                            { name: 'Writer Payment', data: writer_payment }
+                            { name: 'Savings', data: savings }
                         ],
                         xaxis: {
                             categories: categories,

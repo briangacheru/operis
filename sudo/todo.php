@@ -77,6 +77,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
                 exit;
 
+            case 'toggle_subtask':
+                // Flip a single subtask's completed flag
+                if (!isset($_POST['subtask_id'])) {
+                    echo json_encode(['success' => false, 'message' => 'Missing subtask id']);
+                    exit;
+                }
+                $subId = intval($_POST['subtask_id']);
+                $completedIn = isset($_POST['completed']) ? (intval($_POST['completed']) ? 1 : 0) : null;
+
+                $sel = $con->prepare("SELECT completed, todo_id FROM subtasks WHERE id = ?");
+                $sel->bind_param("i", $subId);
+                $sel->execute();
+                $row = $sel->get_result()->fetch_assoc();
+                if (!$row) {
+                    echo json_encode(['success' => false, 'message' => 'Subtask not found']);
+                    exit;
+                }
+                $newVal = $completedIn === null ? ($row['completed'] ? 0 : 1) : $completedIn;
+                $todoId = (int)$row['todo_id'];
+
+                $upd = $con->prepare("UPDATE subtasks SET completed = ? WHERE id = ?");
+                $upd->bind_param("ii", $newVal, $subId);
+                if (!$upd->execute()) {
+                    echo json_encode(['success' => false, 'message' => 'Database update failed']);
+                    exit;
+                }
+
+                $prog = $con->prepare("SELECT COUNT(*) AS total, COALESCE(SUM(completed), 0) AS done FROM subtasks WHERE todo_id = ?");
+                $prog->bind_param("i", $todoId);
+                $prog->execute();
+                $p = $prog->get_result()->fetch_assoc();
+
+                echo json_encode([
+                    'success' => true,
+                    'completed' => (int)$newVal,
+                    'todo_id' => $todoId,
+                    'total' => (int)$p['total'],
+                    'done' => (int)$p['done'],
+                ]);
+                exit;
+
+            case 'reschedule_task':
+                // Drag-to-reschedule: update due_date to a date string or NULL
+                if (!isset($_POST['id']) || !isset($_POST['new_date'])) {
+                    echo json_encode(['success' => false, 'message' => 'Missing parameters']);
+                    exit;
+                }
+                $id = intval($_POST['id']);
+                $newDate = $_POST['new_date']; // 'YYYY-MM-DD' or '' to clear
+                if ($newDate !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $newDate)) {
+                    echo json_encode(['success' => false, 'message' => 'Invalid date format']);
+                    exit;
+                }
+                $dateVal = $newDate === '' ? null : $newDate;
+                $stmt = $con->prepare("UPDATE tbltodos SET due_date = ?, updated_at = NOW() WHERE id = ?");
+                $stmt->bind_param("si", $dateVal, $id);
+                if ($stmt->execute()) {
+                    echo json_encode(['success' => true, 'new_date' => $dateVal]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Database update failed']);
+                }
+                exit;
+
+            case 'quick_add_task':
+                // Lightweight inline create (no attachments, no subtasks)
+                $title = trim($_POST['title'] ?? '');
+                if ($title === '') {
+                    echo json_encode(['success' => false, 'message' => 'Title is required']);
+                    exit;
+                }
+                $description = trim($_POST['description'] ?? '');
+                $priority = in_array($_POST['priority'] ?? '', ['low','medium','high']) ? $_POST['priority'] : 'medium';
+                $due_date = $_POST['due_date'] ?? '';
+                if ($due_date !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $due_date)) $due_date = '';
+                $due_date_val = $due_date === '' ? null : $due_date;
+                $category_id = isset($_POST['category_id']) && $_POST['category_id'] !== '' ? intval($_POST['category_id']) : null;
+
+                $stmt = $con->prepare("INSERT INTO tbltodos (title, description, priority, status, category_id, due_date, created_at, updated_at) VALUES (?, ?, ?, 'pending', ?, ?, NOW(), NOW())");
+                $stmt->bind_param("sssis", $title, $description, $priority, $category_id, $due_date_val);
+                if ($stmt->execute()) {
+                    echo json_encode(['success' => true, 'id' => $stmt->insert_id, 'message' => 'Task added']);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Database insert failed']);
+                }
+                exit;
+
             default:
                 echo json_encode(['success' => false, 'message' => 'Unknown action']);
                 exit;
@@ -252,12 +338,7 @@ $categories_stmt = $con->prepare("SELECT * FROM categories ORDER BY name");
 $categories_stmt->execute();
 $categories = $categories_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Pagination settings
-$tasks_per_page = 10;
-$current_page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
-$offset = ($current_page - 1) * $tasks_per_page;
-
-// Build query with filters
+// Build query with filters (no pagination — group by date in PHP, cap completed)
 $where_conditions = [];
 $params = [];
 $param_types = "";
@@ -268,12 +349,6 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
     $params[] = $search_term;
     $params[] = $search_term;
     $param_types .= "ss";
-}
-
-if (isset($_GET['status']) && !empty($_GET['status'])) {
-    $where_conditions[] = "status = ?";
-    $params[] = $_GET['status'];
-    $param_types .= "s";
 }
 
 if (isset($_GET['priority']) && !empty($_GET['priority'])) {
@@ -302,56 +377,83 @@ if (isset($_GET['due_filter'])) {
     }
 }
 
-// Apply default filter if no status is specified
-if (!isset($_GET['status']) || empty($_GET['status'])) {
-    if (!isset($_GET['view_all'])) { // Allow override with view_all parameter
-        $where_conditions[] = "status IN ('pending', 'in_progress')";
-    }
+// Status filter (clicking a stat pill) — narrows the visible groups
+$status_filter = (isset($_GET['status']) && in_array($_GET['status'], ['pending','in_progress','completed'])) ? $_GET['status'] : '';
+if ($status_filter !== '') {
+    $where_conditions[] = "status = ?";
+    $params[] = $status_filter;
+    $param_types .= "s";
 }
 
 $where_clause = !empty($where_conditions) ? "WHERE " . implode(" AND ", $where_conditions) : "";
 
-// Get total count for pagination
-$count_sql = "SELECT COUNT(*) as total FROM tbltodos t LEFT JOIN categories c ON t.category_id = c.id $where_clause";
-$count_stmt = $con->prepare($count_sql);
-if (!empty($params)) {
-    $count_stmt->bind_param($param_types, ...$params);
-}
-$count_stmt->execute();
-$total_tasks = $count_stmt->get_result()->fetch_assoc()['total'];
-$total_pages = ceil($total_tasks / $tasks_per_page);
+// Cap on completed tasks (most recent N)
+$completed_limit = isset($_GET['completed_limit']) ? max(10, min(500, intval($_GET['completed_limit']))) : 30;
 
-// Fetch todos with filters and pagination
+// Fetch tasks. We fetch ALL non-completed (matching filters) and the most recent N completed.
 $sql = "
-    SELECT t.*, c.name as category_name, c.color as category_color,
-           (SELECT COUNT(*) FROM subtasks WHERE todo_id = t.id) as subtask_count,
-           (SELECT COUNT(*) FROM subtasks WHERE todo_id = t.id AND completed = 1) as completed_subtasks
-    FROM tbltodos t 
-    LEFT JOIN categories c ON t.category_id = c.id 
+    SELECT t.*, c.name AS category_name, c.color AS category_color,
+           (SELECT COUNT(*) FROM subtasks WHERE todo_id = t.id) AS subtask_count,
+           (SELECT COUNT(*) FROM subtasks WHERE todo_id = t.id AND completed = 1) AS completed_subtasks
+    FROM tbltodos t
+    LEFT JOIN categories c ON t.category_id = c.id
     $where_clause
-    ORDER BY 
-        CASE t.priority 
-            WHEN 'high' THEN 1 
-            WHEN 'medium' THEN 2 
-            WHEN 'low' THEN 3 
-        END,
+    ORDER BY
+        CASE WHEN t.status = 'completed' THEN 1 ELSE 0 END,
+        CASE WHEN t.due_date IS NULL THEN 1 ELSE 0 END,
         t.due_date ASC,
+        CASE t.priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 END,
         t.created_at DESC
-    LIMIT ? OFFSET ?
 ";
-
-// Add pagination parameters
-$params[] = $tasks_per_page;
-$params[] = $offset;
-$param_types .= "ii";
-
 $stmt = $con->prepare($sql);
-if (!empty($params)) {
-    $stmt->bind_param($param_types, ...$params);
-}
+if (!empty($params)) $stmt->bind_param($param_types, ...$params);
 $stmt->execute();
-$result = $stmt->get_result();
-$todos = $result->fetch_all(MYSQLI_ASSOC);
+$all_rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// Total completed count BEFORE capping (so we can show "+ N more")
+$completed_total = 0;
+foreach ($all_rows as $r) if ($r['status'] === 'completed') $completed_total++;
+
+// Group by date bucket
+$today_str    = date('Y-m-d');
+$tomorrow_str = date('Y-m-d', strtotime('+1 day'));
+$week_end_str = date('Y-m-d', strtotime('+7 days'));
+
+$groups = [
+    'overdue'   => ['label' => 'Overdue',     'icon' => 'fa-exclamation-triangle', 'color' => 'danger',    'items' => []],
+    'today'     => ['label' => 'Today',       'icon' => 'fa-calendar-day',         'color' => 'info',      'items' => []],
+    'tomorrow'  => ['label' => 'Tomorrow',    'icon' => 'fa-sun',                  'color' => 'primary',   'items' => []],
+    'week'      => ['label' => 'This Week',   'icon' => 'fa-calendar-week',        'color' => 'primary',   'items' => []],
+    'later'     => ['label' => 'Later',       'icon' => 'fa-calendar',             'color' => 'secondary', 'items' => []],
+    'no_date'   => ['label' => 'No Due Date', 'icon' => 'fa-infinity',             'color' => 'secondary', 'items' => []],
+    'completed' => ['label' => 'Completed',   'icon' => 'fa-check-circle',         'color' => 'success',   'items' => []],
+];
+
+$completed_shown = 0;
+foreach ($all_rows as $r) {
+    if ($r['status'] === 'completed') {
+        if ($completed_shown < $completed_limit) {
+            $groups['completed']['items'][] = $r;
+            $completed_shown++;
+        }
+        continue;
+    }
+    $d = $r['due_date'];
+    if (!$d) {
+        $bucket = 'no_date';
+    } elseif ($d < $today_str) {
+        $bucket = 'overdue';
+    } elseif ($d === $today_str) {
+        $bucket = 'today';
+    } elseif ($d === $tomorrow_str) {
+        $bucket = 'tomorrow';
+    } elseif ($d <= $week_end_str) {
+        $bucket = 'week';
+    } else {
+        $bucket = 'later';
+    }
+    $groups[$bucket]['items'][] = $r;
+}
 
 // Get statistics (without default filter to show all stats)
 $stats_query = "
@@ -404,432 +506,332 @@ if (isset($_SESSION['alert'])) {
 ?>
 
 
-<!-- Main Header Card -->
+<!-- ============================================================
+     Clean Grouped-List Redesign
+     ============================================================ -->
+
+<!-- Header -->
 <div class="card shadow-none border mb-3">
     <div class="bg-holder bg-card d-none d-md-block" style="background-image:url(../assets/img/illustrations/corner-6.png);"></div>
     <div class="card-header z-1">
         <div class="row flex-between-center gx-0">
-            <div class="col-lg-auto d-flex align-items-center">
+            <div class="col-lg-auto d-flex align-items-center flex-wrap gap-2">
                 <h4 class="mb-0 text-primary fw-bold">To Do <span class="text-info fw-medium">List</span></h4>
-                <?php if (!isset($_GET['view_all']) && (!isset($_GET['status']) || empty($_GET['status']))): ?>
-                    <span class="badge badge-subtle-info ms-2">Active Tasks</span>
-                <?php endif; ?>
             </div>
             <div class="col-lg-auto pt-3 pt-lg-0">
-                <div class="d-flex align-items-center">
-                    <div class="mx-3">
-                        <button class="btn btn-outline-info btn-sm"  href="?export=csv" data-bs-toggle="modal" data-bs-target="#exportModal">
-                            <i class="fas fa-download"></i> Export CSV
-                        </button>
-                    </div>
-                    <div>
-                        <h6 class="mb-1 badge rounded-pill badge-subtle-info me-3"><?php echo date("jS F Y"); ?> | <span id="timeDisplay"></span></h6>
-                    </div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#exportModal">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#categoryModal">
+                        <i class="fas fa-tags me-1"></i>Categories
+                    </button>
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                        <i class="fas fa-plus me-1"></i>Full Form
+                    </button>
+                    <h6 class="mb-0 badge rounded-pill badge-subtle-info ms-2"><?php echo date("jS F Y"); ?> | <span id="timeDisplay"></span></h6>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Statistics Dashboard -->
-<div class="row g-3 mb-4">
-    <div class="col-md-2">
-        <a href="<?php echo buildFilterUrl('due_today'); ?>" class="text-decoration-none">
-            <div class="card stats-card bg-body-tertiary stats-clickable">
-                <div class="card-body text-center py-3">
-                    <div class="mb-2">
-                        <i class="fas fa-calendar-day fa-2x text-secondary"></i>
-                    </div>
-                    <h3 class="mb-1"><?php echo $stats['due_today']; ?></h3>
-                    <small class="text-muted">Due Today</small>
-                </div>
-            </div>
-        </a>
-    </div>
-
-    <div class="col-md-2">
-        <a href="<?php echo buildFilterUrl('status', 'in_progress'); ?>" class="text-decoration-none">
-            <div class="card stats-card bg-body-tertiary stats-clickable">
-                <div class="card-body text-center py-3">
-                    <div class="mb-2">
-                        <i class="fas fa-clock fa-2x text-warning"></i>
-                    </div>
-                    <h3 class="mb-1"><?php echo $stats['in_progress']; ?></h3>
-                    <small class="text-muted">In Progress</small>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-2">
-        <a href="<?php echo buildFilterUrl('status', 'pending'); ?>" class="text-decoration-none">
-            <div class="card stats-card bg-body-tertiary stats-clickable">
-                <div class="card-body text-center py-3">
-                    <div class="mb-2">
-                        <i class="fas fa-hourglass-start fa-2x text-info"></i>
-                    </div>
-                    <h3 class="mb-1"><?php echo $stats['pending']; ?></h3>
-                    <small class="text-muted">Pending</small>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-2">
-        <a href="<?php echo buildFilterUrl('overdue'); ?>" class="text-decoration-none">
-            <div class="card stats-card bg-body-tertiary stats-clickable">
-                <div class="card-body text-center py-3">
-                    <div class="mb-2">
-                        <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
-                    </div>
-                    <h3 class="mb-1"><?php echo $stats['overdue']; ?></h3>
-                    <small class="text-muted">Overdue</small>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-2">
-        <a href="<?php echo buildFilterUrl('status', 'completed'); ?>" class="text-decoration-none">
-            <div class="card stats-card bg-body-tertiary stats-clickable">
-                <div class="card-body text-center py-3">
-                    <div class="mb-2">
-                        <i class="fas fa-check-circle fa-2x text-success"></i>
-                    </div>
-                    <h3 class="mb-1"><?php echo $stats['completed']; ?></h3>
-                    <small class="text-muted">Completed</small>
-                </div>
-            </div>
-        </a>
-    </div>
-    <div class="col-md-2">
-        <a href="<?php echo buildFilterUrl('all'); ?>" class="text-decoration-none">
-            <div class="card stats-card bg-body-tertiary stats-clickable">
-                <div class="card-body text-center py-3">
-                    <div class="mb-2">
-                        <i class="fas fa-tasks fa-2x text-primary"></i>
-                    </div>
-                    <h3 class="mb-1"><?php echo $stats['total']; ?></h3>
-                    <small class="text-muted">Total Tasks</small>
-                </div>
-            </div>
-        </a>
-    </div>
+<!-- Compact Stat Pills -->
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+    <a href="<?php echo buildFilterUrl('due_today'); ?>" class="todo-stat-pill <?php echo ($_GET['due_filter'] ?? '') === 'today' ? 'active border-secondary' : ''; ?>">
+        <i class="fas fa-calendar-day me-1 text-secondary"></i>Due Today
+        <span class="badge bg-secondary bg-opacity-25 text-secondary ms-1"><?php echo $stats['due_today']; ?></span>
+    </a>
+    <a href="<?php echo buildFilterUrl('overdue'); ?>" class="todo-stat-pill <?php echo ($_GET['due_filter'] ?? '') === 'overdue' ? 'active border-danger text-danger' : ''; ?>">
+        <i class="fas fa-exclamation-triangle me-1 text-danger"></i>Overdue
+        <span class="badge bg-danger bg-opacity-25 text-danger ms-1"><?php echo $stats['overdue']; ?></span>
+    </a>
+    <a href="<?php echo buildFilterUrl('status', 'pending'); ?>" class="todo-stat-pill <?php echo $status_filter === 'pending' ? 'active border-info text-info' : ''; ?>">
+        <i class="fas fa-hourglass-start me-1 text-info"></i>Pending
+        <span class="badge bg-info bg-opacity-25 text-info ms-1"><?php echo $stats['pending']; ?></span>
+    </a>
+    <a href="<?php echo buildFilterUrl('status', 'in_progress'); ?>" class="todo-stat-pill <?php echo $status_filter === 'in_progress' ? 'active border-warning text-warning' : ''; ?>">
+        <i class="fas fa-clock me-1 text-warning"></i>In Progress
+        <span class="badge bg-warning bg-opacity-25 text-warning ms-1"><?php echo $stats['in_progress']; ?></span>
+    </a>
+    <a href="<?php echo buildFilterUrl('status', 'completed'); ?>" class="todo-stat-pill <?php echo $status_filter === 'completed' ? 'active border-success text-success' : ''; ?>">
+        <i class="fas fa-check-circle me-1 text-success"></i>Completed
+        <span class="badge bg-success bg-opacity-25 text-success ms-1"><?php echo $stats['completed']; ?></span>
+    </a>
+    <a href="<?php echo parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); ?>" class="todo-stat-pill">
+        <i class="fas fa-tasks me-1 text-primary"></i>All
+        <span class="badge bg-primary bg-opacity-25 text-primary ms-1"><?php echo $stats['total']; ?></span>
+    </a>
 </div>
 
-
-<!-- Search and Filter Section -->
-<div class="card mb-3">
-    <div class="card-body">
-        <form method="GET" class="row g-3">
-            <div class="col-md-3">
-                <input type="text" class="form-control" name="search" placeholder="Search tasks..." value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>">
-            </div>
-            <div class="col-md-2">
-                <select class="form-control" name="status">
-                    <option value="">All Status</option>
-                    <option value="pending" <?php echo ($_GET['status'] ?? '') === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                    <option value="in_progress" <?php echo ($_GET['status'] ?? '') === 'in_progress' ? 'selected' : ''; ?>>In Progress</option>
-                    <option value="completed" <?php echo ($_GET['status'] ?? '') === 'completed' ? 'selected' : ''; ?>>Completed</option>
+<!-- Inline Quick Add + Search/Filter Bar -->
+<div class="card mb-3 border-0 shadow-sm">
+    <div class="card-body py-2 px-3">
+        <!-- Quick Add Row -->
+        <form id="quickAddTaskForm" class="d-flex gap-2 align-items-center flex-wrap" autocomplete="off">
+            <i class="fas fa-plus-circle text-primary"></i>
+            <input type="text" name="title" id="quickAddTitle" class="form-control form-control-sm border-0 shadow-none flex-grow-1"
+                   placeholder="Quick add a task..." required style="min-width:180px;background:transparent;">
+            <div class="d-flex gap-2 align-items-center quick-add-meta" style="display:none !important;">
+                <select name="priority" id="quickAddPriority" class="form-select form-select-sm" style="width:auto;">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
                 </select>
-            </div>
-            <div class="col-md-2">
-                <select class="form-control" name="priority">
-                    <option value="">All Priorities</option>
-                    <option value="high" <?php echo ($_GET['priority'] ?? '') === 'high' ? 'selected' : ''; ?>>High</option>
-                    <option value="medium" <?php echo ($_GET['priority'] ?? '') === 'medium' ? 'selected' : ''; ?>>Medium</option>
-                    <option value="low" <?php echo ($_GET['priority'] ?? '') === 'low' ? 'selected' : ''; ?>>Low</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <select class="form-control" name="category">
-                    <option value="">All Categories</option>
+                <input type="date" name="due_date" id="quickAddDue" class="form-control form-control-sm" style="width:auto;">
+                <select name="category_id" id="quickAddCategory" class="form-select form-select-sm" style="width:auto;">
+                    <option value="">No category</option>
                     <?php foreach ($categories as $category): ?>
-                        <option value="<?php echo $category['id']; ?>" <?php echo ($_GET['category'] ?? '') == $category['id'] ? 'selected' : ''; ?>>
-                            <?php echo htmlspecialchars($category['name']); ?>
-                        </option>
+                        <option value="<?php echo $category['id']; ?>"><?php echo htmlspecialchars($category['name']); ?></option>
                     <?php endforeach; ?>
                 </select>
+                <button type="submit" class="btn btn-primary btn-sm">Add</button>
             </div>
-            <div class="col-md-2">
-                <select class="form-control" name="due_filter">
-                    <option value="">All Due Dates</option>
-                    <option value="overdue" <?php echo ($_GET['due_filter'] ?? '') === 'overdue' ? 'selected' : ''; ?>>Overdue</option>
-                    <option value="today" <?php echo ($_GET['due_filter'] ?? '') === 'today' ? 'selected' : ''; ?>>Due Today</option>
-                    <option value="week" <?php echo ($_GET['due_filter'] ?? '') === 'week' ? 'selected' : ''; ?>>Due This Week</option>
-                </select>
-            </div>
-            <div class="col-md-1">
-                <button type="submit" class="btn btn-outline-primary w-100"><span class="fas fa-filter"></span></button>
-            </div>
-
-            <!-- Preserve view_all parameter if present -->
-            <?php if (isset($_GET['view_all'])): ?>
-                <input type="hidden" name="view_all" value="1">
-            <?php endif; ?>
         </form>
+    </div>
 
-        <!-- Reset filters button -->
-        <div class="mt-3">
-            <a href="<?php echo parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); ?>" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-undo"></i> Reset Filters
-            </a>
-            <?php if (!isset($_GET['view_all'])): ?>
-                <a href="<?php echo buildFilterUrl('all'); ?>" class="btn btn-outline-info btn-sm ms-2">
-                    <i class="fas fa-eye"></i> View All Tasks
+    <!-- Search/Filter Row -->
+    <div class="card-body py-2 px-3 border-top">
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+            <div class="position-relative flex-grow-1" style="min-width:200px;max-width:380px;">
+                <i class="fas fa-search position-absolute top-50 translate-middle-y ms-3 text-muted" style="font-size:0.85rem;"></i>
+                <input type="text" id="listSearch" class="form-control form-control-sm ps-5"
+                       placeholder="Search tasks..." value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>">
+            </div>
+            <select id="listPriorityFilter" class="form-select form-select-sm" style="width:auto;">
+                <option value="">All priorities</option>
+                <option value="high"   <?php echo ($_GET['priority'] ?? '') === 'high'   ? 'selected' : ''; ?>>High</option>
+                <option value="medium" <?php echo ($_GET['priority'] ?? '') === 'medium' ? 'selected' : ''; ?>>Medium</option>
+                <option value="low"    <?php echo ($_GET['priority'] ?? '') === 'low'    ? 'selected' : ''; ?>>Low</option>
+            </select>
+            <select id="listCategoryFilter" class="form-select form-select-sm" style="width:auto;">
+                <option value="">All categories</option>
+                <?php foreach ($categories as $category): ?>
+                    <option value="<?php echo $category['id']; ?>" <?php echo ($_GET['category'] ?? '') == $category['id'] ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($category['name']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <select id="listStatusFilter" class="form-select form-select-sm" style="width:auto;">
+                <option value="">All statuses</option>
+                <option value="pending"     <?php echo $status_filter === 'pending'     ? 'selected' : ''; ?>>Pending</option>
+                <option value="in_progress" <?php echo $status_filter === 'in_progress' ? 'selected' : ''; ?>>In Progress</option>
+                <option value="completed"   <?php echo $status_filter === 'completed'   ? 'selected' : ''; ?>>Completed</option>
+            </select>
+            <?php if (!empty(array_intersect_key($_GET, array_flip(['search','priority','category','due_filter','status'])))): ?>
+                <a href="<?php echo parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH); ?>" class="btn btn-sm btn-link text-decoration-none text-muted">
+                    <i class="fas fa-times me-1"></i>Clear
                 </a>
             <?php endif; ?>
         </div>
     </div>
 </div>
 
-<!-- Bulk Actions -->
-<div class="bulk-actions mb-3">
-    <div class="card">
+<!-- Bulk Actions Bar (hidden until selections) -->
+<div class="bulk-actions mb-3" style="display:none;">
+    <div class="card border-warning border-2">
         <div class="card-body py-2">
-            <div class="d-flex align-items-center">
-                <span class="me-3"><span id="selectedCount">0</span> selected</span>
-                <button class="btn btn-success btn-sm me-2" onclick="bulkAction('complete')">
-                    <i class="fas fa-check"></i> Mark Complete
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                <span><strong id="selectedCount">0</strong> selected</span>
+                <button class="btn btn-success btn-sm" onclick="bulkAction('complete')">
+                    <i class="fas fa-check me-1"></i>Mark Complete
                 </button>
                 <button class="btn btn-danger btn-sm" onclick="bulkAction('delete')">
-                    <i class="fas fa-trash"></i> Delete Selected
+                    <i class="fas fa-trash me-1"></i>Delete
                 </button>
-                <button class="btn btn-secondary btn-sm ms-auto" onclick="clearSelection()">Clear Selection</button>
+                <button class="btn btn-outline-secondary btn-sm ms-auto" onclick="clearSelection()">
+                    Clear
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Task Count and Pagination Info -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div class="text-muted">
-        Showing <?php echo min($offset + 1, $total_tasks); ?>-<?php echo min($offset + $tasks_per_page, $total_tasks); ?> of <?php echo $total_tasks; ?> tasks
-    </div>
-    <div>
-        <select class="form-select form-select-sm" onchange="changeTasksPerPage(this.value)" style="width: auto;">
-            <option value="10" <?php echo $tasks_per_page == 10 ? 'selected' : ''; ?>>10 per page</option>
-            <option value="25" <?php echo $tasks_per_page == 25 ? 'selected' : ''; ?>>25 per page</option>
-            <option value="50" <?php echo $tasks_per_page == 50 ? 'selected' : ''; ?>>50 per page</option>
-        </select>
-    </div>
-</div>
+<?php
+/**
+ * Render a single task row (clean list style with inline expand target).
+ */
+function renderTaskRow($todo) {
+    $isOverdue  = $todo['due_date'] && $todo['due_date'] < date('Y-m-d') && $todo['status'] !== 'completed';
+    $isDueToday = $todo['due_date'] === date('Y-m-d');
+    $isCompleted = $todo['status'] === 'completed';
+    $priorityColor = $todo['priority'] === 'high' ? 'danger' : ($todo['priority'] === 'medium' ? 'warning' : 'success');
+    $subtotal = (int)$todo['subtask_count'];
+    $sdone    = (int)$todo['completed_subtasks'];
+    $sprogress = $subtotal > 0 ? round(($sdone / $subtotal) * 100) : 0;
+    ?>
+    <div class="task-row <?= $isCompleted ? 'is-completed' : '' ?> <?= $isOverdue ? 'is-overdue' : '' ?>"
+         data-id="<?= $todo['id'] ?>"
+         data-title="<?= htmlspecialchars(strtolower($todo['title'])) ?>"
+         data-description="<?= htmlspecialchars(strtolower($todo['description'] ?? '')) ?>"
+         data-priority="<?= htmlspecialchars($todo['priority']) ?>"
+         data-category="<?= (int)($todo['category_id'] ?? 0) ?>"
+         data-status="<?= htmlspecialchars($todo['status']) ?>"
+         data-due-date="<?= htmlspecialchars($todo['due_date'] ?? '') ?>"
+         draggable="true">
 
-<!-- Main Todo List -->
-<div class="row g-3 mb-5">
-    <div class="col">
-        <div class="card h-100">
-            <div class="card-header d-flex flex-between-center bg-body-tertiary">
-                <div class="d-flex align-items-center">
-                    <input type="checkbox" id="selectAll" class="form-check-input me-2">
-                    <label for="selectAll" class="form-check-label">Select All</label>
+        <div class="task-row-main">
+            <!-- Drag handle (visible on hover) -->
+            <div class="task-drag-handle" title="Drag to reschedule">
+                <i class="fas fa-grip-vertical"></i>
+            </div>
+
+            <!-- Bulk checkbox -->
+            <input type="checkbox" class="form-check-input bulk-select flex-shrink-0"
+                   value="<?= $todo['id'] ?>" onclick="event.stopPropagation();">
+
+            <!-- Complete-toggle "circle" -->
+            <button type="button" class="task-complete-btn js-quick-status flex-shrink-0"
+                    data-id="<?= $todo['id'] ?>"
+                    data-status="<?= $isCompleted ? 'pending' : 'completed' ?>"
+                    title="<?= $isCompleted ? 'Reopen' : 'Mark complete' ?>"
+                    onclick="event.stopPropagation();">
+                <i class="fas <?= $isCompleted ? 'fa-check-circle text-success' : 'fa-circle text-muted' ?>"></i>
+            </button>
+
+            <!-- Priority indicator -->
+            <span class="task-priority-dot bg-<?= $priorityColor ?>" title="<?= ucfirst($todo['priority']) ?> priority"></span>
+
+            <!-- Title + meta (main content) -->
+            <div class="task-content flex-grow-1 min-w-0">
+                <div class="task-title <?= $isCompleted ? 'text-decoration-line-through text-muted' : '' ?>">
+                    <?= htmlspecialchars($todo['title']) ?>
                 </div>
-                <div>
-                    <button class="btn btn-falcon-info btn-sm me-2 mt-2" data-bs-toggle="modal" data-bs-target="#categoryModal">
-                        <i class="fas fa-tags"></i> Manage Categories
-                    </button>
-                    <button class="btn btn-falcon-info btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#addTaskModal">
-                        <i class="fas fa-plus"></i> Add Task
-                    </button>
+                <div class="task-meta">
+                    <?php if (!empty($todo['due_date'])): ?>
+                        <span class="<?= $isOverdue ? 'text-danger fw-semibold' : ($isDueToday ? 'text-warning fw-semibold' : 'text-muted') ?>">
+                            <i class="fas <?= $isOverdue ? 'fa-exclamation-triangle' : 'fa-calendar' ?> me-1"></i><?= date('M j', strtotime($todo['due_date'])) ?>
+                        </span>
+                    <?php endif; ?>
+
+                    <?php if (!empty($todo['category_name'])): ?>
+                        <span class="task-category-chip" style="background-color: <?= htmlspecialchars($todo['category_color'] ?: '#6c757d') ?>;">
+                            <?= htmlspecialchars($todo['category_name']) ?>
+                        </span>
+                    <?php endif; ?>
+
+                    <?php if ($subtotal > 0): ?>
+                        <span class="text-muted small" title="Subtasks">
+                            <i class="fas fa-tasks me-1"></i><?= $sdone ?>/<?= $subtotal ?>
+                        </span>
+                    <?php endif; ?>
+
+                    <?php if (!empty($todo['description'])): ?>
+                        <span class="text-muted small task-has-desc" title="Has description">
+                            <i class="fas fa-align-left"></i>
+                        </span>
+                    <?php endif; ?>
                 </div>
             </div>
-            <div class="card-body p-0 mb-3">
-                <?php if (!empty($todos)): ?>
-                    <?php foreach ($todos as $todo):
-                        $isOverdue = $todo['due_date'] && $todo['due_date'] < date('Y-m-d') && $todo['status'] !== 'completed';
-                        $isDueToday = $todo['due_date'] === date('Y-m-d');
-                        $rowClass = $isOverdue ? 'overdue' : ($isDueToday ? 'due-today' : '');
-                        $statusClass = $todo['status'] === 'completed' ? 'status-completed' : '';
-                        ?>
-                        <div class="todo-list-item border-top border-200 priority-<?php echo $todo['priority']; ?> <?php echo $rowClass; ?> <?php echo $statusClass; ?>" data-id="<?php echo $todo['id']; ?>">
-                            <div class="row align-items-center py-3 px-3">
 
-                                <!-- Left Column: Checkbox + Task Content -->
-                                <div class="col-md-7 col-lg-8">
-                                    <div class="d-flex align-items-start">
-                                        <input type="checkbox" class="form-check-input me-3 mt-1 bulk-select" value="<?php echo $todo['id']; ?>">
+            <!-- Status pill (always visible) -->
+            <span class="task-status-pill flex-shrink-0 status-<?= $todo['status'] ?>" title="Status">
+                <?= ucwords(str_replace('_', ' ', $todo['status'])) ?>
+            </span>
 
-                                        <div class="task-content flex-grow-1">
-                                            <!-- Task Title and Badges Row -->
-                                            <div class="d-flex align-items-center flex-wrap mb-1">
-                                                <span class="text-700 fw-bold me-2"><?php echo htmlspecialchars($todo['title']); ?></span>
-
-                                                <!-- Priority Badge -->
-                                                <span class="badge badge-subtle-<?php echo $todo['priority'] === 'high' ? 'danger' : ($todo['priority'] === 'medium' ? 'warning' : 'success'); ?> me-2 mb-1">
-                            <?php echo ucfirst($todo['priority']); ?>
-                        </span>
-
-                                                <!-- Category Badge -->
-                                                <?php if ($todo['category_name']): ?>
-                                                    <span class="badge category-badge me-2 mb-1" style="background-color: <?php echo $todo['category_color']; ?>">
-                            <?php echo htmlspecialchars($todo['category_name']); ?>
-                        </span>
-                                                <?php endif; ?>
-
-                                                <!-- Due Date -->
-                                                <?php if ($todo['due_date']): ?>
-                                                    <small class="text-<?php echo $isOverdue ? 'danger' : ($isDueToday ? 'warning' : 'muted'); ?> mb-1">
-                                                        <i class="fas fa-calendar"></i> <?php echo date('M j, Y', strtotime($todo['due_date'])); ?>
-                                                    </small>
-                                                <?php endif; ?>
-                                            </div>
-
-                                            <!-- Task Description -->
-                                            <?php if ($todo['description']): ?>
-                                                <div class="text-600 fs-11 mb-2" style="white-space: pre-line;"><?php echo htmlspecialchars($todo['description']); ?></div>
-                                            <?php endif; ?>
-
-                                            <!-- Subtasks Progress -->
-                                            <?php if ($todo['subtask_count'] > 0): ?>
-                                                <div class="d-flex align-items-center">
-                                                    <small class="text-muted me-2">
-                                                        <i class="fas fa-tasks"></i> <?php echo $todo['completed_subtasks']; ?>/<?php echo $todo['subtask_count']; ?> subtasks
-                                                    </small>
-                                                    <div class="progress task-progress" style="width: 80px; height: 4px;">
-                                                        <div class="progress-bar" style="width: <?php echo $todo['subtask_count'] > 0 ? ($todo['completed_subtasks'] / $todo['subtask_count']) * 100 : 0; ?>%"></div>
-                                                    </div>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Middle Column: Status -->
-                                <div class="col-md-3 col-lg-2 d-flex mt-2 mb-2">
-                                    <select class="form-select form-select-sm px-2" onchange="updateStatus(<?php echo $todo['id']; ?>, this.value)">
-                                        <option value="pending" <?php echo $todo['status'] === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                                        <option value="in_progress" <?php echo $todo['status'] === 'in_progress' ? 'selected' : ''; ?>>In Progress</option>
-                                        <option value="completed" <?php echo $todo['status'] === 'completed' ? 'selected' : ''; ?>>Completed</option>
-                                    </select>
-                                </div>
-
-                                <!-- Right Column: Action Buttons -->
-                                <div class="col-md-2 text-end hover-actions-trigger mb-4">
-                                    <div class="hover-actions d-flex justify-content-end">
-                                        <button class="btn btn-primary btn-sm me-1"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#viewTaskModal"
-                                                onclick="loadTaskDetails(<?php echo $todo['id']; ?>)"
-                                                data-bs-placement="top" title="View Details">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-secondary btn-sm me-1 edit-btn"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#editTaskModal"
-                                                data-id="<?php echo $todo['id']; ?>"
-                                                data-title="<?php echo htmlspecialchars($todo['title']); ?>"
-                                                data-bs-placement="top" title="Edit <?php echo htmlspecialchars($todo['title']); ?>"
-                                                data-description="<?php echo htmlspecialchars($todo['description']); ?>"
-                                                data-priority="<?php echo $todo['priority']; ?>"
-                                                data-category="<?php echo $todo['category_id']; ?>"
-                                                data-due-date="<?php echo $todo['due_date']; ?>">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-danger btn-sm delete-btn"
-                                                data-id="<?php echo $todo['id']; ?>"
-                                                data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Task">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="text-center py-5">
-                        <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
-                        <?php if (!isset($_GET['view_all']) && (!isset($_GET['status']) || empty($_GET['status']))): ?>
-                            <p class="text-muted">No active tasks found. You're all caught up!</p>
-                            <p class="text-muted">Click "View All Tasks" to see completed tasks or add a new task.</p>
-                        <?php else: ?>
-                            <p class="text-muted">No tasks found matching your criteria.</p>
-                        <?php endif; ?>
-                        <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addTaskModal">
-                            <i class="fas fa-plus"></i> Add New Task
+            <!-- Per-row kebab menu -->
+            <div class="dropdown flex-shrink-0">
+                <button class="btn btn-sm btn-link text-muted p-0 px-1" data-bs-toggle="dropdown" onclick="event.stopPropagation();">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li>
+                        <button class="dropdown-item edit-btn"
+                                data-bs-toggle="modal" data-bs-target="#editTaskModal"
+                                data-id="<?= $todo['id'] ?>"
+                                data-title="<?= htmlspecialchars($todo['title']) ?>"
+                                data-description="<?= htmlspecialchars($todo['description'] ?? '') ?>"
+                                data-priority="<?= htmlspecialchars($todo['priority']) ?>"
+                                data-category="<?= (int)($todo['category_id'] ?? 0) ?>"
+                                data-due-date="<?= htmlspecialchars($todo['due_date'] ?? '') ?>">
+                            <i class="fas fa-edit me-2 text-primary"></i>Edit
                         </button>
-                        <?php if (!isset($_GET['view_all'])): ?>
-                            <a href="<?php echo buildFilterUrl('all'); ?>" class="btn btn-outline-info">
-                                <i class="fas fa-eye"></i> View All Tasks
-                            </a>
-                        <?php endif; ?>
+                    </li>
+                    <li>
+                        <button class="dropdown-item js-quick-status" data-id="<?= $todo['id'] ?>" data-status="in_progress">
+                            <i class="fas fa-clock me-2 text-warning"></i>Mark in progress
+                        </button>
+                    </li>
+                    <?php if (!$isCompleted): ?>
+                        <li><button class="dropdown-item js-quick-status" data-id="<?= $todo['id'] ?>" data-status="completed">
+                                <i class="fas fa-check me-2 text-success"></i>Mark complete
+                            </button></li>
+                    <?php else: ?>
+                        <li><button class="dropdown-item js-quick-status" data-id="<?= $todo['id'] ?>" data-status="pending">
+                                <i class="fas fa-undo me-2 text-info"></i>Reopen
+                            </button></li>
+                    <?php endif; ?>
+                    <li><hr class="dropdown-divider my-1"></li>
+                    <li><button class="dropdown-item text-danger delete-btn" data-id="<?= $todo['id'] ?>">
+                            <i class="fas fa-trash me-2"></i>Delete
+                        </button></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Inline expansion (loaded lazily on click) -->
+        <div class="task-row-expand" style="display:none;"></div>
+    </div>
+<?php }
+?>
+
+<!-- Task List -->
+<div class="task-list-container" id="taskList">
+    <?php
+    $any_visible = false;
+    foreach ($groups as $bucket_key => $group):
+        if (empty($group['items'])) continue;
+        $any_visible = true;
+        ?>
+        <div class="task-group" data-bucket="<?= $bucket_key ?>">
+            <div class="task-group-header" data-droptarget="<?= $bucket_key ?>">
+                <i class="fas <?= $group['icon'] ?> text-<?= $group['color'] ?> me-2"></i>
+                <strong class="text-<?= $group['color'] ?>"><?= $group['label'] ?></strong>
+                <span class="badge bg-<?= $group['color'] ?> bg-opacity-15 text-<?= $group['color'] ?> ms-2 task-group-count"><?= count($group['items']) ?></span>
+                <button type="button" class="btn btn-sm btn-link text-muted ms-auto py-0 px-1 js-collapse-group"
+                        data-bucket="<?= $bucket_key ?>" title="Collapse / expand">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+            <div class="task-group-body">
+                <?php foreach ($group['items'] as $todo) renderTaskRow($todo); ?>
+                <?php if ($bucket_key === 'completed' && $completed_total > count($group['items'])): ?>
+                    <div class="text-center py-2 border-top">
+                        <a href="?<?= http_build_query(array_merge($_GET, ['completed_limit' => $completed_limit + 30])) ?>" class="btn btn-sm btn-link text-decoration-none">
+                            Show <?= $completed_total - count($group['items']) ?> more completed
+                        </a>
                     </div>
                 <?php endif; ?>
             </div>
         </div>
-    </div>
-</div>
+    <?php endforeach; ?>
 
-<!-- Pagination -->
-<?php if ($total_pages > 1): ?>
-    <nav aria-label="Task pagination">
-        <ul class="pagination pagination-sm justify-content-center mb-4">
-            <!-- Previous Page -->
-            <?php if ($current_page > 1): ?>
-                <li class="page-item">
-                    <a class="page-link" href="<?php echo buildPaginationUrl($current_page - 1); ?>" aria-label="Previous">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
-                </li>
-            <?php else: ?>
-                <li class="page-item disabled">
-                    <span class="page-link">&laquo;</span>
-                </li>
-            <?php endif; ?>
-
-            <!-- Page Numbers -->
-            <?php
-            $start_page = max(1, $current_page - 2);
-            $end_page = min($total_pages, $current_page + 2);
-
-            if ($start_page > 1): ?>
-                <li class="page-item">
-                    <a class="page-link" href="<?php echo buildPaginationUrl(1); ?>">1</a>
-                </li>
-                <?php if ($start_page > 2): ?>
-                    <li class="page-item disabled">
-                        <span class="page-link">...</span>
-                    </li>
-                <?php endif;
-            endif;
-
-            for ($i = $start_page; $i <= $end_page; $i++): ?>
-                <li class="page-item <?php echo $i == $current_page ? 'active' : ''; ?>">
-                    <a class="page-link" href="<?php echo buildPaginationUrl($i); ?>"><?php echo $i; ?></a>
-                </li>
-            <?php endfor;
-
-            if ($end_page < $total_pages): ?>
-                <?php if ($end_page < $total_pages - 1): ?>
-                    <li class="page-item disabled">
-                        <span class="page-link">...</span>
-                    </li>
+    <?php if (!$any_visible): ?>
+        <div class="text-center py-5">
+            <i class="fas fa-clipboard-list fa-3x text-muted opacity-25 mb-3"></i>
+            <h5 class="text-muted fw-light">No tasks found</h5>
+            <p class="text-muted small mb-3">
+                <?php if (!empty(array_filter([$_GET['search'] ?? '', $_GET['priority'] ?? '', $_GET['category'] ?? '', $_GET['due_filter'] ?? '', $status_filter]))): ?>
+                    Try clearing your filters or
+                <?php else: ?>
+                    Use the quick-add bar above or
                 <?php endif; ?>
-                <li class="page-item">
-                    <a class="page-link" href="<?php echo buildPaginationUrl($total_pages); ?>"><?php echo $total_pages; ?></a>
-                </li>
-            <?php endif; ?>
-
-            <!-- Next Page -->
-            <?php if ($current_page < $total_pages): ?>
-                <li class="page-item">
-                    <a class="page-link" href="<?php echo buildPaginationUrl($current_page + 1); ?>" aria-label="Next">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
-                </li>
-            <?php else: ?>
-                <li class="page-item disabled">
-                    <span class="page-link">&raquo;</span>
-                </li>
-            <?php endif; ?>
-        </ul>
-    </nav>
-<?php endif; ?>
+                <button type="button" class="btn btn-link btn-sm p-0 align-baseline" data-bs-toggle="modal" data-bs-target="#addTaskModal">open the full form</button>.
+            </p>
+        </div>
+    <?php endif; ?>
+</div>
+<!-- /Task List -->
 
 <?php
-// Helper function to build pagination URLs
+// Kept for backward compat with anything that may still reference it
 function buildPaginationUrl($page) {
     $params = $_GET;
     $params['page'] = $page;
     return '?' . http_build_query($params);
 }
 ?>
+
 
 <!-- Rest of the modals and forms remain the same -->
 <!-- Add Task Modal -->
@@ -1412,8 +1414,8 @@ function buildPaginationUrl($page) {
             });
     }
 
-    // Bulk selection
-    document.getElementById('selectAll').addEventListener('change', function() {
+    // Bulk selection — old #selectAll checkbox removed in redesign; guard for null
+    document.getElementById('selectAll')?.addEventListener('change', function() {
         const checkboxes = document.querySelectorAll('.bulk-select');
         checkboxes.forEach(checkbox => {
             checkbox.checked = this.checked;
@@ -1432,14 +1434,16 @@ function buildPaginationUrl($page) {
         const bulkActions = document.querySelector('.bulk-actions');
         const selectedCount = document.getElementById('selectedCount');
 
-        selectedCount.textContent = selected.length;
-        bulkActions.style.display = selected.length > 0 ? 'block' : 'none';
+        if (selectedCount) selectedCount.textContent = selected.length;
+        if (bulkActions) bulkActions.style.display = selected.length > 0 ? 'block' : 'none';
 
-        // Update select all checkbox
+        // Update select all checkbox (if it exists)
         const selectAll = document.getElementById('selectAll');
-        const allCheckboxes = document.querySelectorAll('.bulk-select');
-        selectAll.checked = selected.length === allCheckboxes.length && allCheckboxes.length > 0;
-        selectAll.indeterminate = selected.length > 0 && selected.length < allCheckboxes.length;
+        if (selectAll) {
+            const allCheckboxes = document.querySelectorAll('.bulk-select');
+            selectAll.checked = selected.length === allCheckboxes.length && allCheckboxes.length > 0;
+            selectAll.indeterminate = selected.length > 0 && selected.length < allCheckboxes.length;
+        }
     }
 
     // Fix for bulk action - update the fetch body
@@ -1501,7 +1505,8 @@ function buildPaginationUrl($page) {
 
     function clearSelection() {
         document.querySelectorAll('.bulk-select').forEach(cb => cb.checked = false);
-        document.getElementById('selectAll').checked = false;
+        const selectAll = document.getElementById('selectAll');
+        if (selectAll) selectAll.checked = false;
         updateBulkActions();
     }
 
@@ -1930,36 +1935,566 @@ function buildPaginationUrl($page) {
     // Initialize
     document.addEventListener('DOMContentLoaded', function() {
         updateBulkActions();
-        setupRealTimeSearch(); // Uncomment if you want real-time search instead of form submission
+        if (typeof initTaskList === 'function') initTaskList();
     });
+
+    /* ============================================================
+       TASK LIST INTERACTIVITY
+       - Inline expand on row click
+       - Drag-to-reschedule (drop on group header)
+       - Subtask toggle
+       - Live search + filter
+       - Inline quick-add
+       - Quick status changes
+       - Group collapse
+       ============================================================ */
+    function initTaskList() {
+        const list = document.getElementById('taskList');
+        if (!list) return;
+
+        // ---------- Inline expand on row click ----------
+        list.addEventListener('click', e => {
+            if (e.target.closest('input, button, a, select, .dropdown, .task-row-expand')) return;
+            const row = e.target.closest('.task-row');
+            if (!row) return;
+            toggleRowExpand(row);
+        });
+
+        function toggleRowExpand(row) {
+            const id = row.dataset.id;
+            const expand = row.querySelector('.task-row-expand');
+            if (!expand) return;
+
+            if (row.classList.contains('expanded')) {
+                expand.style.display = 'none';
+                row.classList.remove('expanded');
+                return;
+            }
+            if (!expand.dataset.loaded) {
+                expand.innerHTML = '<div class="text-center py-3 text-muted small"><i class="fas fa-spinner fa-spin me-1"></i>Loading...</div>';
+                fetch(`get-task-details.php?id=${id}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!data.success) {
+                            expand.innerHTML = '<div class="text-danger small px-3 py-2">Failed to load details</div>';
+                            return;
+                        }
+                        expand.innerHTML = renderExpansion(data);
+                        expand.dataset.loaded = '1';
+                    })
+                    .catch(() => { expand.innerHTML = '<div class="text-danger small px-3 py-2">Network error</div>'; });
+            }
+            expand.style.display = 'block';
+            row.classList.add('expanded');
+        }
+
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({
+                '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+            }[m]));
+        }
+
+        function renderExpansion(data) {
+            const t = data.task;
+            const subtasks = data.subtasks || [];
+            const attachments = data.attachments || [];
+            const done = subtasks.filter(s => +s.completed).length;
+            const total = subtasks.length;
+            const pct = total ? Math.round((done / total) * 100) : 0;
+
+            const desc = t.description
+                ? `<div class="expand-section"><div class="expand-label">Description</div><div class="small" style="white-space:pre-line;">${esc(t.description)}</div></div>`
+                : '';
+
+            let subHtml = '';
+            if (total > 0) {
+                subHtml = `
+                    <div class="expand-section">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="expand-label mb-0">Subtasks</div>
+                            <small class="text-muted js-subtask-summary">${done}/${total} · ${pct}%</small>
+                        </div>
+                        <div class="progress mb-2" style="height:3px;"><div class="progress-bar js-subtask-bar" style="width:${pct}%"></div></div>
+                        ${subtasks.map(s => `
+                            <div class="form-check mb-1 d-flex align-items-center">
+                                <input class="form-check-input me-2 js-subtask-toggle" type="checkbox" ${+s.completed ? 'checked' : ''} data-subtask-id="${s.id}" id="sub_${s.id}">
+                                <label class="form-check-label small flex-grow-1 ${+s.completed ? 'text-decoration-line-through text-muted' : ''}" for="sub_${s.id}">${esc(s.title)}</label>
+                            </div>`).join('')}
+                    </div>`;
+            }
+
+            let attHtml = '';
+            if (attachments.length) {
+                attHtml = `
+                    <div class="expand-section">
+                        <div class="expand-label">Attachments</div>
+                        ${attachments.map(a => `
+                            <div class="small mb-1">
+                                <i class="fas fa-paperclip me-1 text-muted"></i>
+                                <a href="${esc(a.file_path)}" target="_blank" class="text-decoration-none">${esc(a.filename)}</a>
+                            </div>`).join('')}
+                    </div>`;
+            }
+
+            const created = t.created_at ? new Date(t.created_at.replace(' ', 'T')).toLocaleString() : '—';
+            const completed = t.completed_at ? new Date(t.completed_at.replace(' ', 'T')).toLocaleString() : '—';
+
+            return `
+                ${desc}
+                ${subHtml}
+                ${attHtml}
+                <div class="expand-section">
+                    <div class="expand-label">Timeline</div>
+                    <div class="small text-muted">Created: ${esc(created)}</div>
+                    <div class="small text-muted">Completed: ${esc(completed)}</div>
+                </div>
+                <div class="d-flex gap-2 mt-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="openEditFromRow(${t.id})">
+                        <i class="fas fa-edit me-1"></i>Edit
+                    </button>
+                </div>
+            `;
+        }
+
+        window.openEditFromRow = function(id) {
+            const btn = document.querySelector(`.task-row[data-id="${id}"] .edit-btn`);
+            if (btn) btn.click();
+        };
+
+        // ---------- Subtask toggle ----------
+        document.addEventListener('change', e => {
+            const cb = e.target.closest('.js-subtask-toggle');
+            if (!cb) return;
+            const subId = cb.dataset.subtaskId;
+            const completed = cb.checked ? 1 : 0;
+            const fd = new FormData();
+            fd.append('action', 'toggle_subtask');
+            fd.append('subtask_id', subId);
+            fd.append('completed', completed);
+
+            const label = cb.closest('.form-check').querySelector('label');
+            if (label) {
+                label.classList.toggle('text-decoration-line-through', !!completed);
+                label.classList.toggle('text-muted', !!completed);
+            }
+
+            fetch(window.location.href, { method:'POST', body: fd })
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) {
+                        cb.checked = !cb.checked;
+                        if (label) {
+                            label.classList.toggle('text-decoration-line-through', !!cb.checked);
+                            label.classList.toggle('text-muted', !!cb.checked);
+                        }
+                        showNotification('Failed to update subtask', 'error');
+                        return;
+                    }
+                    // Update parent row's subtask counter + expansion summary/bar
+                    const row = cb.closest('.task-row');
+                    if (row && data.total != null) {
+                        const counter = row.querySelector('.task-meta span[title="Subtasks"]');
+                        if (counter) counter.innerHTML = `<i class="fas fa-tasks me-1"></i>${data.done}/${data.total}`;
+                        const pct = data.total ? Math.round((data.done / data.total) * 100) : 0;
+                        const summary = row.querySelector('.js-subtask-summary');
+                        if (summary) summary.textContent = `${data.done}/${data.total} · ${pct}%`;
+                        const bar = row.querySelector('.js-subtask-bar');
+                        if (bar) bar.style.width = pct + '%';
+                    }
+                })
+                .catch(() => {
+                    cb.checked = !cb.checked;
+                    showNotification('Network error', 'error');
+                });
+        });
+
+        // ---------- Quick status (data-id + data-status) ----------
+        document.addEventListener('click', e => {
+            const trigger = e.target.closest('.js-quick-status');
+            if (!trigger) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const id = trigger.dataset.id;
+            const status = trigger.dataset.status;
+
+            const fd = new FormData();
+            fd.append('action', 'update_status');
+            fd.append('id', id);
+            fd.append('status', status);
+            fetch(window.location.href, { method:'POST', body: fd })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success) {
+                        showNotification('Status updated', 'success');
+                        setTimeout(() => location.reload(), 350);
+                    } else {
+                        showNotification(d.message || 'Failed', 'error');
+                    }
+                });
+        });
+
+        // ---------- Drag-to-reschedule (drop on group header) ----------
+        let dragId = null;
+        list.querySelectorAll('.task-row').forEach(bindRowDrag);
+        list.querySelectorAll('.task-group-header').forEach(bindHeaderDrop);
+
+        function bindRowDrag(row) {
+            row.addEventListener('dragstart', e => {
+                if (e.target.closest('input, button, a, select, .dropdown, .task-row-expand')) {
+                    e.preventDefault(); return;
+                }
+                dragId = row.dataset.id;
+                row.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', dragId);
+            });
+            row.addEventListener('dragend', () => {
+                row.classList.remove('dragging');
+                document.querySelectorAll('.task-group-header.drop-active').forEach(el => el.classList.remove('drop-active'));
+                dragId = null;
+            });
+        }
+
+        function bucketToDate(bucket) {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const pad = n => String(n).padStart(2, '0');
+            const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+            switch (bucket) {
+                case 'overdue':  { const d = new Date(today); d.setDate(d.getDate()-1); return fmt(d); }
+                case 'today':    return fmt(today);
+                case 'tomorrow': { const d = new Date(today); d.setDate(d.getDate()+1); return fmt(d); }
+                case 'week':     { const d = new Date(today); d.setDate(d.getDate()+3); return fmt(d); }
+                case 'later':    { const d = new Date(today); d.setDate(d.getDate()+14); return fmt(d); }
+                case 'no_date':  return ''; // clear due date
+                case 'completed': return null; // not reschedulable
+                default: return null;
+            }
+        }
+
+        function bindHeaderDrop(header) {
+            header.addEventListener('dragover', e => {
+                if (header.dataset.droptarget === 'completed') return; // not a reschedule target
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                header.classList.add('drop-active');
+            });
+            header.addEventListener('dragleave', e => {
+                if (!header.contains(e.relatedTarget)) header.classList.remove('drop-active');
+            });
+            header.addEventListener('drop', e => {
+                e.preventDefault();
+                header.classList.remove('drop-active');
+                const id = e.dataTransfer.getData('text/plain') || dragId;
+                const bucket = header.dataset.droptarget;
+                const newDate = bucketToDate(bucket);
+                if (!id || newDate === null) return;
+
+                const fd = new FormData();
+                fd.append('action', 'reschedule_task');
+                fd.append('id', id);
+                fd.append('new_date', newDate);
+                fetch(window.location.href, { method:'POST', body: fd })
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d.success) {
+                            showNotification('Rescheduled', 'success');
+                            setTimeout(() => location.reload(), 350);
+                        } else {
+                            showNotification(d.message || 'Failed to reschedule', 'error');
+                        }
+                    });
+            });
+        }
+
+        // ---------- Group collapse / expand ----------
+        document.addEventListener('click', e => {
+            const btn = e.target.closest('.js-collapse-group');
+            if (!btn) return;
+            e.stopPropagation();
+            const group = btn.closest('.task-group');
+            if (!group) return;
+            const body = group.querySelector('.task-group-body');
+            const icon = btn.querySelector('i');
+            const collapsed = group.classList.toggle('collapsed');
+            if (body) body.style.display = collapsed ? 'none' : '';
+            if (icon) { icon.classList.toggle('fa-chevron-down', !collapsed); icon.classList.toggle('fa-chevron-right', collapsed); }
+        });
+
+        // ---------- Inline quick-add ----------
+        const quickForm = document.getElementById('quickAddTaskForm');
+        const quickTitle = document.getElementById('quickAddTitle');
+        const quickMeta = quickForm?.querySelector('.quick-add-meta');
+
+        if (quickTitle && quickMeta) {
+            quickTitle.addEventListener('focus', () => {
+                quickMeta.style.display = 'flex';
+            });
+            document.addEventListener('click', e => {
+                if (!quickForm.contains(e.target) && quickTitle.value.trim() === '') {
+                    quickMeta.style.display = 'none';
+                }
+            });
+        }
+        if (quickForm) {
+            quickForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const title = quickTitle.value.trim();
+                if (!title) return;
+                const fd = new FormData();
+                fd.append('action', 'quick_add_task');
+                fd.append('title', title);
+                fd.append('priority', document.getElementById('quickAddPriority').value || 'medium');
+                fd.append('due_date', document.getElementById('quickAddDue').value || '');
+                fd.append('category_id', document.getElementById('quickAddCategory').value || '');
+
+                const btn = quickForm.querySelector('button[type="submit"]');
+                if (btn) { btn.disabled = true; btn.textContent = 'Adding...'; }
+
+                fetch(window.location.href, { method:'POST', body: fd })
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d.success) {
+                            showNotification('Task added', 'success');
+                            setTimeout(() => location.reload(), 350);
+                        } else {
+                            showNotification(d.message || 'Failed', 'error');
+                            if (btn) { btn.disabled = false; btn.textContent = 'Add'; }
+                        }
+                    })
+                    .catch(() => {
+                        showNotification('Network error', 'error');
+                        if (btn) { btn.disabled = false; btn.textContent = 'Add'; }
+                    });
+            });
+        }
+
+        // ---------- Live search + filter ----------
+        const searchInput = document.getElementById('listSearch');
+        const priorityFlt = document.getElementById('listPriorityFilter');
+        const categoryFlt = document.getElementById('listCategoryFilter');
+        const statusFlt   = document.getElementById('listStatusFilter');
+
+        function applyClientFilters() {
+            const q = (searchInput?.value || '').trim().toLowerCase();
+            const pri = priorityFlt?.value || '';
+            const cat = categoryFlt?.value || '';
+
+            document.querySelectorAll('.task-row').forEach(row => {
+                const title = row.dataset.title || '';
+                const desc  = row.dataset.description || '';
+                const okSearch = !q || title.includes(q) || desc.includes(q);
+                const okPri    = !pri || row.dataset.priority === pri;
+                const okCat    = !cat || row.dataset.category === cat;
+                row.style.display = (okSearch && okPri && okCat) ? '' : 'none';
+            });
+            // Hide empty groups, update counts
+            document.querySelectorAll('.task-group').forEach(group => {
+                const visible = group.querySelectorAll('.task-row:not([style*="display: none"])').length;
+                group.style.display = visible > 0 ? '' : 'none';
+                const cnt = group.querySelector('.task-group-count');
+                if (cnt) cnt.textContent = visible;
+            });
+        }
+
+        if (searchInput) {
+            let t;
+            searchInput.addEventListener('input', () => { clearTimeout(t); t = setTimeout(applyClientFilters, 150); });
+        }
+        if (priorityFlt) priorityFlt.addEventListener('change', applyClientFilters);
+        if (categoryFlt) categoryFlt.addEventListener('change', applyClientFilters);
+        // Status filter: reload (status is in SQL because we group differently for completed)
+        if (statusFlt) {
+            statusFlt.addEventListener('change', function() {
+                const params = new URLSearchParams(window.location.search);
+                if (this.value) params.set('status', this.value); else params.delete('status');
+                window.location.search = params.toString();
+            });
+        }
+    }
 </script>
 
 <style>
-    .stats-clickable {
-        transition: transform 0.2s, box-shadow 0.2s;
+    /* ============================================================
+       Clean List Styles
+       ============================================================ */
+
+    /* Stat pills */
+    .todo-stat-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 0.9rem;
+        border-radius: 999px;
+        border: 1px solid var(--bs-border-color);
+        background: var(--bs-body-bg);
+        color: var(--bs-body-color);
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.15s ease;
+    }
+    .todo-stat-pill:hover {
+        background: var(--bs-body-tertiary-bg);
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+    .todo-stat-pill.active { border-width: 2px; font-weight: 600; }
+    .todo-stat-pill .badge { font-size: 0.7rem; padding: 0.15em 0.55em; font-weight: 600; }
+
+    /* Task list container */
+    .task-list-container {
+        background: var(--bs-body-bg);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        border: 1px solid var(--bs-border-color);
+    }
+
+    /* Group header */
+    .task-group { }
+    .task-group-header {
+        position: sticky;
+        top: 0;
+        z-index: 4;
+        background: var(--bs-body-tertiary-bg);
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid var(--bs-border-color);
+        transition: background-color 0.15s ease;
+    }
+    .task-group-header.drop-active {
+        background: var(--bs-primary-bg-subtle);
+        outline: 2px dashed var(--bs-primary);
+        outline-offset: -4px;
+    }
+    .task-group.collapsed .task-group-header { border-bottom-color: transparent; }
+    .task-group-body { background: var(--bs-body-bg); }
+
+    /* Task row */
+    .task-row {
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        border-bottom: 1px solid var(--bs-border-color);
+        transition: background-color 0.12s ease;
+        position: relative;
+        user-select: none;
+    }
+    .task-row:last-child { border-bottom: 0; }
+    .task-row:hover { background: var(--bs-body-tertiary-bg); }
+    .task-row.is-completed { opacity: 0.7; }
+    .task-row.dragging { opacity: 0.45; }
+    .task-row.expanded { background: var(--bs-body-tertiary-bg); }
+
+    .task-row-main {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.7rem 1rem;
         cursor: pointer;
     }
 
-    .stats-clickable:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    /* Drag handle: hidden until row hover */
+    .task-drag-handle {
+        opacity: 0;
+        color: var(--bs-secondary-color);
+        cursor: grab;
+        font-size: 0.85rem;
+        padding: 0 0.15rem;
+        flex-shrink: 0;
+        transition: opacity 0.15s ease;
+    }
+    .task-row:hover .task-drag-handle { opacity: 0.5; }
+    .task-drag-handle:hover { opacity: 1 !important; }
+    .task-row.dragging .task-drag-handle { cursor: grabbing; }
+
+    /* Complete button (circle → checkmark) */
+    .task-complete-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        line-height: 1;
+        flex-shrink: 0;
+        font-size: 1.15rem;
+        cursor: pointer;
+    }
+    .task-complete-btn:hover i.fa-circle { color: var(--bs-success) !important; }
+
+    /* Priority dot */
+    .task-priority-dot {
+        display: inline-block;
+        width: 6px;
+        height: 26px;
+        border-radius: 3px;
+        flex-shrink: 0;
     }
 
-    .pagination .page-link {
-        color: #495057;
-        border-color: #dee2e6;
+    /* Title + meta */
+    .task-content { min-width: 0; }
+    .task-title {
+        font-size: 0.95rem;
+        font-weight: 500;
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .task-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.78rem;
+        margin-top: 0.15rem;
+    }
+    .task-category-chip {
+        color: #fff;
+        font-size: 0.7rem;
+        padding: 0.1em 0.55em;
+        border-radius: 999px;
+        font-weight: 500;
     }
 
-    .pagination .page-item.active .page-link {
-        background-color: #007bff;
-        border-color: #007bff;
+    /* Status pill */
+    .task-status-pill {
+        font-size: 0.7rem;
+        padding: 0.2em 0.7em;
+        border-radius: 999px;
+        font-weight: 500;
+        text-transform: capitalize;
+        background: var(--bs-secondary-bg);
+        color: var(--bs-secondary-color);
+    }
+    .task-status-pill.status-pending     { background: rgba(13,202,240,0.15);  color: #0dcaf0; }
+    .task-status-pill.status-in_progress { background: rgba(255,193,7,0.18);   color: #d39e00; }
+    .task-status-pill.status-completed   { background: rgba(25,135,84,0.15);   color: #198754; }
+
+    /* Inline expand */
+    .task-row-expand {
+        padding: 0.85rem 1.25rem 1rem 3.5rem;
+        background: var(--bs-body-tertiary-bg);
+        border-top: 1px solid var(--bs-border-color);
+        font-size: 0.85rem;
+    }
+    .expand-section { margin-bottom: 0.85rem; }
+    .expand-section:last-child { margin-bottom: 0; }
+    .expand-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--bs-secondary-color);
+        font-weight: 600;
+        margin-bottom: 0.4rem;
     }
 
-    .pagination .page-link:hover {
-        color: #007bff;
-        background-color: #e9ecef;
-        border-color: #dee2e6;
+    .min-w-0 { min-width: 0; }
+
+    /* Mobile */
+    @media (max-width: 575.98px) {
+        .task-meta { gap: 0.4rem; font-size: 0.72rem; }
+        .task-status-pill { display: none; }  /* save row space */
+        .task-row-main { padding: 0.65rem 0.75rem; gap: 0.45rem; }
+        .task-row-expand { padding-left: 1rem; }
     }
-
-
 </style>

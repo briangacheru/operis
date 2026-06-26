@@ -62,12 +62,7 @@ $msg = "";
                                                 <a class="btn btn-falcon-info btn-sm mx-2" href="create-task" data-bs-toggle="tooltip" data-bs-placement="top" title="Create Task" type="button"><span class="fas fa-plus" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">New Task</span></a>
 <!--                                                <button class="btn btn-falcon-default btn-sm mx-2" type="button"><span class="fas fa-filter" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Filter</span></button>-->
                                                 <button class="btn btn-falcon-primary btn-sm" onclick="exportUnpaid()" data-bs-toggle="tooltip" data-bs-placement="top" title="Export as CSV" type="button"><span class="fas fa-external-link-alt" data-fa-transform="shrink-3 down-2"></span><span class="d-none d-sm-inline-block ms-1">Export as CSV</span></button>
-                                                <!--<div class="dropdown font-sans-serif ms-2">
-                                                    <button class="btn btn-falcon-default text-600 btn-sm dropdown-toggle dropdown-caret-none" type="button" id="preview-dropdown" data-bs-toggle="dropdown" data-boundary="viewport" aria-haspopup="true" aria-expanded="false"><span class="fas fa-ellipsis-h fs-11"></span></button>
-                                                    <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="preview-dropdown"><a class="dropdown-item" href="#!">View</a><a class="dropdown-item" href="#!">Export</a>
-                                                        <div class="dropdown-divider"></div><a class="dropdown-item text-danger" href="#!">Remove</a>
-                                                    </div>
-                                                </div>-->
+
                                             </div>
                                         </div>
                                     </div>
@@ -78,7 +73,7 @@ $msg = "";
                                         <tr>
                                             <th class="text-900 no-sort white-space-nowrap">
                                                 <div class="form-check mb-0 d-flex align-items-center">
-                                                    <input class="form-check-input" id="checkbox-select-all" type="checkbox" onclick="selectAllTasks(this)" data-bulk-select='{"body":"table-simple-pagination-body","actions":"table-simple-pagination-actions","replacedElement":"table-simple-pagination-replace-element"}' />
+                                                    <input class="form-check-input" id="checkbox-select-all" type="checkbox" />
                                                 </div>
                                             </th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Task #</th>
@@ -172,39 +167,6 @@ $msg = "";
                                                 </div>
                                             </td>
                                         </tr>
-                                        <!--<tr class="btn-reveal-trigger">
-                                            <td class="align-middle" style="width: 28px;">
-                                                <div class="form-check mb-0">
-                                                    <input class="form-check-input" type="checkbox" id="simple-pagination-item-1" data-bulk-select-row="data-bulk-select-row" />
-                                                </div>
-                                            </td>
-                                            <td class="align-middle white-space-nowrap fw-semi-bold name"><a href="../../app/e-commerce/customer-details.html">Homer</a></td>
-                                            <td class="align-middle white-space-nowrap email">sylvia@mail.ru</td>
-                                            <td class="align-middle white-space-nowrap product">Bose SoundSport Wireless Headphones</td>
-                                            <td class="align-middle text-center fs-9 white-space-nowrap payment"><span class="badge badge rounded-pill badge-subtle-success">Success<span class="ms-1 fas fa-check" data-fa-transform="shrink-2"></span></span>
-                                            </td>
-                                            <td class="align-middle amount">$634</td>
-                                            <td class="align-middle white-space-nowrap text-end">
-                                                <div class="dropstart font-sans-serif position-static d-inline-block">
-                                                    <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal float-end" type="button" id="dropdown-simple-pagination-table-item-1" data-bs-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false" data-bs-reference="parent"><span class="fas fa-ellipsis-h fs-10"></span></button>
-                                                    <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="dropdown-simple-pagination-table-item-1"><a class="dropdown-item" href="#!">View</a><a class="dropdown-item" href="#!">Edit</a><a class="dropdown-item" href="#!">Refund</a>
-                                                        <div class="dropdown-divider"></div><a class="dropdown-item text-warning" href="#!">Archive</a><a class="dropdown-item text-danger" href="#!">Delete</a>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td class="align-middle white-space-nowrap text-end">
-                                                <div class="dropstart font-sans-serif position-static d-inline-block">
-                                                    <button class="btn btn-link text-600 btn-sm dropdown-toggle btn-reveal float-end" type="button" id="dropdown-simple-pagination-table-item-0" data-bs-toggle="dropdown" data-boundary="window" aria-haspopup="true" aria-expanded="false" data-bs-reference="parent"><span class="fas fa-ellipsis-h fs-10"></span></button>
-                                                    <div class="dropdown-menu dropdown-menu-end border py-2" aria-labelledby="dropdown-simple-pagination-table-item-0">
-                                                        <a class="dropdown-item text-info"  href="view-task?task_id=<?php echo $encodedId; ?>"><span class="fas fa-eye" data-fa-transform="shrink-2"></span> View</a>
-                                                        <a class="dropdown-item text-success"  href="edit-task?task_id=<?php echo $encodedId; ?>"><span class="bi bi-pen" data-fa-transform="shrink-2"></span> Edit</a>
-                                                        <a class="dropdown-item text-warning"  href="duplicate-task?task_id=<?php echo $encodedId; ?>" ><span class="fas fa-copy" data-fa-transform="shrink-2"></span> Duplicate</a>
-                                                        <div class="dropdown-divider"></div>
-                                                        <a class="dropdown-item text-danger" href="all-tasks?del=<?php echo $encodedId; ?>" onclick="return confirm('Do you really want to cancel task?');"><span class="fas fa-trash" data-fa-transform="shrink-2"></span> Cancel</>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>-->
                                         <?php
                                                 $cnt=$cnt+1;
                                             }
@@ -219,6 +181,120 @@ $msg = "";
                 </div>
             </div>
         </div>
+
+    <script>
+        (function() {
+            // Persistent selection state — survives DataTables pagination redraws
+            var selectedIds = new Set();
+            var $form = document.getElementById('tasksForm');
+            var $tbody = document.getElementById('table-simple-pagination-body');
+            var $actions = document.getElementById('table-simple-pagination-actions');
+            var $replacedEl = document.getElementById('table-simple-pagination-replace-element');
+            var $selectAll = document.getElementById('checkbox-select-all');
+
+            if (!$form || !$tbody || !$actions || !$selectAll) return;
+
+            // Toggle actions bar visibility based on selection count
+            function updateActionsBar() {
+                if (selectedIds.size > 0) {
+                    $actions.classList.remove('d-none');
+                    if ($replacedEl) $replacedEl.classList.add('d-none');
+                } else {
+                    $actions.classList.add('d-none');
+                    if ($replacedEl) $replacedEl.classList.remove('d-none');
+                }
+
+                // Sync the "select all" checkbox state based on currently visible rows
+                var visibleBoxes = $tbody.querySelectorAll('input[data-bulk-select-row]');
+                var visibleChecked = 0;
+                visibleBoxes.forEach(function(cb) { if (cb.checked) visibleChecked++; });
+
+                if (visibleBoxes.length === 0) {
+                    $selectAll.checked = false;
+                    $selectAll.indeterminate = false;
+                } else if (visibleChecked === visibleBoxes.length) {
+                    $selectAll.checked = true;
+                    $selectAll.indeterminate = false;
+                } else if (visibleChecked === 0) {
+                    $selectAll.checked = false;
+                    $selectAll.indeterminate = false;
+                } else {
+                    $selectAll.checked = false;
+                    $selectAll.indeterminate = true;
+                }
+            }
+
+            // Restore checkbox state when DataTables redraws the table (e.g. on pagination)
+            function syncCheckboxesFromState() {
+                $tbody.querySelectorAll('input[data-bulk-select-row]').forEach(function(cb) {
+                    cb.checked = selectedIds.has(cb.value);
+                });
+                updateActionsBar();
+            }
+
+            // Delegated listener — handles checkboxes even after DataTables redraws
+            $tbody.addEventListener('change', function(e) {
+                var cb = e.target.closest('input[data-bulk-select-row]');
+                if (!cb) return;
+                if (cb.checked) {
+                    selectedIds.add(cb.value);
+                } else {
+                    selectedIds.delete(cb.value);
+                }
+                updateActionsBar();
+            });
+
+            // Select-all toggles ONLY currently visible rows (standard DataTables behavior)
+            $selectAll.addEventListener('click', function() {
+                var shouldCheck = $selectAll.checked;
+                $tbody.querySelectorAll('input[data-bulk-select-row]').forEach(function(cb) {
+                    cb.checked = shouldCheck;
+                    if (shouldCheck) {
+                        selectedIds.add(cb.value);
+                    } else {
+                        selectedIds.delete(cb.value);
+                    }
+                });
+                updateActionsBar();
+            });
+
+            // Hook into DataTables draw event to restore checkbox state after pagination
+            if (window.jQuery && jQuery.fn.dataTable) {
+                jQuery(document).on('draw.dt', function() {
+                    syncCheckboxesFromState();
+                });
+            }
+
+            // Also watch for DOM changes as a fallback (covers non-jQuery DT or other re-renders)
+            var observer = new MutationObserver(function() { syncCheckboxesFromState(); });
+            observer.observe($tbody, { childList: true });
+
+            // Before form submit, inject hidden inputs for any selected IDs that aren't
+            // currently in the DOM (rows on other DataTables pages)
+            $form.addEventListener('submit', function() {
+                // Remove any stale injected inputs
+                $form.querySelectorAll('input.injected-task-id').forEach(function(el) { el.remove(); });
+
+                // Collect IDs of checkboxes currently in DOM (these submit naturally)
+                var inDom = new Set();
+                $tbody.querySelectorAll('input[data-bulk-select-row]:checked').forEach(function(cb) {
+                    inDom.add(cb.value);
+                });
+
+                // For every selected ID NOT in the DOM, add a hidden input
+                selectedIds.forEach(function(id) {
+                    if (!inDom.has(id)) {
+                        var hidden = document.createElement('input');
+                        hidden.type = 'hidden';
+                        hidden.name = 'taskIds[]';
+                        hidden.value = id;
+                        hidden.className = 'injected-task-id';
+                        $form.appendChild(hidden);
+                    }
+                });
+            });
+        })();
+    </script>
 
 <?php
 include "footer.php";
