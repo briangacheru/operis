@@ -9,8 +9,9 @@ $script_dir = dirname($_SERVER['SCRIPT_NAME']);
 $base_path = ($script_dir === '/') ? '' : $script_dir;
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
-    $password = $_POST['password']; // Passwords should not be modified before hashing
+    $email    = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
+    $password = $_POST['password'];
+    $remember = isset($_POST['remember']);
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $loginError = "
@@ -19,71 +20,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
             </div>";
     } else {
-        // Prepared statement to avoid SQL injection
-        $sql = "SELECT email, password FROM tbladmin WHERE email = ?";
-        $stmt = $con->prepare($sql);
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $result = $stmt->get_result();
+        $authError = '';
+        if (AdminAuth::login($email, $password, $remember, $authError)) {
+            record_login_session($dbh, $email);
 
-        if ($result->num_rows == 1) {
-            $row = $result->fetch_assoc();
-            $hashedPasswordFromDatabase = $row['password'];
-
-            if (password_verify($password, $hashedPasswordFromDatabase)) {
-                $_SESSION['odmsaid'] = $email;
-                require_once 'session_tracker.php';
-                record_login_session($dbh, $email);
-
-                if (isset($_POST['remember'])) {
-                    $rememberToken = bin2hex(random_bytes(16)); // Secure random token
-                    // Securely hash the remember token before storing it
-                    $hashedRememberToken = password_hash($rememberToken, PASSWORD_DEFAULT);
-                    $updateTokenSql = "UPDATE tbladmin SET remember_token = ? WHERE email = ?";
-                    $stmt = $con->prepare($updateTokenSql);
-                    $stmt->bind_param('ss', $hashedRememberToken, $email);
-                    $stmt->execute();
-
-                    setcookie('rememberme', $rememberToken, time() + 86400, '/', '', true, true); // Secure cookie attributes
+            $redirect    = $_POST['redirect'] ?? $_GET['redirect'] ?? '';
+            $redirectUrl = 'index';
+            if (!empty($redirect)) {
+                $redirect = trim($redirect);
+                if (strpos($redirect, '/') === 0 && strpos($redirect, '//') === false &&
+                    !preg_match('/[<>"\'\s]|javascript:|data:|vbscript:/i', $redirect) &&
+                    preg_match('/^[a-zA-Z0-9\-_\/\?&=\.]+$/', $redirect)) {
+                    $redirectUrl = $redirect;
                 }
-
-                updateUserStatus($email, 'admin', true);
-                $redirectUrl = 'index';
-                $redirect = $_POST['redirect'] ?? $_GET['redirect'] ?? '';
-
-                if (!empty($redirect)) {
-                    $redirect = trim($redirect);
-
-                    // Security check: ensure it's a safe URL
-                    if (strpos($redirect, '/') === 0 && strpos($redirect, '//') === false &&
-                        !preg_match('/[<>"\'\s]|javascript:|data:|vbscript:/i', $redirect) &&
-                        preg_match('/^[a-zA-Z0-9\-_\/\?&=\.]+$/', $redirect)) {
-                        $redirectUrl = $redirect;
-                    }
-                }
-
-                $loginMessage = "
-                    <div class='alert alert-success alert-dismissible fade show' role='alert'>
-                        <i class='bi bi-check-circle me-1'></i> Login successful. Redirecting!
-                        <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
-                    </div>";
-
-                                echo "<script>
-                        setTimeout(function(){
-                            window.location.href = '" . htmlspecialchars($redirectUrl, ENT_QUOTES, 'UTF-8') . "';
-                        }, 1000); // Redirect after 1 second
-                      </script>";
-            } else {
-                $loginError = "
-                    <div class='alert alert-danger alert-dismissible fade show' role='alert'>
-                        <i class='bi bi-exclamation-circle me-1'></i> Incorrect Email or password.
-                        <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
-                    </div>";
             }
+
+            $loginMessage = "
+                <div class='alert alert-success alert-dismissible fade show' role='alert'>
+                    <i class='bi bi-check-circle me-1'></i> Login successful. Redirecting!
+                    <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
+                </div>";
+
+            $safeUrl = htmlspecialchars($redirectUrl, ENT_QUOTES, 'UTF-8');
+            echo "<script>setTimeout(function(){ window.location.href = '{$safeUrl}'; }, 1000);</script>";
         } else {
             $loginError = "
                 <div class='alert alert-danger alert-dismissible fade show' role='alert'>
-                    <i class='bi bi-exclamation-circle me-1'></i> Incorrect Email or password.
+                    <i class='bi bi-exclamation-circle me-1'></i> " . htmlspecialchars($authError, ENT_QUOTES, 'UTF-8') . "
                     <button type='button' class='btn-close' data-bs-dismiss='alert' aria-label='Close'></button>
                 </div>";
         }

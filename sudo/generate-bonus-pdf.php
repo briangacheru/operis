@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/includes/bootstrap.php';
 require_once('tcpdf/tcpdf.php'); // You'll need to install TCPDF library
 include_once('dbcon.php');
 

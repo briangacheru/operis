@@ -1,12 +1,6 @@
 <?php
-// ═══════════════════════════════════════════════════════════════════
-//  PIN GATE — session + DB check before any body HTML is output.
-//  head.php handles DB/session bootstrap (no double-include).
-// ═══════════════════════════════════════════════════════════════════
-// Load DB without double-include (head.php also includes dbcon.php)
-if (!defined('DB_HOST')) {
-    require_once __DIR__ . '/dbcon.php';
-}
+require_once __DIR__ . '/includes/bootstrap.php';
+// PIN GATE — session + DB check before any body HTML is output.
 
 ob_start(); // buffer head.php output — only emit if not locked
 include 'head.php';
