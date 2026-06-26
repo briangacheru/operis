@@ -1,20 +1,13 @@
 <?php
-// DB credentials.
-define('DB_HOST','localhost');
-define('DB_USER','root');
-define('DB_PASS','');
-define('DB_NAME','tasker');
-// Establish database connection.
-try
-{
-    $dbh = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME,DB_USER, DB_PASS,array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'utf8'"));
-}
-catch (PDOException $e)
-{
-    exit("Error: " . $e->getMessage());
-}
-$con=mysqli_connect("localhost", "root", "", "tasker");
-if(mysqli_connect_errno()){
-    echo "Connection Fail".mysqli_connect_error();
+define('DB_HOST', 'localhost');
+define('DB_USER', 'root');
+define('DB_PASS', '');
+define('DB_NAME', 'tasker');
+
+$con = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+$con->set_charset('utf8');
+
+if ($con->connect_error) {
+    die("Connection failed: " . $con->connect_error);
 }
 ?>

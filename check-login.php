@@ -56,7 +56,7 @@ $_SESSION['last_activity'] = time();
 if (isset($_SESSION['sessionWriter'])) {
     $email = $_SESSION['sessionWriter'];
     $userType = 'writer'; // Adjust if necessary
-    updateUserStatus($email, $userType, true);
+    updateUserStatus($email, true);
 }
 
 // If the "Remember Me" cookie is set, log the user in
@@ -86,7 +86,7 @@ if (!isset($_SESSION['sessionWriter']) && isset($_COOKIE['rememberme'])) {
         // Update user status to online
         $email = $_SESSION['sessionWriter'];
         $userType = 'writer';
-        updateUserStatus($email, $userType, true);
+        updateUserStatus($email, true);
         touch_writer_session($con, $email);
 
         // Check for last page cookies and redirect
