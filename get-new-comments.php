@@ -1,6 +1,5 @@
 <?php
-session_start();
-include('dbcon.php');
+require_once __DIR__ . '/includes/bootstrap.php';
 
 // Set JSON header
 header('Content-Type: application/json');

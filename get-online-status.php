@@ -1,5 +1,5 @@
 <?php
-include "db.php"; // or whatever file contains your database connection
+require_once __DIR__ . '/includes/bootstrap.php';
 header('Content-Type: application/json');
 
 // Check if request method is POST

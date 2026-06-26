@@ -1,12 +1,7 @@
 <?php
-session_start();
-error_reporting(E_ALL);
-ini_set('error_log', __DIR__ . '/php-errors.log');
-date_default_timezone_set('Africa/Nairobi');
+require_once __DIR__ . '/../includes/bootstrap.php';
 
 // Include files from parent directory (sudo folder)
-include('../sudo/dbcon.php');
-include('../sudo/functions.php');
 require_once('../sudo/spaces-helper.php');
 
 // Initialize Spaces Helper

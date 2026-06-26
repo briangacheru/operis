@@ -1,13 +1,6 @@
 <?php
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "tasker";
-
-// Create connection
-$con = new mysqli($servername, $username, $password, $dbname);
-// Check connection
-if ($con->connect_error) {
-    die("Connection failed: " . $con->connect_error);
+// Legacy shim — new code should use includes/bootstrap.php directly.
+if (!class_exists('Database')) {
+    require_once __DIR__ . '/includes/bootstrap.php';
 }
 ?>
