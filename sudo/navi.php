@@ -1027,6 +1027,10 @@
                                         ?></span>
                                 </div>
                             </a>
+                            <!-- parent pages--><a class="nav-link" href="calendar" role="button">
+                                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-calendar"></span></span><span class="nav-link-text ps-1">Calendar</span>
+                                </div>
+                            </a>
 
                             <!-- label-->
                             <div class="row navbar-vertical-label-wrapper mt-3 mb-2">
@@ -1041,10 +1045,6 @@
                                 <div class='d-flex align-items-center'><span class='nav-link-icon'><span class='fas fa-stopwatch-20'></span></span>
                                     <span class='nav-link-text ps-1'>Reminders</span>
                                     <span class='badge rounded-pill ms-2 badge-subtle-success'>New</span>
-                                </div>
-                            </a>
-                            <!-- parent pages--><a class="nav-link" href="calendar" role="button">
-                                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-calendar"></span></span><span class="nav-link-text ps-1">Calendar</span>
                                 </div>
                             </a>
                             <!-- parent pages--><a class="nav-link" href="chat" role="button">
@@ -1087,12 +1087,12 @@
                                         </div>
                                     </a>
                                 </li>
-                                <li class="nav-item"><a class="nav-link" href="projects.php">
-                                        <div class="d-flex align-items-center"><span class="nav-link-text ps-1">iProjects</span>
-                                        </div>
-                                    </a>
-                                </li>
                             </ul>
+                            <!-- parent pages--><a class="nav-link" href="projects" role="button">
+                                <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-folder"></span></span><span class="nav-link-text ps-1">Projects</span>
+                                    <span class="badge rounded-pill ms-2 badge-subtle-primary">new</span>
+                                </div>
+                            </a>
                             <!-- label-->
                             <div class="row navbar-vertical-label-wrapper mt-3 mb-2">
                                 <div class="col-auto navbar-vertical-label">PAYMENT

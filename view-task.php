@@ -309,14 +309,14 @@ if (isset($_GET['message'])) {
                     <div class="row align-items-center">
                         <div class="col col-lg-8">
                             <h5 class="mb-sm-0 text-primary fs-7">Task ID: <span class="text-info fw-medium">#<?php  echo $taskId;?></span></h5>
-                            <p class="fw-semi-bold fs-10"><span class="me-1">Posted: </span><span class="text-info ms-2"><?php  echo date("d M Y, g:i A", strtotime($taskCreatedOn));?></span>
+                            <p class="fw-semi-bold fs-10"><span class="me-1">Posted: </span><span class="text-info ms-2"><?php  echo date("d M Y, g:i A", strtotime($taskCreatedOn . ' UTC'));?></span>
                             </p>
                             <div class="fs-9 mb-3 mb-sm-0 text-primary">
                                 <strong class="me-2">Status: </strong><?php echo $statusBadge; ?>
                                 <?php if ($taskStatus == 'Submitted' && !empty($submittedOn)): ?>
-                                    <span class="fs-10 text-info ms-2"><?php echo date("d M Y, g:i A", strtotime($submittedOn)); ?></span>
+                                    <span class="fs-10 text-info ms-2"><?php echo date("d M Y, g:i A", strtotime($submittedOn . ' UTC')); ?></span>
                                 <?php elseif ($taskStatus == 'Completed' && !empty($completedOn)): ?>
-                                    <span class="fs-10 text-success ms-2"><?php echo date("d M Y, g:i A", strtotime($completedOn)); ?></span>
+                                    <span class="fs-10 text-success ms-2"><?php echo date("d M Y, g:i A", strtotime($completedOn . ' UTC')); ?></span>
                                 <?php endif; ?>
                                 <?php if ($is_confirmed == 1): ?>
                                     <?php echo $confirmation; ?>
@@ -359,7 +359,7 @@ $totalDuration = 1;
 $elapsed = 1;
 if (!$isLate_card && $remainingSeconds_card > 0) {
     // Assume task was created and due, estimate progress from creation
-    $createdTs = strtotime($taskCreatedOn);
+    $createdTs = strtotime($taskCreatedOn. ' UTC');
     $dueTs = $due_date_obj->getTimestamp();
     $nowTs = $currentDateTime_obj->getTimestamp();
     $totalDuration = max(1, $dueTs - $createdTs);
@@ -570,7 +570,7 @@ $dashOffset = $circumference * (1 - $progressPct / 100);
                                 <?php else: ?>
                                     <?php $paidOn = $rowTask['paid_on']; ?>
                                     <span class="badge" style="background:rgba(34,197,94,0.15); color:#4ade80; border:1px solid rgba(34,197,94,0.3); padding:6px 14px; font-size:11px;">
-                                        <i class="fas fa-check-circle me-1"></i>Paid · <?php echo date("d M Y", strtotime($paidOn)); ?>
+                                        <i class="fas fa-check-circle me-1"></i>Paid · <?php echo date("d M Y", strtotime($paidOn . ' UTC')); ?>
                                     </span>
                                 <?php endif; ?>
                             <?php endif; ?>
@@ -711,7 +711,7 @@ $dashOffset = $circumference * (1 - $progressPct / 100);
                                 $fileUrl = $fileRow['file_url'];
                                 $fileSize = $fileRow['file_size'];
                                 $uploadTime = $fileRow['upload_time'];
-                                $formattedDate = date('d M Y, g:i A', strtotime($uploadTime));
+                                $formattedDate = date('d M Y, g:i A', strtotime($uploadTime . ' UTC'));
 
                                 $formattedSize = 'Unknown size';
                                 if ($fileSize > 0) {
@@ -829,7 +829,7 @@ $dashOffset = $circumference * (1 - $progressPct / 100);
                                 $fileUrl = $fileRow['file_url'];
                                 $fileSize = $fileRow['file_size'];
                                 $uploadTime = $fileRow['upload_time'];
-                                $formattedDate = date('d M Y, g:i A', strtotime($uploadTime));
+                                $formattedDate = date('d M Y, g:i A', strtotime($uploadTime . ' UTC'));
 
                                 $formattedSize = 'Unknown size';
                                 if ($fileSize > 0) {

@@ -22,12 +22,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !empty($_POST['taskIds'])) {
 
         if (mysqli_query($con, $sql)) {
             // Check if any rows were updated
-            if (mysqli_affected_rows($con) > 0) {
+            $paidCount = mysqli_affected_rows($con);
+            $submittedCount = count($taskIds);
+
+            if ($paidCount > 0) {
+                $taskWord = ($paidCount === 1) ? 'task' : 'tasks';
+                $message = '<strong>' . $paidCount . '</strong> ' . $taskWord . ' paid successfully!';
+
+                if ($paidCount < $submittedCount) {
+                    $skipped = $submittedCount - $paidCount;
+                    $skippedWord = ($skipped === 1) ? 'task was' : 'tasks were';
+                    $message .= ' (' . $skipped . ' ' . $skippedWord . ' skipped — already paid or not completed.)';
+                }
+
                 $_SESSION['alert'] = '<div class="alert alert-success border-0 d-flex align-items-center" role="alert">
-                                        <div class="bg-success me-3 icon-item"><span class="fas fa-check-circle text-white fs-6"></span></div>
-                                        <p class="mb-0 flex-1">Tasks paid successfully!</p>
-                                        <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-                                      </div>';
+                            <div class="bg-success me-3 icon-item"><span class="fas fa-check-circle text-white fs-6"></span></div>
+                            <p class="mb-0 flex-1">' . $message . '</p>
+                            <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+                          </div>';
             } else {
                 $_SESSION['alert'] = '<div class="alert alert-warning border-0 d-flex align-items-center" role="alert">
                                         <div class="bg-warning me-3 icon-item"><span class="fas fa-exclamation-circle text-white fs-6"></span></div>
@@ -51,7 +63,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !empty($_POST['taskIds'])) {
     }
 } else {
     $_SESSION['alert'] = '<div class="alert alert-danger border-0 d-flex align-items-center" role="alert">
-                                      <div class="bg-danger me-3 icon-item"><span the "fas fa-times-circle text-white fs-6"></span></div>
+                                      <div class="bg-danger me-3 icon-item"><span class="fas fa-times-circle text-white fs-6"></span></div>
                                       <p class="mb-0 flex-1">No tasks were selected!</p>
                                       <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
                                   </div>';

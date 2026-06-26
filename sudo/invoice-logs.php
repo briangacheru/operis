@@ -122,7 +122,6 @@ $totalLogs = mysqli_num_rows($logs);
                                 <tr>
                                     <th class="text-900 sort pe-1 align-middle white-space-nowrap">#</th>
                                     <th class="text-900 sort pe-1 align-middle white-space-nowrap">Writer</th>
-                                    <th class="text-900 sort pe-1 align-middle white-space-nowrap">Email Sent To</th>
                                     <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">Tasks Total</th>
                                     <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">Bonuses</th>
                                     <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">Overdrafts</th>
@@ -144,13 +143,30 @@ $totalLogs = mysqli_num_rows($logs);
                                     $bonusCount    = (int) $row['bonus_count'];
                                     $overdraftCount = (int) $row['overdraft_count'];
                                     ?>
-                                    <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100">
+                                    <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100 log-row"
+                                        style="cursor: pointer;"
+                                        data-bs-toggle="modal" data-bs-target="#log-detail-modal"
+                                        data-log-id="<?php echo $row['id']; ?>"
+                                        data-log='<?php echo htmlspecialchars(json_encode([
+                                            "writer"         => $row["writer_name"],
+                                            "email"          => $row["writer_email"],
+                                            "sent_at"        => date("jS M Y, h:i A", strtotime($row["sent_at"] . ' UTC')),
+                                            "tasks_total"    => number_format((float)$row["tasks_total"], 2),
+                                            "bonus_total"    => number_format((float)$row["bonus_total"], 2),
+                                            "overdraft_total"=> number_format((float)$row["overdraft_total"], 2),
+                                            "amount_payable" => number_format((float)$row["amount_payable"], 2),
+                                            "task_count"     => $taskCount,
+                                            "bonus_count"    => $bonusCount,
+                                            "overdraft_count"=> $overdraftCount,
+                                            "notes"          => $row["notes"] ?? "",
+                                        ]), ENT_QUOTES, "UTF-8"); ?>'
+                                        onclick="handleLogRowClick(event, this);">
+
                                         <td class="align-middle white-space-nowrap text-900"><?php echo $cnt; ?></td>
                                         <td class="align-middle white-space-nowrap fw-semi-bold text-900"><?php echo htmlspecialchars($row['writer_name']); ?></td>
-                                        <td class="align-middle white-space-nowrap text-700"><?php echo htmlspecialchars($row['writer_email']); ?></td>
                                         <td class="align-middle white-space-nowrap text-end text-900">
                                             Ksh <?php echo number_format((float)$row['tasks_total'], 2); ?>
-                                            <span class="ms-1 badge badge-subtle-primary rounded-pill"><?php echo $taskCount; ?> task<?php echo $taskCount !== 1 ? 's' : ''; ?></span>
+                                            <span class="ms-1 badge badge-subtle-primary rounded-pill"><?php echo $taskCount; ?></span>
                                         </td>
                                         <td class="align-middle white-space-nowrap text-end">
                                             <?php if ($bonusCount > 0): ?>
@@ -172,7 +188,7 @@ $totalLogs = mysqli_num_rows($logs);
                                             Ksh <?php echo number_format((float)$row['amount_payable'], 2); ?>
                                         </td>
                                         <td class="align-middle text-center white-space-nowrap text-900">
-                                            <?php echo date("jS M, Y h:i A", strtotime($row['sent_at'])); ?>
+                                            <?php echo date("jS M, Y h:i A", strtotime($row['sent_at'] . ' UTC')); ?>
                                         </td>
                                         <td class="align-middle white-space-nowrap text-end position-relative">
                                             <div class="hover-actions bg-100">
@@ -184,7 +200,7 @@ $totalLogs = mysqli_num_rows($logs);
                                                    data-log='<?php echo htmlspecialchars(json_encode([
                                                        "writer"         => $row["writer_name"],
                                                        "email"          => $row["writer_email"],
-                                                       "sent_at"        => date("jS M Y, h:i A", strtotime($row["sent_at"])),
+                                                       "sent_at"        => date("jS M Y, h:i A", strtotime($row["sent_at"] . ' UTC')),
                                                        "tasks_total"    => number_format((float)$row["tasks_total"], 2),
                                                        "bonus_total"    => number_format((float)$row["bonus_total"], 2),
                                                        "overdraft_total"=> number_format((float)$row["overdraft_total"], 2),
@@ -408,6 +424,16 @@ $totalLogs = mysqli_num_rows($logs);
                     empty.textContent     = 'Could not load task details.';
                 }
             });
+        }
+        function handleLogRowClick(event, rowEl) {
+            // Don't trigger modal if user clicked the dropdown, delete link, or eye icon
+            if (event.target.closest('.dropdown') ||
+                event.target.closest('.hover-actions a') ||
+                event.target.closest('button') ||
+                event.target.closest('a')) {
+                return;
+            }
+            openLogDetail(rowEl);
         }
 
         function escHtml(str) {

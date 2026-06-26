@@ -124,34 +124,70 @@ if ($rowWriter->is_verified == 1) {
                                         $row = mysqli_fetch_assoc($query);
                                         ?>
                                         <h5 class="text-800 mb-0">
-                                        <span class="badge rounded-pill badge-subtle-warning">
+                                            <a href="invoice-logs" class="text-decoration-none" title="View all invoices">
+                                            <span class="badge rounded-pill badge-subtle-warning"
+                                                  style="cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;"
+                                                  onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.1)';"
+                                                  onmouseout="this.style.transform=''; this.style.boxShadow='';">
                                             <?php
-                                            if($row) {
-                                                $created_at = new DateTime($row["created_at"]);
-                                                $now = new DateTime();
-                                                $interval = $now->diff($created_at);
+                                            // Helper for human-readable "x ago"
+                                            $renderAgo = function($timestampString) {
+                                                $then = new DateTime($timestampString . ' UTC');
+                                                $now  = new DateTime('now');
+                                                $interval = $now->diff($then);
 
                                                 if ($interval->y > 0) {
-                                                    echo $interval->y . " year" . ($interval->y > 1 ? "s" : "") . " ago";
+                                                    return $interval->y . " year" . ($interval->y > 1 ? "s" : "") . " ago";
                                                 } elseif ($interval->m > 0) {
-                                                    echo $interval->m . " month" . ($interval->m > 1 ? "s" : "") . " ago";
+                                                    return $interval->m . " month" . ($interval->m > 1 ? "s" : "") . " ago";
                                                 } elseif ($interval->d > 6) {
                                                     $weeks = floor($interval->d / 7);
-                                                    echo $weeks . " week" . ($weeks > 1 ? "s" : "") . " ago";
+                                                    return $weeks . " week" . ($weeks > 1 ? "s" : "") . " ago";
                                                 } elseif ($interval->d > 0) {
-                                                    echo $interval->d . " day" . ($interval->d > 1 ? "s" : "") . " ago";
+                                                    return $interval->d . " day" . ($interval->d > 1 ? "s" : "") . " ago";
                                                 } elseif ($interval->h > 0) {
-                                                    echo $interval->h . " hour" . ($interval->h > 1 ? "s" : "") . " ago";
+                                                    return $interval->h . " hour" . ($interval->h > 1 ? "s" : "") . " ago";
                                                 } elseif ($interval->i > 0) {
-                                                    echo $interval->i . " minute" . ($interval->i > 1 ? "s" : "") . " ago";
+                                                    return $interval->i . " minute" . ($interval->i > 1 ? "s" : "") . " ago";
                                                 } else {
-                                                    echo $interval->s . " second" . ($interval->s > 1 ? "s" : "") . " ago";
+                                                    return max(1, $interval->s) . " second" . ($interval->s > 1 ? "s" : "") . " ago";
                                                 }
+                                            };
+
+                                            if ($row) {
+                                                echo $renderAgo($row["created_at"]);
                                             } else {
-                                                echo "No invoice found";
+                                                // Fallback: check tbl_invoice_logs for the latest sent invoice to this writer
+                                                $writerNameRes = mysqli_query(
+                                                    $con,
+                                                    "SELECT username FROM tblwriters WHERE email = '$aid' AND is_deleted = 0 LIMIT 1"
+                                                );
+                                                $writerNameRow = $writerNameRes ? mysqli_fetch_assoc($writerNameRes) : null;
+                                                $writerName = $writerNameRow['username'] ?? '';
+
+                                                $invoiceFound = false;
+                                                if ($writerName !== '') {
+                                                    $safeWriter = mysqli_real_escape_string($con, $writerName);
+                                                    $invQuery = mysqli_query(
+                                                        $con,
+                                                        "SELECT sent_at FROM tbl_invoice_logs
+                                                                 WHERE writer_name = '$safeWriter'
+                                                                 ORDER BY sent_at DESC
+                                                                 LIMIT 1"
+                                                    );
+                                                    if ($invQuery && ($invRow = mysqli_fetch_assoc($invQuery))) {
+                                                        echo $renderAgo($invRow['sent_at']);
+                                                        $invoiceFound = true;
+                                                    }
+                                                }
+
+                                                if (!$invoiceFound) {
+                                                    echo "No invoice found";
+                                                }
                                             }
                                             ?>
                                         </span>
+                                        </a>
                                         </h5>
                                         <?php
                                     } else {

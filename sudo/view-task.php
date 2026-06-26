@@ -683,7 +683,7 @@ if (isset($_SESSION['alert'])) {
                             <h5 class="mb-sm-0 text-primary fs-7">Task ID:
                                 <span class="text-info fw-medium">#<?php  echo $taskId;?></span>
                             </h5>
-                            <p class="mb-0">Posted on <span class="text-info ms-2"><?php  echo date("d M Y, g:i A", strtotime($taskCreatedOn));?></span></p>
+                            <p class="mb-0">Posted on <span class="text-info ms-2"><?php  echo date("d M Y, g:i A", strtotime($taskCreatedOn . ' UTC'));?></span></p>
                             <?php if ($rowTask['acknowledged'] == 0): ?>
                                 <p class='mb-0'>Viewed on <span class='badge badge rounded-pill badge-subtle-secondary'> Not Viewed<span class='ms-1 fas fa-eye-slash' data-fa-transform='shrink-2'></span></span></p>
                             <?php elseif ($rowTask['acknowledged'] == 1): ?>
@@ -1148,7 +1148,7 @@ while ($vw = mysqli_fetch_assoc($verifiedWritersResult)) {
                                         $fileSize = $fileRow['file_size'];
                                         $uploadTime = $fileRow['upload_time'];
                                         $formattedSize = formatFileSize($fileSize);
-                                        $formattedDate = date('d M Y, g:i A', strtotime($uploadTime));
+                                        $formattedDate = date('d M Y, g:i A', strtotime($uploadTime . ' UTC'));
 
                                         // Determine thumbnail based on file extension
                                         $thumbnailPath = '../assets/img/icons/docs.png';
@@ -1277,7 +1277,7 @@ while ($vw = mysqli_fetch_assoc($verifiedWritersResult)) {
                                         $fileSize = $fileRow['file_size'];
                                         $uploadTime = $fileRow['upload_time'];
                                         $formattedSize = formatFileSize($fileSize);
-                                        $formattedDate = date('d M Y, g:i A', strtotime($uploadTime));
+                                        $formattedDate = date('d M Y, g:i A', strtotime($uploadTime . ' UTC'));
 
                                         // Determine thumbnail based on file extension
                                         $thumbnailPath = '../assets/img/icons/docs.png';
@@ -2268,7 +2268,7 @@ while ($vw = mysqli_fetch_assoc($verifiedWritersResult)) {
                             <div class="row align-items-center">
                                 <div class="col col-lg-8">
                                     <h5 class="mb-sm-0 text-primary fs-7">Task ID: <span class="text-info fw-medium">#<?php echo $taskId; ?></span></h5>
-                                    <p class="fw-semi-bold fs-10"><span class="me-1">Posted:</span><span class="text-info ms-2"><?php echo date("d M Y, g:i A", strtotime($taskCreatedOn)); ?></span></p>
+                                    <p class="fw-semi-bold fs-10"><span class="me-1">Posted:</span><span class="text-info ms-2"><?php echo date("d M Y, g:i A", strtotime($taskCreatedOn . ' UTC')); ?></span></p>
                                     <div class="fs-9 mb-3 mb-sm-0 text-primary">
                                         <strong class="me-2">Status: </strong><?php echo $statusBadge; ?>
                                         <?php if ($taskStatus == 'Submitted' && !empty($submittedOn)): ?>
@@ -2452,7 +2452,7 @@ while ($vw = mysqli_fetch_assoc($verifiedWritersResult)) {
                 foreach ($rows as $row) {
                     $fn  = $row['original_file_name'];
                     $fu  = htmlspecialchars($row['file_url']);
-                    $fd  = date('d M Y, g:i A', strtotime($row['upload_time']));
+                    $fd  = date('d M Y, g:i A', strtotime($row['upload_time'] . ' UTC'));
                     $sz  = $row['file_size'] > 0 ? round($row['file_size'] / pow(1024, floor(log($row['file_size'],1024))), 2) . ' ' . ['B','KB','MB','GB'][floor(log($row['file_size'],1024))] : 'Unknown size';
                     $ext = strtolower(pathinfo($fn, PATHINFO_EXTENSION));
                     $th  = $pathPrefix . 'assets/img/icons/' . ($thumbMap[$ext] ?? 'docs') . '.png';

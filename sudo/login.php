@@ -32,6 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             if (password_verify($password, $hashedPasswordFromDatabase)) {
                 $_SESSION['odmsaid'] = $email;
+                require_once 'session_tracker.php';
+                record_login_session($dbh, $email);
 
                 if (isset($_POST['remember'])) {
                     $rememberToken = bin2hex(random_bytes(16)); // Secure random token
@@ -334,7 +336,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <script src="../vendors/is/is.min.js"></script>
 <script src="../vendors/fontawesome/all.min.js"></script>
 <script src="../vendors/lodash/lodash.min.js"></script>
-<script src="https://polyfill.io/v3/polyfill.min.js?features=window.scroll"></script>
 <script src="../vendors/list.js/list.min.js"></script>
 <script src="../assets/js/theme.js"></script>
 <script src="../assets/js/myjs.js"></script>

@@ -18,7 +18,10 @@ if (isset($_SESSION['last_page'])) {
 // Update is_online and last_seen before logging out
 if (isset($_SESSION['odmsaid'])) {
     $userEmail = $_SESSION['odmsaid'];
-    $lastSeen = date('Y-m-d H:i:s');
+    require_once 'session_tracker.php';
+    $delSess = $dbh->prepare("DELETE FROM tblsessions WHERE session_id = ?");
+    $delSess->execute([session_id()]);
+    $lastSeen = gmdate('Y-m-d H:i:s');
 
     $updateStatusSql = "UPDATE tbladmin SET is_online = 0, last_seen = ? WHERE email = ?";
     $stmt = $con->prepare($updateStatusSql);

@@ -14,10 +14,10 @@ if (isset($_POST['export_csv'])) {
     fputcsv($output, ['Category', 'Subcategory', 'Description', 'Amount (Ksh)', 'Cost (Ksh)', 'Tag', 'Date']);
     // Query the database for transaction data
     $query = mysqli_query($con, "
-        SELECT category, subcategory, description, amount, transactionCost, tag, expenseDate AS date FROM tblbudget WHERE is_deleted = 0
-        UNION ALL 
-        SELECT category, subcategory, description, amount, transactionCost, tag, od_date AS date FROM tbloverdrafts WHERE is_deleted = 0 ORDER BY date DESC");
-
+    SELECT category, subcategory, description, amount, transactionCost, tag, expenseDate AS date 
+    FROM tblbudget 
+    WHERE is_deleted = 0 
+    ORDER BY date DESC");
     // Loop through each row and write it to the CSV file
     while ($row = mysqli_fetch_assoc($query)) {
         // Format the date
@@ -435,7 +435,7 @@ if (isset($_POST['bulk_delete'])) {
 }
 ?>
 <?php include "head.php";?>
-<title>Transactions Management</title>
+    <title>Transactions Management</title>
 <?php include "navi.php";
 $status = "OK";
 $msg = "";
@@ -557,8 +557,9 @@ if (isset($_SESSION['alert'])) {
                                             <tbody class="list" id="table-simple-pagination-body">
                                             <?php
                                             $query=mysqli_query($con,"SELECT 
-        budgetID AS id, category, subcategory, description, tag, amount, transactionCost, expenseDate AS date, 'tblbudget' AS table_source FROM tblbudget WHERE is_deleted = 0
-    UNION ALL SELECT id, category, subcategory, description, tag, amount, transactionCost, od_date AS date, 'tbloverdrafts' AS table_source FROM tbloverdrafts WHERE is_deleted = 0 ORDER BY date DESC");
+                                                budgetID AS id, category, subcategory, description, tag, amount, transactionCost, expenseDate AS date, 'tblbudget' AS table_source 
+                                                FROM tblbudget WHERE is_deleted = 0 AND expenseDate >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+                                                ORDER BY date DESC");
                                             $cnt=1;
                                             while($row=mysqli_fetch_array($query))
                                             {
@@ -597,11 +598,22 @@ if (isset($_SESSION['alert'])) {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td class="align-middle text-start product">
+                                                    <td class="align-middle text-start product description-cell" style="cursor: pointer;"
+                                                        data-bs-toggle="modal" data-bs-target="#viewTransactionModal"
+                                                        onclick="loadViewModal('<?php echo $row['id']; ?>', '<?php echo addslashes($row['category']); ?>', '<?php echo addslashes($row['subcategory']); ?>', '<?php echo addslashes($row['tag']); ?>', '<?php echo addslashes($row['description']); ?>', '<?php echo $row['amount']; ?>', '<?php echo $row['transactionCost']; ?>', '<?php echo date('M j, Y \a\\t H:i', strtotime($row['date'])); ?>', '<?php echo (isset($row['table_source']) && $row['table_source'] === 'tblbudget') ? 'TNSN' : 'OVDT'; ?>')">
                                                         <div class="d-flex align-items-center position-relative">
                                                             <div class="flex-1">
-                                                                <h6 class="mb-0 fw-semi-bold text-nowrap"> <?php echo $row["subcategory"];?></h6>
-                                                                <p class="fw-semi-bold mb-0 text-500"><?php echo $row["description"];?></p>
+                                                                <h6 class="mb-0 fw-semi-bold text-nowrap" title="<?php echo htmlspecialchars($row["subcategory"], ENT_QUOTES); ?>">
+                                                                    <?php
+                                                                    $descText = $row["subcategory"];
+                                                                    if (mb_strlen($descText) > 50) {
+                                                                        echo htmlspecialchars(mb_substr($descText, 0, 50)) . '...';
+                                                                    } else {
+                                                                        echo htmlspecialchars($descText);
+                                                                    }
+                                                                    ?>
+                                                                </h6>
+                                                                <p class="fw-semi-bold mb-0 text-500" ><?php echo $row["description"]; ?> </p>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -646,7 +658,7 @@ if (isset($_SESSION['alert'])) {
                                                     <td class="align-middle white-space-nowrap text-end position-relative">
                                                         <div class="hover-actions bg-100">
                                                             <a class="btn bg-primary-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"  data-bs-target="#viewTransactionModal" data-bs-toggle="tooltip" data-bs-placement="top" title="View Transaction"
-                                                               onclick="loadViewModal('<?php echo $row['id']; ?>', '<?php echo addslashes($row['category']); ?>', '<?php echo addslashes($row['subcategory']); ?>', '<?php echo addslashes($row['tag']); ?>', '<?php echo addslashes($row['description']); ?>', '<?php echo $row['amount']; ?>', '<?php echo date('M j, Y \a\\t H:i', strtotime($row['date'])); ?>')"><span class="far fa-eye"></span></a>
+                                                               onclick="loadViewModal('<?php echo $row['id']; ?>', '<?php echo addslashes($row['category']); ?>', '<?php echo addslashes($row['subcategory']); ?>', '<?php echo addslashes($row['tag']); ?>', '<?php echo addslashes($row['description']); ?>', '<?php echo $row['amount']; ?>', '<?php echo $row['transactionCost']; ?>', '<?php echo date('M j, Y \a\\t H:i', strtotime($row['date'])); ?>', '<?php echo (isset($row['table_source']) && $row['table_source'] === 'tblbudget') ? 'TNSN' : 'OVDT'; ?>')"><span class="far fa-eye"></span></a>
                                                             <a class="btn bg-success-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"  data-bs-target="#editTransactionModal" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Transaction"
                                                                onclick="loadEditModal('<?php echo $row['id']; ?>', '<?php echo addslashes($row['category']); ?>', '<?php echo addslashes($row['subcategory']); ?>', '<?php echo addslashes($row['tag']); ?>', '<?php echo addslashes($row['description']); ?>', '<?php echo $row['amount']; ?>', '<?php echo date('Y-m-d\TH:i', strtotime($row['date'])); ?>')"><span class="far fa-edit"></span></a>
                                                             <a class="btn bg-danger-subtle icon-item rounded-3 me-2 fs-11 icon-item-sm" data-bs-toggle="modal"   data-bs-target="#deleteTransactionModal" data-bs-toggle="tooltip" data-bs-placement="top" title="Delete Transaction"
@@ -812,45 +824,69 @@ if (isset($_SESSION['alert'])) {
     <div class="modal fade" id="viewTransactionModal" tabindex="-1" aria-labelledby="viewTransactionModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header position-relative modal-shape-header bg-shape">
+                <div class="modal-header px-5 position-relative modal-shape-header bg-shape">
                     <div class="position-relative z-1">
-                        <h4 class="mb-0 text-white text-center" id="viewTransactionModalLabel">Transaction Details</h4>
+                        <h4 class="mb-0 text-white" id="viewTransactionModalLabel">Transaction Details</h4>
+                        <p class="fs-10 text-white mb-0 opacity-75">Reference: <span id="viewTransactionRef">#</span></p>
                     </div>
                     <button class="btn-close position-absolute top-0 end-0 mt-2 me-2" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="col pe-2">
-                        <div class="fs-8 mt-1">
-                            <div class="d-flex flex-between-center mb-1">
-                                <div class="d-flex align-items-center"><span class="dot bg-primary"></span><span class="fw-semi-bold">Category</span></div>
-                                <div class="d-xxl-none"><span class="text-warning" id="viewCategory"></span></div>
+                <div class="modal-body p-4">
+                    <!-- Amount highlight card -->
+                    <div class="text-center mb-4 p-3 rounded-3 bg-light border">
+                        <p class="fs-10 text-600 mb-1 fw-semi-bold text-uppercase">Amount</p>
+                        <h2 class="fw-bold mb-1 text-primary">Ksh <span id="viewAmount">0</span></h2>
+                        <p class="fs-10 text-500 mb-0">Transaction cost: <span class="badge badge-subtle-secondary" id="viewTransactionCost">0</span></p>
+                    </div>
+
+                    <!-- Detail grid -->
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <div class="p-2 border rounded-3 h-100">
+                                <p class="fs-11 text-600 mb-1 fw-semi-bold text-uppercase">
+                                    <i class="fas fa-tag me-1 text-info"></i>Sub Category
+                                </p>
+                                <h6 class="mb-0 fw-bold" id="viewSubcategory">-</h6>
                             </div>
-                            <div class="d-flex flex-between-center mb-1">
-                                <div class="d-flex align-items-center"><span class="dot bg-primary"></span><span class="fw-semi-bold">Sub Category</span></div>
-                                <div class="d-xxl-none"><span class="text-warning" id="viewSubcategory"></span></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 border rounded-3 h-100">
+                                <p class="fs-11 text-600 mb-1 fw-semi-bold text-uppercase">
+                                    <i class="fas fa-folder me-1 text-primary"></i>Category
+                                </p>
+                                <h6 class="mb-0 fw-bold" id="viewCategory">-</h6>
                             </div>
-                            <div class="d-flex flex-between-center mb-1">
-                                <div class="d-flex align-items-center"><span class="dot bg-primary"></span><span class="fw-semi-bold">Description</span></div>
-                                <div class="d-xxl-none"><span class="text-warning" id="viewDescription"></span></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 border rounded-3">
+                                <p class="fs-11 text-600 mb-1 fw-semi-bold text-uppercase">
+                                    <i class="fas fa-align-left me-1 text-success"></i>Description
+                                </p>
+                                <h6 class="mb-0 fw-semi-bold" id="viewDescription" style="word-break: break-word; white-space: normal;">-</h6>
                             </div>
-                            <div class="d-flex flex-between-center mb-1">
-                                <div class="d-flex align-items-center"><span class="dot bg-primary"></span><span class="fw-semi-bold">Amount</span></div>
-                                <div class="d-xxl-none"><span class="text-warning" id="viewAmount"></span></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 border rounded-3 h-100">
+                                <p class="fs-11 text-600 mb-1 fw-semi-bold text-uppercase">
+                                    <i class="fas fa-wallet me-1 text-warning"></i>Platform
+                                </p>
+                                <h6 class="mb-0 fw-bold" id="viewTag">-</h6>
                             </div>
-                            <div class="d-flex flex-between-center mb-1">
-                                <div class="d-flex align-items-center"><span class="dot bg-primary"></span><span class="fw-semi-bold">Transaction cost</span></div>
-                                <div class="d-xxl-none"><span class="text-warning" id="viewTransactionCost"></span></div>
-                            </div>
-                            <div class="d-flex flex-between-center mb-1">
-                                <div class="d-flex align-items-center"><span class="dot bg-primary"></span><span class="fw-semi-bold">Tag</span></div>
-                                <div class="d-xxl-none"><span class="text-warning" id="viewTag"></span></div>
-                            </div>
-                            <div class="d-flex flex-between-center mb-1">
-                                <div class="d-flex align-items-center"><span class="dot bg-primary"></span><span class="fw-semi-bold">Date</span></div>
-                                <div class="d-xxl-none"><span class="text-warning" id="viewDate"></span></div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 border rounded-3 h-100">
+                                <p class="fs-11 text-600 mb-1 fw-semi-bold text-uppercase">
+                                    <i class="fas fa-calendar-alt me-1 text-danger"></i>Date
+                                </p>
+                                <h6 class="mb-0 fw-bold" id="viewDate">-</h6>
                             </div>
                         </div>
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Close
+                    </button>
                 </div>
             </div>
         </div>
@@ -964,6 +1000,64 @@ if (isset($_SESSION['alert'])) {
     </div>
 
     <script>
+        // Populate the View Transaction modal from data passed via onclick.
+        // This is called from both the eye button and the description cell.
+        function loadViewModal(id, category, subcategory, tag, description, amount, transactionCost, date, sourcePrefix) {
+            document.getElementById('viewTransactionRef').innerText = (sourcePrefix || '') + ' #' + id;
+            document.getElementById('viewCategory').innerText = category || '-';
+            document.getElementById('viewSubcategory').innerText = subcategory || '-';
+            document.getElementById('viewDescription').innerText = description || '-';
+            document.getElementById('viewAmount').innerText = amount || '0';
+            document.getElementById('viewTransactionCost').innerText = transactionCost || '0';
+            document.getElementById('viewTag').innerText = tag || '-';
+            document.getElementById('viewDate').innerText = date || '-';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Wire up Edit and Delete modals using row data (View modal is handled by loadViewModal)
+            const tableRows = document.querySelectorAll('.hover-actions-trigger');
+            tableRows.forEach(row => {
+                const editBtn = row.querySelector('[data-bs-target="#editTransactionModal"]');
+                const deleteBtn = row.querySelector('[data-bs-target="#deleteTransactionModal"]');
+
+                // For edit modal we still read from the DOM, but use the description cell's title attribute
+                // (which contains the full untruncated description) rather than the visible truncated text.
+                const descCell = row.querySelector('td.description-cell p');
+                const fullDescription = descCell ? (descCell.getAttribute('title') || descCell.innerText) : '';
+
+                const rowData = {
+                    id: row.querySelector('input[type="checkbox"]').value,
+                    category: row.querySelector('td:nth-child(2) h6').innerText,
+                    subcategory: row.querySelector('td:nth-child(3) h6').innerText,
+                    description: fullDescription,
+                    amount: row.querySelector('td:nth-child(4) h6').innerText,
+                    transactionCost: row.querySelector('td:nth-child(4) p').innerText,
+                    tag: row.querySelector('td:nth-child(5) h6').innerText,
+                    date: row.querySelector('td:nth-child(6) h6').innerText,
+                };
+
+                // Populate Edit Modal
+                if (editBtn) {
+                    editBtn.addEventListener('click', () => {
+                        document.getElementById('editBudgetID').value = rowData.id;
+                        document.getElementById('editCategory').value = rowData.category;
+                        document.getElementById('editSubcategory').value = rowData.subcategory;
+                        document.getElementById('editDescription').value = rowData.description;
+                        document.getElementById('editAmount').value = rowData.amount;
+                        document.getElementById('editTag').value = rowData.tag;
+                        // Format date for datetime-local input with GMT+3 adjustment
+                        const date = new Date(rowData.date);
+                        date.setHours(date.getHours() + 3);
+                        const formattedDate = date.toISOString().slice(0, 16);
+                        document.getElementById('editDate').value = formattedDate;
+                    });
+                }
+            });
+        });
+    </script>
+
+    <script>
+        // ORIGINAL DOM-BASED LISTENER (kept disabled — replaced by loadViewModal above)
         document.addEventListener('DOMContentLoaded', () => {
             // Load data into modals dynamically
             const tableRows = document.querySelectorAll('.hover-actions-trigger');
@@ -982,31 +1076,8 @@ if (isset($_SESSION['alert'])) {
                     date: row.querySelector('td:nth-child(6) h6').innerText,
                 };
 
-                // Populate View Modal
-                viewBtn.addEventListener('click', () => {
-                    document.getElementById('viewCategory').innerText = rowData.category;
-                    document.getElementById('viewSubcategory').innerText = rowData.subcategory;
-                    document.getElementById('viewDescription').innerText = rowData.description;
-                    document.getElementById('viewAmount').innerText = rowData.amount;
-                    document.getElementById('viewTransactionCost').innerText = rowData.transactionCost;
-                    document.getElementById('viewTag').innerText = rowData.tag;
-                    document.getElementById('viewDate').innerText = rowData.date;
-                });
-
-                // Populate Edit Modal
-                editBtn.addEventListener('click', () => {
-                    document.getElementById('editBudgetID').value = rowData.id; // Ensure 'id' is passed here
-                    document.getElementById('editCategory').value = rowData.category;
-                    document.getElementById('editSubcategory').value = rowData.subcategory;
-                    document.getElementById('editDescription').value = rowData.description;
-                    document.getElementById('editAmount').value = rowData.amount;
-                    document.getElementById('editTag').value = rowData.tag;
-                    // Format date for datetime-local input with GMT+3 adjustment
-                    const date = new Date(rowData.date);
-                    date.setHours(date.getHours() + 3);
-                    const formattedDate = date.toISOString().slice(0, 16);
-                    document.getElementById('editDate').value = formattedDate;
-                });
+                // Populate View Modal -- DISABLED: now handled by loadViewModal()
+                // viewBtn.addEventListener('click', () => { ... });
 
                 // Populate Delete Modal
                 deleteBtn.addEventListener('click', () => {

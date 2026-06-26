@@ -118,15 +118,6 @@ if (isset($_SESSION['alert'])) {
                                                 <?php
                                                 $cnt = $cnt + 1;
                                             }
-                                        } else {
-                                            ?>
-                                            <tr>
-                                                <td colspan="6" class="text-center text-muted py-4">
-                                                    <i class="fas fa-inbox fa-2x mb-2"></i><br>
-                                                    No settled records found
-                                                </td>
-                                            </tr>
-                                            <?php
                                         }
                                         ?>
                                         </tbody>

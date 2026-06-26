@@ -7,7 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $projectAmount = mysqli_real_escape_string($con, $_POST['projectAmount']);
     $projectPeriod = mysqli_real_escape_string($con, $_POST['projectPeriod']);
 
-    $query = "INSERT INTO tblprojects (projectName, projectDescription, projectAmount, projectPeriod) 
+    $query = "INSERT INTO tbl_projects (projectName, projectDescription, projectAmount, projectPeriod) 
               VALUES ('$projectName', '$projectDescription', '$projectAmount', '$projectPeriod')";
 
     if (mysqli_query($con, $query)) {

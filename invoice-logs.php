@@ -158,7 +158,21 @@ if (isset($_SESSION['alert'])) {
                                                 $bonusCount    = (int) $log['bonus_count'];
                                                 $overdraftCount = (int) $log['overdraft_count'];
                                                 ?>
-                                                <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100">
+                                                <tr class="hover-actions-trigger btn-reveal-trigger hover-bg-100 invoice-row"
+                                                    style="cursor: pointer;"
+                                                    data-bs-toggle="modal" data-bs-target="#invoice-detail-modal"
+                                                    data-log-id="<?php echo $log['id']; ?>"
+                                                    data-log='<?php echo htmlspecialchars(json_encode([
+                                                        "sent_at"         => date("jS M Y, h:i A", strtotime($log["sent_at"] . ' UTC')),
+                                                        "tasks_total"     => number_format((float)$log["tasks_total"], 2),
+                                                        "bonus_total"     => number_format((float)$log["bonus_total"], 2),
+                                                        "overdraft_total" => number_format((float)$log["overdraft_total"], 2),
+                                                        "amount_payable"  => number_format((float)$log["amount_payable"], 2),
+                                                        "task_count"      => $taskCount,
+                                                        "bonus_count"     => $bonusCount,
+                                                        "overdraft_count" => $overdraftCount,
+                                                    ]), ENT_QUOTES, "UTF-8"); ?>'
+                                                    onclick="handleRowClick(event, this);">
                                                     <td class="align-middle white-space-nowrap ps-3 text-900"><?php echo $cnt; ?></td>
                                                     <td class="align-middle white-space-nowrap text-end text-900">
                                                         Ksh <?php echo number_format((float)$log['tasks_total'], 2); ?>
@@ -184,7 +198,7 @@ if (isset($_SESSION['alert'])) {
                                                         Ksh <?php echo number_format((float)$log['amount_payable'], 2); ?>
                                                     </td>
                                                     <td class="align-middle text-center white-space-nowrap text-900">
-                                                        <?php echo date("jS M, Y h:i A", strtotime($log['sent_at'])); ?>
+                                                        <?php echo date("jS M, Y h:i A", strtotime($log['sent_at'] . ' UTC')); ?>
                                                     </td>
                                                     <td class="align-middle white-space-nowrap text-end position-relative">
                                                         <div class="hover-actions bg-100">
@@ -194,7 +208,7 @@ if (isset($_SESSION['alert'])) {
                                                                data-bs-placement="top" title="View details"
                                                                data-log-id="<?php echo $log['id']; ?>"
                                                                data-log='<?php echo htmlspecialchars(json_encode([
-                                                                   "sent_at"         => date("jS M Y, h:i A", strtotime($log["sent_at"])),
+                                                                   "sent_at"         => date("jS M Y, h:i A", strtotime($log["sent_at"] . ' UTC')),
                                                                    "tasks_total"     => number_format((float)$log["tasks_total"], 2),
                                                                    "bonus_total"     => number_format((float)$log["bonus_total"], 2),
                                                                    "overdraft_total" => number_format((float)$log["overdraft_total"], 2),
@@ -390,6 +404,17 @@ if (isset($_SESSION['alert'])) {
                     empty.textContent     = 'Could not load task details.';
                 }
             });
+        }
+
+        function handleRowClick(event, rowEl) {
+            // Don't trigger modal if user clicked the dropdown toggle, dropdown items,
+            // or the existing eye-icon action button
+            if (event.target.closest('.dropdown') ||
+                event.target.closest('.hover-actions a') ||
+                event.target.closest('button')) {
+                return;
+            }
+            openInvoiceDetail(rowEl);
         }
 
         function escHtml(str) {

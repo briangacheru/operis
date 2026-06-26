@@ -25,7 +25,7 @@ if ($result) {
         $items[] = [
             'task_id' => (int)   $row['task_id'],
             'topic'   =>         $row['topic'],
-            'pages'   => (int)   $row['pages'],
+            'pages'   => (float)   $row['pages'],
             'cpp'     => (float) $row['cpp'],
             'amount'  => (float) $row['amount'],
         ];

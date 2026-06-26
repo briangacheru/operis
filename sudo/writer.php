@@ -323,6 +323,103 @@ if ($writerID) {
             </div>
         </div>
 
+        <!-- Logged-in Devices (admin view of this writer's sessions) -->
+        <?php
+        $wsCutoff = date('Y-m-d H:i:s', time() - 86400); // active within the last 24h
+        $writerSessions = [];
+        $wsStmt = mysqli_prepare($con, "SELECT * FROM tblwriter_sessions
+                                        WHERE writer_email = ? AND last_activity >= ?
+                                        ORDER BY last_activity DESC");
+        if ($wsStmt) { // null if tblwriter_sessions doesn't exist yet
+            mysqli_stmt_bind_param($wsStmt, 'ss', $rowWriter['email'], $wsCutoff);
+            mysqli_stmt_execute($wsStmt);
+            $wsRes = mysqli_stmt_get_result($wsStmt);
+            while ($wsRow = mysqli_fetch_assoc($wsRes)) { $writerSessions[] = $wsRow; }
+            mysqli_stmt_close($wsStmt);
+        }
+        ?>
+        <div class="row g-0">
+            <div class="col-lg-12">
+                <div class="card mb-3">
+                    <div class="card-header bg-body-tertiary d-flex align-items-center">
+                        <span class="fas fa-laptop fs-9 me-2 text-info"></span>
+                        <h5 class="mb-0 text-info">Logged-in Devices</h5>
+                        <span class="badge bg-info-subtle text-info ms-2"><?php echo count($writerSessions); ?></span>
+                    </div>
+                    <div class="card-body p-0">
+                        <?php if (empty($writerSessions)) {
+                            $lastSeenTxt = 'Unknown';
+                            if (!empty($rowWriter['last_seen'])) {
+                                $ls = new DateTime($rowWriter['last_seen'], new DateTimeZone('UTC'));
+                                $ls->setTimezone(new DateTimeZone('Africa/Nairobi'));
+                                $lastSeenTxt = $ls->format('jS M Y, g:i A');
+                            }
+                            ?>
+                            <div class="p-3 text-700">
+                                <span class="fas fa-info-circle me-1"></span>
+                                Not currently logged in on any device. Last seen: <span class="text-900"><?php echo $lastSeenTxt; ?></span>.
+                            </div>
+                        <?php } else { ?>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 fs-10">
+                                    <thead class="text-700">
+                                    <tr>
+                                        <th class="ps-3">Device</th>
+                                        <th>IP / Location</th>
+                                        <th>Signed in</th>
+                                        <th>Last active</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <?php foreach ($writerSessions as $s) {
+                                        $isMobile = (stripos($s['device_label'], 'Mobile') !== false);
+                                        $icon = $isMobile ? 'mobile-alt' : 'desktop';
+                                        ?>
+                                        <tr>
+                                            <td class="ps-3">
+                                                <span class="fas fa-<?php echo $icon; ?> me-2 text-info"></span>
+                                                <?php echo htmlspecialchars($s['device_label']); ?>
+                                            </td>
+                                            <td>
+                                                <div class="text-900"><?php echo htmlspecialchars($s['ip_address']); ?></div>
+                                                <?php if (!empty($s['location'])) { ?>
+                                                    <div class="fs-11 text-500"><span class="fas fa-map-marker-alt me-1"></span><?php echo htmlspecialchars($s['location']); ?></div>
+                                                <?php } ?>
+                                            </td>
+                                            <td class="text-700"><?php echo date("jS M Y, g:i A", strtotime($s['login_time'])); ?></td>
+                                            <td class="text-700"><?php echo date("jS M Y, g:i A", strtotime($s['last_activity'])); ?></td>
+                                        </tr>
+                                    <?php } ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php } ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Initialize tooltips
+            document.addEventListener('DOMContentLoaded', function() {
+                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            });
+        </script>
+
+        <?php
+    } else {
+        echo '<div class="alert alert-danger">Writer not found.</div>';
+    }
+
+    $stmt->close();
+} else {
+    echo '<div class="alert alert-danger">Invalid writer ID.</div>';
+}
+?>
+
         <!-- Performance Analysis Card -->
         <div class="row g-3 mb-3">
             <div class="col-lg-8">
@@ -481,26 +578,7 @@ if ($writerID) {
             </div>
         </div>
 
-        <script>
-            // Initialize tooltips
-            document.addEventListener('DOMContentLoaded', function() {
-                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                    return new bootstrap.Tooltip(tooltipTriggerEl);
-                });
-            });
-        </script>
-
         <?php
-    } else {
-        echo '<div class="alert alert-danger">Writer not found.</div>';
-    }
-
-    $stmt->close();
-} else {
-    echo '<div class="alert alert-danger">Invalid writer ID.</div>';
-}
-
-$con->close();
-include "footer.php";
+    $con->close();
+    include "footer.php";
 ?>

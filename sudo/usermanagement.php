@@ -553,12 +553,32 @@ if (isset($_SESSION['alert'])) {
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Date Registered</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Status</th>
                                             <th class="text-900 sort pe-1 align-middle white-space-nowrap">Verification</th>
+                                            <th class="text-900 sort pe-1 align-middle white-space-nowrap">Devices</th>
                                             <th class="text-900 no-sort pe-1 align-middle data-table-row-action"></th>
                                         </tr>
                                         </thead>
                                         <tbody class="list" id="table-simple-pagination-body">
                                         <?php
                                         $query=mysqli_query($con,"SELECT * FROM tblwriters ORDER BY created_at DESC");
+
+                                        // Active logged-in device count per writer (sessions active within the last 24h).
+                                        // Keyed by writer email; will be 0 until writer-login recording is wired.
+                                        $writerDeviceCounts = [];
+                                        $activeCutoff = date('Y-m-d H:i:s', time() - 86400); // matches the 24h session timeout
+                                        $wdcStmt = mysqli_prepare($con, "SELECT writer_email, COUNT(*) AS device_count
+                                                                         FROM tblwriter_sessions
+                                                                         WHERE last_activity >= ?
+                                                                         GROUP BY writer_email");
+                                        if ($wdcStmt) { // null if tblwriter_sessions doesn't exist yet -> all counts stay 0
+                                            mysqli_stmt_bind_param($wdcStmt, 's', $activeCutoff);
+                                            mysqli_stmt_execute($wdcStmt);
+                                            $wdcRes = mysqli_stmt_get_result($wdcStmt);
+                                            while ($wdcRow = mysqli_fetch_assoc($wdcRes)) {
+                                                $writerDeviceCounts[strtolower($wdcRow['writer_email'])] = (int)$wdcRow['device_count'];
+                                            }
+                                            mysqli_stmt_close($wdcStmt);
+                                        }
+
                                         $cnt=1;
                                         while($row=mysqli_fetch_array($query)) {
                                             $encodedId = base64_encode($row["id"]); // Encode the id
@@ -641,6 +661,18 @@ if (isset($_SESSION['alert'])) {
                                                         echo '<span class="badge badge rounded-pill badge-subtle-danger">Unverified<span class="ms-1 fas fa-ban" data-fa-transform="shrink-2"></span></span>';
                                                     }
                                                     ?>
+                                                </td>
+                                                <td class="align-middle white-space-nowrap">
+                                                    <?php $deviceCount = $writerDeviceCounts[strtolower($row['email'])] ?? 0; ?>
+                                                    <?php if ($deviceCount > 0) { ?>
+                                                        <span class="badge rounded-pill badge-subtle-info" data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo $deviceCount; ?> active device(s)">
+                                                            <span class="fas fa-laptop me-1"></span><?php echo $deviceCount; ?>
+                                                        </span>
+                                                    <?php } else { ?>
+                                                        <span class="badge rounded-pill badge-subtle-secondary" data-bs-toggle="tooltip" data-bs-placement="top" title="No active devices">
+                                                            <span class="fas fa-laptop me-1"></span>0
+                                                        </span>
+                                                    <?php } ?>
                                                 </td>
                                                 <td class="align-middle white-space-nowrap text-end position-relative">
                                                     <div class="hover-actions bg-100">

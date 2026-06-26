@@ -1,9 +1,19 @@
 <?php
 require_once('check-login.php');
+require_once('session_tracker.php');
 
-// Check if 'session' exists before using it
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 if (isset($_SESSION['odmsaid'])) {
     $aid = $_SESSION['odmsaid'];
+    if (!touch_session($dbh, $aid)) {   // row gone => this device was logged out elsewhere
+        session_unset();
+        session_destroy();
+        header('Location: login');
+        exit();
+    }
 } else {
     header('Location: login.php');
     exit();

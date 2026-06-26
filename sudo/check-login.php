@@ -73,6 +73,7 @@ $currentScript = basename($_SERVER['PHP_SELF']);
 // List of AJAX endpoints that shouldn't update last page tracking
 $ajaxEndpoints = [
     'check_new_tasks.php',
+    'logout_device.php',
     'get_notification_counts.php',
     'extend-session.php',
     'mark_task_read.php',
@@ -151,6 +152,8 @@ if (!isset($_SESSION['odmsaid']) && isset($_COOKIE['rememberme'])) {
     if ($result->num_rows == 1) {
         $row = $result->fetch_assoc();
         $_SESSION['odmsaid'] = $row['email']; // Log the user in by setting the session variable
+        require_once 'session_tracker.php';
+        record_login_session($dbh, $_SESSION['odmsaid']);
 
         // Update user status to online
         $email = $_SESSION['odmsaid'];
