@@ -1,11 +1,10 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/bootstrap.php';
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET');
 header('Access-Control-Allow-Headers: Content-Type');
 
-require_once 'dbcon.php';
 
 try {
     if (!isset($_SESSION['odmsaid'])) {

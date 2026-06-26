@@ -1,15 +1,6 @@
 <?php
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "tasker";
-
-// Create connection
-$con = new mysqli($servername, $username, $password, $dbname);
-// Check connection
-if ($con->connect_error) {
-    die("Connection failed: " . $con->connect_error);
+// Legacy shim — use sudo/includes/bootstrap.php instead.
+if (!class_exists('Database')) {
+    require_once __DIR__ . '/includes/bootstrap.php';
 }
-mysqli_set_charset($con, "utf8mb4");
-
 ?>

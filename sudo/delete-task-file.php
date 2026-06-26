@@ -1,6 +1,5 @@
 <?php
-session_start();
-include "dbcon.php";
+require_once __DIR__ . '/includes/bootstrap.php';
 
 // Prevent any output before JSON
 error_reporting(0);

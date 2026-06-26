@@ -1,5 +1,5 @@
 <?php
-include 'dbcon.php';
+require_once __DIR__ . '/includes/bootstrap.php';
 
 function migrateTaskFiles($con)
 {

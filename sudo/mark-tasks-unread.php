@@ -1,6 +1,5 @@
 <?php
-session_start();
-include 'dbcon.php';
+require_once __DIR__ . '/includes/bootstrap.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['taskIds']) && is_array($_POST['taskIds'])) {
     $taskIds = $_POST['taskIds'];

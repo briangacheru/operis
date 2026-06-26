@@ -1,6 +1,5 @@
 <?php
-session_start();
-include_once 'db.php';
+require_once __DIR__ . '/includes/bootstrap.php';
 
 error_reporting(E_ALL);
 ini_set('log_errors', 1);

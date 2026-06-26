@@ -1,5 +1,5 @@
 <?php
-include "db.php";
+require_once __DIR__ . '/includes/bootstrap.php';
 // Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
