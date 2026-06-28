@@ -1,12 +1,13 @@
 <?php
 require_once __DIR__ . '/shared-functions.php';
+require_once __DIR__ . '/includes/Database.php';
 
 // ---------------------------------------------------------------------------
 // Writer-specific DB queries  (table: tblwriters)
 // ---------------------------------------------------------------------------
 
 function email_exists(string $email): bool {
-    global $con;
+    $con  = Database::getMySQLi();
     $stmt = $con->prepare("SELECT id FROM tblwriters WHERE email = ?");
     $stmt->bind_param('s', $email);
     $stmt->execute();
@@ -15,7 +16,7 @@ function email_exists(string $email): bool {
 }
 
 function username_exists(string $username): bool {
-    global $con;
+    $con  = Database::getMySQLi();
     $stmt = $con->prepare("SELECT id FROM tblwriters WHERE username = ?");
     $stmt->bind_param('s', $username);
     $stmt->execute();
@@ -28,7 +29,7 @@ function username_exists(string $username): bool {
 // ---------------------------------------------------------------------------
 
 function get_name(string $email): ?string {
-    global $con;
+    $con  = Database::getMySQLi();
     $stmt = $con->prepare("SELECT username FROM tbladmin WHERE email = ?");
     $stmt->bind_param('s', $email);
     $stmt->execute();
@@ -36,7 +37,7 @@ function get_name(string $email): ?string {
 }
 
 function get_email(string $email): ?string {
-    global $con;
+    $con  = Database::getMySQLi();
     $stmt = $con->prepare("SELECT email FROM tbladmin WHERE email = ?");
     $stmt->bind_param('s', $email);
     $stmt->execute();
@@ -44,7 +45,7 @@ function get_email(string $email): ?string {
 }
 
 function get_picture(string $email): ?string {
-    global $con;
+    $con  = Database::getMySQLi();
     $stmt = $con->prepare("SELECT profile_picture FROM tbladmin WHERE email = ?");
     $stmt->bind_param('s', $email);
     $stmt->execute();
@@ -65,10 +66,18 @@ function check_login(): void {
     }
 }
 
+/**
+ * Update online status for a writer or admin.
+ * Table name is resolved from a fixed allowlist — never interpolated from user input.
+ */
 function updateUserStatus(string $email, string $userType, bool $isOnline): void {
-    global $con;
-    $table = ($userType === 'admin') ? 'tbladmin' : 'tblwriters';
-    $stmt  = $con->prepare("UPDATE $table SET is_online = ?, last_seen = NOW() WHERE email = ?");
+    $allowed = ['admin' => 'tbladmin', 'writer' => 'tblwriters'];
+    if (!isset($allowed[$userType])) {
+        throw new InvalidArgumentException("Unknown user type: $userType");
+    }
+    $table = $allowed[$userType];   // safe: resolved from allowlist, not user input
+    $con   = Database::getMySQLi();
+    $stmt  = $con->prepare("UPDATE `$table` SET is_online = ?, last_seen = NOW() WHERE email = ?");
     $stmt->bind_param('is', $isOnline, $email);
     $stmt->execute();
 }
