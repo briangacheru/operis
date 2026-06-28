@@ -167,15 +167,9 @@ if (isset($_POST['action']) && $_POST['action'] == 'submitForm') {
             $mail = new PHPMailer(true);
 
             try {
-                $mail->isSMTP();
-                $mail->Host = 'das121.truehost.cloud';
-                $mail->SMTPAuth = true;
-                $mail->Username = 'support@monkbrian.com';
-                $mail->Password = 'EDU+pass.';
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                $mail->Port = 587;
+                configureMail($mail);
 
-                $mail->setFrom('support@monkbrian.com', 'iTasker');
+                $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
                 $mail->addAddress($writerEmail);
                 $mail->addBCC('bryo4419@gmail.com', 'iTasker Admin');
                 $mail->addCustomHeader('X-Priority', '3');

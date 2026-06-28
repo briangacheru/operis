@@ -348,15 +348,9 @@ if (!empty($_POST['preview_only'])) {
 $mail = new PHPMailer(true);
 
 try {
-    $mail->isSMTP();
-    $mail->Host       = 'das121.truehost.cloud';
-    $mail->SMTPAuth   = true;
-    $mail->Username   = 'support@monkbrian.com';
-    $mail->Password   = 'EDU+pass.';
-    $mail->SMTPSecure = 'tls';
-    $mail->Port       = 587;
+    configureMail($mail);
 
-    $mail->setFrom('support@monkbrian.com', 'iTasker');
+    $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
     $mail->addAddress($writerEmail, $writerUsername);
     $mail->addBCC('bryo4419@gmail.com', 'iTasker Admin');
 

@@ -1,0 +1,7 @@
+.env
+vendor/
+phpmailer/
+taskfiles/
+profileimages/
+uploads/
+php-errors.log

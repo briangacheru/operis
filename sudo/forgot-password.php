@@ -26,17 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $mail = new PHPMailer(true);
 
         try {
-            // Server settings
-            $mail->isSMTP();
-            $mail->Host = 'das121.truehost.cloud';
-            $mail->SMTPAuth = true;
-            $mail->Username = 'support@monkbrian.com';
-            $mail->Password = 'EDU+pass.';
-            $mail->SMTPSecure = 'tls'; // Use 'tls' or 'ssl' based on your server configuration
-            $mail->Port = 587; // Adjust the port accordingly
+            configureMail($mail);
 
             // Recipients
-            $mail->setFrom('support@monkbrian.com', 'Monk Freelancing Support');
+            $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
             $mail->addAddress($email);
 
             // Content

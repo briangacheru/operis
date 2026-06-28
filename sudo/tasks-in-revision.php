@@ -51,15 +51,9 @@ if (isset($_GET['del'])) {
                 try {
                     // Server settings
                     $mail->SMTPDebug = 0;                       // Enable verbose debug output
-                    $mail->isSMTP();
-                    $mail->Host       = 'das121.truehost.cloud';
-                    $mail->SMTPAuth   = true;
-                    $mail->Username   = 'support@monkbrian.com';
-                    $mail->Password   = 'EDU+pass.';
-                    $mail->SMTPSecure = 'tls';
-                    $mail->Port       = 465;
+                    configureMail($mail);
 
-                    $mail->setFrom('support@monkbrian.com', 'itasker');
+                    $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
                     $mail->addReplyTo('bryo4419@gmail.com', 'Bryo Gacheru');
                     $mail->addAddress($writerEmail);
                     $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin');

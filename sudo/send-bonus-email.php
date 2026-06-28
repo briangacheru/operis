@@ -50,15 +50,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         try {
             // Server settings with better connection handling
-            $mail->isSMTP();
-            $mail->Host       = 'das121.truehost.cloud';
-            $mail->SMTPAuth   = true;
-            $mail->Username   = 'support@monkbrian.com';
-            $mail->Password   = 'EDU+pass.';
-            $mail->SMTPSecure = 'tls';
-            $mail->Port       = 587;
+            configureMail($mail);
 
-            $mail->setFrom('support@monkbrian.com', 'itasker');
+            $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
             $mail->addReplyTo('bryo4419@gmail.com', 'Bryo Gacheru');
             $mail->addAddress($writerEmail); // Writer's email
             $mail->addAddress('bryo4419@gmail.com', 'itasker Admin');

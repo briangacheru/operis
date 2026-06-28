@@ -16,34 +16,13 @@ use PHPMailer\PHPMailer\Exception;
 require 'phpmailer/src/Exception.php';
 require 'phpmailer/src/PHPMailer.php';
 require 'phpmailer/src/SMTP.php';
-// Email configuration
-$email_config = [
-    'smtp_host' => 'das121.truehost.cloud',
-    'smtp_port' => 465,
-    'smtp_username' => 'support@monkbrian.com',
-    'smtp_password' => 'EDU+pass.',
-    'from_email' => 'support@monkbrian.com',
-    'from_name' => 'Reminder System',
-    'to_email' => 'bryo4419@gmail.com'
-];
-// Email helper functions
 function sendEmail($to, $subject, $htmlBody, $textBody = '') {
-    global $email_config;
-
     $mail = new PHPMailer(true);
 
     try {
-        // Server settings
-        $mail->isSMTP();
-        $mail->Host = $email_config['smtp_host'];
-        $mail->SMTPAuth = true;
-        $mail->Username = $email_config['smtp_username'];
-        $mail->Password = $email_config['smtp_password'];
-        $mail->SMTPSecure = 'tls';
-        $mail->Port = $email_config['smtp_port'];
+        configureMail($mail);
 
-        // Recipients
-        $mail->setFrom($email_config['from_email'], $email_config['from_name']);
+        $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
         $mail->addAddress($to);
 
         // Content

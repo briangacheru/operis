@@ -1,13 +1,8 @@
 <?php
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "tasker";
+require_once __DIR__ . '/config.php';
 
-// Create connection
-$con = new mysqli($servername, $username, $password, $dbname);
-// Check connection
+$con = new mysqli(env('DB_HOST'), env('DB_USER'), env('DB_PASS'), env('DB_NAME'));
 if ($con->connect_error) {
     die("Connection failed: " . $con->connect_error);
 }
-?>
+$con->set_charset("utf8mb4");

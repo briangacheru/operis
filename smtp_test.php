@@ -9,15 +9,9 @@ require 'phpmailer/src/SMTP.php';
 $mail = new PHPMailer(true);
 
 try {
-    $mail->isSMTP();
-    $mail->Host       = 'vin101.truehost.cloud';
-    $mail->SMTPAuth   = true;
-    $mail->Username   = 'support@monkbrian.com';
-    $mail->Password   = 'EDU+pass.';
-    $mail->SMTPSecure = 'tls';
-    $mail->Port       = 587;
+    configureMail($mail);
 
-    $mail->setFrom('support@monkbrian.com', 'Test');
+    $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
     $mail->addAddress('bryo4419@gmail.com'); // your email to receive test
 
     $mail->Subject = 'SMTP Test';
