@@ -5,9 +5,7 @@ require_once 'spaces-helper.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-require 'phpmailer/src/Exception.php';
-require 'phpmailer/src/PHPMailer.php';
-require 'phpmailer/src/SMTP.php';
+require_once __DIR__ . '/vendor/autoload.php';
 
 // Function to download a file using cURL
 function downloadFile($url, $localPath)
