@@ -5,3 +5,7 @@ taskfiles/
 profileimages/
 uploads/
 php-errors.log
+
+# macOS
+.DS_Store
+**/.DS_Store
