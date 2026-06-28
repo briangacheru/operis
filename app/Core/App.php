@@ -14,9 +14,9 @@ class App
     private Request  $request;
     private Response $response;
 
-    public function __construct()
+    public function __construct(?string $root = null)
     {
-        $root = dirname(__DIR__, 2);  // project root
+        $root = $root ?? dirname(__DIR__, 2);  // project root
 
         // 1. Config + DB
         require_once $root . '/config.php';
