@@ -34,6 +34,7 @@ $formattedDate = date('F j, Y', strtotime($lastUpdated));
                 </div>
                 <div class="col-lg-auto pt-3 pt-lg-0">
                     <form class="row flex-lg-column flex-xxl-row gx-3 gy-2 align-items-center align-items-lg-start align-items-xxl-center">
+<?= csrf_field() ?>
                         <div class="col-auto">
                         </div>
                         <div class="col-md-auto position-relative">
@@ -60,6 +61,7 @@ $formattedDate = date('F j, Y', strtotime($lastUpdated));
                                 <p class="mb-3">Description: <strong><?php echo htmlspecialchars($description); ?></strong></p>
 
                                 <form method="post">
+<?= csrf_field() ?>
                                     <div class="form-group mb-3">
                                         <label>Update Type:</label>
                                         <select name="update_type" class="form-control">

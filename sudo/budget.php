@@ -15,6 +15,7 @@ $msg = "";
                 </div>
                 <div class="col-lg-auto pt-3 pt-lg-0">
                     <form class="row flex-lg-column flex-xxl-row gx-3 gy-2 align-items-center align-items-lg-start align-items-xxl-center">
+<?= csrf_field() ?>
                         <div class="col-auto">
                         </div>
                         <div class="col-md-auto position-relative">
@@ -1840,6 +1841,7 @@ ORDER BY subcategory, transaction_date;
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <form action="add-transaction" method="post">
+<?= csrf_field() ?>
                     <div class="modal-header px-5 position-relative modal-shape-header bg-shape">
                         <div class="position-relative z-1">
                             <h4 class="mb-0 text-white" id="addTransactionModalLabel">Add Transaction</h4>
@@ -1951,6 +1953,7 @@ ORDER BY subcategory, transaction_date;
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <form id="editTransactionForm" method="POST" action="edit-transaction">
+<?= csrf_field() ?>
                     <div class="modal-header px-5 position-relative modal-shape-header bg-shape">
                         <div class="position-relative z-1">
                             <h4 class="mb-0 text-white" id="editTransactionModalLabel">Edit Transaction</h4>
@@ -2005,6 +2008,7 @@ ORDER BY subcategory, transaction_date;
     <div class="modal fade" id="deleteTransactionModal" tabindex="-1" aria-labelledby="deleteTransactionModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <form id="deleteTransactionForm" method="POST" action="delete-transaction">
+<?= csrf_field() ?>
                 <div class="modal-content">
                     <div class="modal-header px-5 position-relative modal-shape-header bg-shape">
                         <div class="position-relative z-1">

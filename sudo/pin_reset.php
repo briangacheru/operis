@@ -72,7 +72,7 @@ if ($action === 'request_reset') {
         $mail->isHTML(true);
         $mail->addCustomHeader('X-Priority',       '3');
         $mail->addCustomHeader('X-Mailer',         'iTasker v1.0');
-        $mail->addCustomHeader('List-Unsubscribe',  '<mailto:support@monkbrian.com>');
+        $mail->addCustomHeader('List-Unsubscribe',  '<mailto:' . env('MAIL_FROM_ADDRESS') . '>');
         $mail->Subject = 'iTasker - Financial Dashboard PIN Reset';
 
         $mail->Body = "<!DOCTYPE html><html><head><style>

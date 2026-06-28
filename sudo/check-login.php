@@ -12,6 +12,9 @@ ini_set('error_log', __DIR__ . '/php-errors.log');
 date_default_timezone_set('Africa/Nairobi');
 require_once('dbcon.php');
 require_once('functions.php');
+
+// Initialise CSRF token once per session
+csrf_token();
 function check_login() {
     if (!isset($_SESSION['odmsaid']) || strlen($_SESSION['odmsaid']) == 0) {
         // Store current page for redirect

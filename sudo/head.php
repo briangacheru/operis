@@ -36,10 +36,13 @@ if ($userRow === null) {
 $userID = $userRow['id'];
 
 // Query to fetch unread messages details by userID
-$unreadMessagesQuery = mysqli_query($con, "SELECT * FROM chat_messages WHERE is_read = 0 AND receiver_id = '$userID' ORDER BY timestamp ASC");
+$msgStmt = $con->prepare("SELECT * FROM chat_messages WHERE is_read = 0 AND receiver_id = ? ORDER BY timestamp ASC");
+$msgStmt->bind_param('i', $userID);
+$msgStmt->execute();
+$unreadMessagesResult = $msgStmt->get_result();
 
 $unreadMessages = []; // Initialize array to hold unread messages data
-while ($message = mysqli_fetch_assoc($unreadMessagesQuery)) {
+while ($message = $unreadMessagesResult->fetch_assoc()) {
     $unreadMessages[] = $message; // Add each unread message to the array
 }
 
@@ -52,3 +55,4 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="<?= htmlspecialchars(csrf_token()) ?>">

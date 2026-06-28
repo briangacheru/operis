@@ -53,13 +53,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             configureMail($mail);
 
             $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
-            $mail->addReplyTo('bryo4419@gmail.com', 'Bryo Gacheru');
+            $mail->addReplyTo(env('MAIL_ADMIN_EMAIL'), 'Bryo Gacheru');
             $mail->addAddress($writerEmail); // Writer's email
-            $mail->addAddress('bryo4419@gmail.com', 'itasker Admin');
+            $mail->addAddress(env('MAIL_ADMIN_EMAIL'), 'itasker Admin');
 
             // Add important headers to improve deliverability
             $mail->MessageID = '<' . md5(uniqid(time())) . '@monkbrian.com>';
-            $mail->addCustomHeader('List-Unsubscribe', '<mailto:support@monkbrian.com?subject=Unsubscribe>');
+            $mail->addCustomHeader('List-Unsubscribe', '<mailto:' . env('MAIL_FROM_ADDRESS') . '>');
             $mail->addCustomHeader('X-Mailer', 'PHP/' . phpversion());
             $mail->addCustomHeader('X-Priority', '3'); // Normal priority
             $mail->addCustomHeader('X-MSMail-Priority', 'Normal');
@@ -349,7 +349,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
                 
                 <div class='footer'>
-                    <p>Questions about your bonus? Contact us at <a href='mailto:bryo4419@gmail.com'>bryo4419@gmail.com</a></p>
+                    <p>Questions about your bonus? Contact us at <a href='mailto:'></a></p>
                     <p>&copy; " . date('Y') . " iTasker. All rights reserved.</p>
                 </div>
             </div>
@@ -372,7 +372,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             - Perfect Month Bonus: Ksh. $perfectBonusAmount\n
             - TOTAL BONUS: Ksh. $totalBonusAmount ({$bonus['bonus_percentage']}%)\n\n
             Thank you for your excellent work!\n\n
-            Questions? Contact: bryo4419@gmail.com\n
+            Questions? Contact: " . env('MAIL_ADMIN_EMAIL')\n
             © " . date('Y') . " iTasker. All rights reserved.";
 
             $mail->send();

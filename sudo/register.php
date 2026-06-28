@@ -9,14 +9,9 @@ require '../phpmailer/src/Exception.php';
 require '../phpmailer/src/PHPMailer.php';
 require '../phpmailer/src/SMTP.php';
 
-function validatePassword($password) {
-    // Minimum eight characters, at least one uppercase letter, one lowercase letter, and one number
-    $pattern = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$/';
-
-    return preg_match($pattern, $password);
-}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    validate_csrf();
     $username = $_POST['username'];
     $email = $_POST['email'];
     $password = $_POST['password'];
@@ -72,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             configureMail($admin_mail);
 
             $admin_mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
-            $admin_mail->addAddress('bryo4419@gmail.com', 'iTasker Admin'); // Replace with admin's email
+            $admin_mail->addAddress(env('MAIL_ADMIN_EMAIL'), 'iTasker Admin'); // Replace with admin's email
 
             $admin_mail->isHTML(true);
             $admin_mail->Subject = 'New User Registration [iTasker]';
@@ -244,6 +239,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                     }
                                     ?>
                                     <form class="needs-validation" novalidate="novalidate" role="form" method="post">
+<?= csrf_field() ?>
 
                                         <div class="form-floating mb-3">
                                             <input class="form-control" id="floatingUsername" type="text" placeholder="username" name="username" value="<?= $_POST['username'] ?? "" ?>" required="required" />

@@ -11,6 +11,7 @@ require '../phpmailer/src/PHPMailer.php';
 require '../phpmailer/src/SMTP.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    validate_csrf();
     extract($_POST);
 
     $stmt = $con->prepare("SELECT * FROM `tbladmin` WHERE `email` = ?");
@@ -157,6 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                                 </div>
                                             <?php endif; ?>
                                             <form class="mb-3" method="post" role="form" action="">
+<?= csrf_field() ?>
                                                 <input class="form-control" type="email" id="email" name="email" placeholder="Email address" value="<?= $_POST['email'] ?? "" ?>" required="required" />
                                                 <div class="mb-3"></div>
                                                 <button class="btn btn-primary d-block w-100 mt-3" type="submit" name="submit">Send reset link</button>

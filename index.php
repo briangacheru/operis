@@ -3,6 +3,37 @@ include "head.php";
 ?>
 <?php
 $aid = $_SESSION['sessionWriter'];
+
+// Precompute all dashboard counts
+$idxCounts = [];
+$idxCountDefs = [
+    'unpaid_completed' => "SELECT COUNT(*) FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed' AND email = ?",
+    'submitted'        => "SELECT COUNT(*) FROM tbltasks WHERE is_deleted = 0 AND status = 'Submitted' AND email = ?",
+    'all'              => "SELECT COUNT(*) FROM tbltasks WHERE email = ? AND status != 'Draft'",
+    'progress'         => "SELECT COUNT(*) FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND email = ?",
+    'unconfirmed'      => "SELECT COUNT(*) FROM tbltasks WHERE is_deleted = 0 AND is_confirmed = 1 AND email = ?",
+    'submitted2'       => "SELECT COUNT(*) FROM tbltasks WHERE is_deleted = 0 AND status = 'Submitted' AND email = ?",
+    'completed'        => "SELECT COUNT(*) FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND email = ?",
+    'cancelled'        => "SELECT COUNT(*) FROM tbltasks WHERE is_deleted = 1 AND email = ?",
+    'paid'             => "SELECT COUNT(*) FROM tbltasks WHERE is_deleted = 0 AND is_paid = 1 AND email = ?",
+    'unpaid'           => "SELECT COUNT(*) FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed' AND email = ?",
+];
+foreach ($idxCountDefs as $key => $sql) {
+    $s = $con->prepare($sql);
+    $s->bind_param('s', $aid);
+    $s->execute();
+    $idxCounts[$key] = $s->get_result()->fetch_row()[0] ?? 0;
+}
+
+// Precompute dashboard totals
+$sTotal = $con->prepare("SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE is_deleted = 0 AND is_paid = 1 AND email = ?");
+$sTotal->bind_param('s', $aid); $sTotal->execute();
+$idxPaidTotal = (float) ($sTotal->get_result()->fetch_assoc()['total'] ?? 0);
+
+$sUnpaid = $con->prepare("SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed' AND email = ?");
+$sUnpaid->bind_param('s', $aid); $sUnpaid->execute();
+$idxUnpaidTotal = (float) ($sUnpaid->get_result()->fetch_assoc()['total'] ?? 0);
+
 $sql = "SELECT * FROM tblwriters WHERE email=:aid";
 $query = $dbh->prepare($sql);
 $query->bindParam(':aid', $aid, PDO::PARAM_STR);
@@ -69,40 +100,31 @@ if ($rowWriter->is_verified == 1) {
                                 <div class="pe-3">
                                     <p class="text-900 fs-10 fw-medium">Tasks due Today</p>
                                     <?php
-                                    $todayTasks = "";
-                                    // Added condition to filter tasks posted today
-                                    $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND DATE(due_date) <= CURDATE() AND status ='In Progress' AND email = '$aid'";
-                                    $result = mysqli_query($con, $query);
-                                    if ($result) {
-                                        $rowWriter = mysqli_fetch_assoc($result);
-                                        $count = $rowWriter['taskCount'];
-                                        if ($count > 0) {
-                                            $todayTasks = $count; // Set the count to output variable
-                                        } else {
-                                            $todayTasks = "0"; // Set "0" if count is 0
-                                        }
-                                    } else {
-                                        $todayTasks = "No data"; // Set "No Data" if query fails
-                                    }
+                                    $s = $con->prepare("SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND DATE(due_date) <= CURDATE() AND status = 'In Progress' AND email = ?");
+                                    $s->bind_param('s', $aid);
+                                    $s->execute();
+                                    $count = $s->get_result()->fetch_assoc()['taskCount'];
+                                    $todayTasks = $count > 0 ? $count : "0";
                                     ?>
                                     <h5 class="text-800 mb-0"><span class="badge rounded-pill badge-subtle-success"><?php echo $todayTasks; ?></span></h5>
                                 </div>
                                 <div class="ps-3">
                                     <p class="text-900 fs-10">Total Amount Due (completed tasks)</p>
                                     <?php
-                                    // Query to sum CPP*pages for completed, unpaid tasks
-                                    $query1 = mysqli_query($con, "SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed' AND email = '$aid'");
-                                    $result1 = mysqli_fetch_assoc($query1);
-                                    $totalCompletedTasks = (float) $result1['total']; // Cast to float to ensure arithmetic operation
+                                    // Sum CPP*pages for completed, unpaid tasks
+                                    $s1 = $con->prepare("SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed' AND email = ?");
+                                    $s1->bind_param('s', $aid); $s1->execute();
+                                    $totalCompletedTasks = (float) ($s1->get_result()->fetch_assoc()['total'] ?? 0);
 
-                                    // Query to sum amount from tbloverdrafts
-                                    $query2 = mysqli_query($con, "SELECT SUM(amount) AS total FROM tbloverdrafts WHERE is_deleted = 0 AND is_settled = 0 AND record_type = 'overdraft' AND description = 'iTasker' AND email = '$aid'");
-                                    $result2 = mysqli_fetch_assoc($query2);
-                                    $totalOverdrafts = (float) $result2['total']; // Cast to float to ensure arithmetic operation
+                                    // Sum overdrafts
+                                    $s2 = $con->prepare("SELECT SUM(amount) AS total FROM tbloverdrafts WHERE is_deleted = 0 AND is_settled = 0 AND record_type = 'overdraft' AND description = 'iTasker' AND email = ?");
+                                    $s2->bind_param('s', $aid); $s2->execute();
+                                    $totalOverdrafts = (float) ($s2->get_result()->fetch_assoc()['total'] ?? 0);
 
-                                    $bonus_query = mysqli_query($con, "SELECT SUM(amount) AS total FROM tbloverdrafts WHERE is_settled = 0 AND is_deleted = 0 AND record_type = 'bonus' AND description = 'Performance Bonus' AND email = '$aid'");
-                                    $result3 = mysqli_fetch_assoc($bonus_query);
-                                    $totalBonuses = (float) $result3['total'];
+                                    // Sum bonuses
+                                    $s3 = $con->prepare("SELECT SUM(amount) AS total FROM tbloverdrafts WHERE is_settled = 0 AND is_deleted = 0 AND record_type = 'bonus' AND description = 'Performance Bonus' AND email = ?");
+                                    $s3->bind_param('s', $aid); $s3->execute();
+                                    $totalBonuses = (float) ($s3->get_result()->fetch_assoc()['total'] ?? 0);
 
                                     $amount_due = $totalCompletedTasks + $totalBonuses - $totalOverdrafts;
                                     ?>
@@ -112,16 +134,13 @@ if ($rowWriter->is_verified == 1) {
                                 <div class="ps-3">
                                     <p class="text-900 fs-10">Invoice last updated</p>
                                     <?php
-                                // Sanitize the email
-                                    $aid = mysqli_real_escape_string($con, $aid);
+                                    $invStmt = $con->prepare("SELECT created_at FROM tbloverdrafts WHERE is_deleted = 0 AND description = 'iTasker' AND email = ? ORDER BY created_at DESC LIMIT 1");
+                                    $invStmt->bind_param('s', $aid);
+                                    $invStmt->execute();
+                                    $invResult = $invStmt->get_result();
 
-                                    $query = mysqli_query($con, "SELECT created_at FROM tbloverdrafts 
-                                    WHERE is_deleted = 0 AND description = 'iTasker' AND email = '$aid' 
-                                    ORDER BY created_at DESC 
-                                    LIMIT 1");
-
-                                    if($query) {
-                                        $row = mysqli_fetch_assoc($query);
+                                    if($invResult) {
+                                        $row = $invResult->fetch_assoc();
                                         ?>
                                         <h5 class="text-800 mb-0">
                                             <a href="invoice-logs" class="text-decoration-none" title="View all invoices">
@@ -158,24 +177,19 @@ if ($rowWriter->is_verified == 1) {
                                                 echo $renderAgo($row["created_at"]);
                                             } else {
                                                 // Fallback: check tbl_invoice_logs for the latest sent invoice to this writer
-                                                $writerNameRes = mysqli_query(
-                                                    $con,
-                                                    "SELECT username FROM tblwriters WHERE email = '$aid' AND is_deleted = 0 LIMIT 1"
-                                                );
-                                                $writerNameRow = $writerNameRes ? mysqli_fetch_assoc($writerNameRes) : null;
+                                                $wStmt = $con->prepare("SELECT username FROM tblwriters WHERE email = ? AND is_deleted = 0 LIMIT 1");
+                                                $wStmt->bind_param('s', $aid);
+                                                $wStmt->execute();
+                                                $writerNameRow = $wStmt->get_result()->fetch_assoc();
                                                 $writerName = $writerNameRow['username'] ?? '';
 
                                                 $invoiceFound = false;
                                                 if ($writerName !== '') {
-                                                    $safeWriter = mysqli_real_escape_string($con, $writerName);
-                                                    $invQuery = mysqli_query(
-                                                        $con,
-                                                        "SELECT sent_at FROM tbl_invoice_logs
-                                                                 WHERE writer_name = '$safeWriter'
-                                                                 ORDER BY sent_at DESC
-                                                                 LIMIT 1"
-                                                    );
-                                                    if ($invQuery && ($invRow = mysqli_fetch_assoc($invQuery))) {
+                                                    $iStmt = $con->prepare("SELECT sent_at FROM tbl_invoice_logs WHERE writer_name = ? ORDER BY sent_at DESC LIMIT 1");
+                                                    $iStmt->bind_param('s', $writerName);
+                                                    $iStmt->execute();
+                                                    $invRow = $iStmt->get_result()->fetch_assoc();
+                                                    if ($invRow) {
                                                         echo $renderAgo($invRow['sent_at']);
                                                         $invoiceFound = true;
                                                     }
@@ -214,20 +228,7 @@ if ($rowWriter->is_verified == 1) {
                             </li>
                             <?php endif; ?>
                             <?php
-                            $allUnpaid = "";
-                            $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed' AND email = '$aid'";
-                            $result = mysqli_query($con, $query);
-                            if ($result) {
-                                $rowWriter = mysqli_fetch_assoc($result);
-                                $count = $rowWriter['taskCount'];
-                                if ($count > 0) {
-                                    $allUnpaid = $count; // Set the count to output variable
-                                } else {
-                                    $allUnpaid = "0"; // Set "0" if count is 0
-                                }
-                            } else {
-                                $allUnpaid = "No data"; // Set "No Data" if query fails
-                            }
+                            $allUnpaid = $idxCounts['unpaid_completed'] ?? 0;
                             ?>
                             <?php if ($allUnpaid >= 1): ?>
                             <li class="list-group-item mb-0 rounded-0 py-3 px-x1 list-group-item-primary text-700 border-x-0 border-top-0">
@@ -243,20 +244,7 @@ if ($rowWriter->is_verified == 1) {
                             </li>
                             <?php endif; ?>
                             <?php
-                            $allSubmitted = "";
-                            $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Submitted' AND email = '$aid'";
-                            $result = mysqli_query($con, $query);
-                            if ($result) {
-                                $rowWriter = mysqli_fetch_assoc($result);
-                                $count = $rowWriter['taskCount'];
-                                if ($count > 0) {
-                                    $allSubmitted = $count; // Set the count to output variable
-                                } else {
-                                    $allSubmitted = "0"; // Set "0" if count is 0
-                                }
-                            } else {
-                                $allSubmitted = "No data"; // Set "No Data" if query fails
-                            }
+                            $allSubmitted = $idxCounts['submitted'] ?? 0;
                             ?>
                             <?php if ($allSubmitted >= 1): ?>
                             <li class="list-group-item mb-0 rounded-0 py-3 px-x1 list-group-item-primary text-700 border-x-0 border-top-0">
@@ -287,20 +275,7 @@ if ($rowWriter->is_verified == 1) {
 
             <div class="card-body position-relative">
                 <?php
-                $allTasks = "";
-                $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE email = '$aid'  AND status != 'Draft' ";
-                $result = mysqli_query($con, $query);
-                if ($result) {
-                    $rowWriter = mysqli_fetch_assoc($result);
-                    $count = $rowWriter['taskCount'];
-                    if ($count > 0) {
-                        $allTasks = $count; // Set the count to output variable
-                    } else {
-                        $allTasks = "0"; // Set "0" if count is 0
-                    }
-                } else {
-                    $allTasks = "No data"; // Set "No Data" if query fails
-                }
+                $allTasks = $idxCounts['all'] ?? 0;
                 ?>
                 <h6>All Tasks</h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-warning" data-countup='{"endValue":<?php echo $allTasks; ?>,"decimalPlaces":0}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-warning" href="all-tasks">See tasks<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
@@ -315,20 +290,7 @@ if ($rowWriter->is_verified == 1) {
 
             <div class="card-body position-relative">
                 <?php
-                $allProgress = "";
-                $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND email = '$aid'";
-                $result = mysqli_query($con, $query);
-                if ($result) {
-                    $rowWriter = mysqli_fetch_assoc($result);
-                    $count = $rowWriter['taskCount'];
-                    if ($count > 0) {
-                        $allProgress = $count; // Set the count to output variable
-                    } else {
-                        $allProgress = "0"; // Set "0" if count is 0
-                    }
-                } else {
-                    $allProgress = "No data"; // Set "No Data" if query fails
-                }
+                $allProgress = $idxCounts['progress'] ?? 0;
                 ?>
                 <h6>Tasks in progress</h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $allProgress; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-info" href="tasks-in-progress">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
@@ -343,20 +305,7 @@ if ($rowWriter->is_verified == 1) {
 
             <div class="card-body position-relative">
                 <?php
-                $allUnconfirmed = "";
-                $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND is_confirmed = 1 AND email = '$aid'";
-                $result = mysqli_query($con, $query);
-                if ($result) {
-                    $rowWriter = mysqli_fetch_assoc($result);
-                    $count = $rowWriter['taskCount'];
-                    if ($count > 0) {
-                        $allUnconfirmed = $count; // Set the count to output variable
-                    } else {
-                        $allUnconfirmed = "0"; // Set "0" if count is 0
-                    }
-                } else {
-                    $allUnconfirmed = "No data"; // Set "No Data" if query fails
-                }
+                $allUnconfirmed = $idxCounts['unconfirmed'] ?? 0;
                 ?>
                 <h6>Unconfirmed Tasks</h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $allUnconfirmed; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap" href="unconfirmed">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
@@ -373,20 +322,7 @@ if ($rowWriter->is_verified == 1) {
 
                 <div class="card-body position-relative">
                     <?php
-                    $allSubmitted = "";
-                    $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Submitted' AND email = '$aid'";
-                    $result = mysqli_query($con, $query);
-                    if ($result) {
-                        $rowWriter = mysqli_fetch_assoc($result);
-                        $count = $rowWriter['taskCount'];
-                        if ($count > 0) {
-                            $allSubmitted = $count; // Set the count to output variable
-                        } else {
-                            $allSubmitted = "0"; // Set "0" if count is 0
-                        }
-                    } else {
-                        $allSubmitted = "No data"; // Set "No Data" if query fails
-                    }
+                    $allSubmitted = $idxCounts['submitted2'] ?? 0;
                     ?>
                     <h6>Submitted Tasks</h6>
                     <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-warning" data-countup='{"endValue":<?php echo $allSubmitted; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-warning" href="submitted-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
@@ -401,20 +337,7 @@ if ($rowWriter->is_verified == 1) {
 
                 <div class="card-body position-relative">
                     <?php
-                    $allCompleted = "";
-                    $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND email = '$aid'";
-                    $result = mysqli_query($con, $query);
-                    if ($result) {
-                        $rowWriter = mysqli_fetch_assoc($result);
-                        $count = $rowWriter['taskCount'];
-                        if ($count > 0) {
-                            $allCompleted = $count; // Set the count to output variable
-                        } else {
-                            $allCompleted = "0"; // Set "0" if count is 0
-                        }
-                    } else {
-                        $allCompleted = "No data"; // Set "No Data" if query fails
-                    }
+                    $allCompleted = $idxCounts['completed'] ?? 0;
                     ?>
                     <h6>Completed Tasks</h6>
                     <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $allCompleted; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-info" href="completed-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
@@ -429,20 +352,7 @@ if ($rowWriter->is_verified == 1) {
 
                 <div class="card-body position-relative">
                     <?php
-                    $allCancelled = "";
-                    $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 1 AND email = '$aid'";
-                    $result = mysqli_query($con, $query);
-                    if ($result) {
-                        $rowWriter = mysqli_fetch_assoc($result);
-                        $count = $rowWriter['taskCount'];
-                        if ($count > 0) {
-                            $allCancelled = $count; // Set the count to output variable
-                        } else {
-                            $allCancelled = "0"; // Set "0" if count is 0
-                        }
-                    } else {
-                        $allCancelled = "No data"; // Set "No Data" if query fails
-                    }
+                    $allCancelled = $idxCounts['cancelled'] ?? 0;
                     ?>
                     <h6>Cancelled Tasks</h6>
                     <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-primary" data-countup='{"endValue":<?php echo $allCancelled; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-primary" href="cancelled-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
@@ -459,20 +369,7 @@ if ($rowWriter->is_verified == 1) {
 
             <div class="card-body position-relative">
                 <?php
-                $allPaid = "";
-                $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND is_paid = 1 AND email = '$aid'";
-                $result = mysqli_query($con, $query);
-                if ($result) {
-                    $rowWriter = mysqli_fetch_assoc($result);
-                    $count = $rowWriter['taskCount'];
-                    if ($count > 0) {
-                        $allPaid = $count; // Set the count to output variable
-                    } else {
-                        $allPaid = "0"; // Set "0" if count is 0
-                    }
-                } else {
-                    $allPaid = "No data"; // Set "No Data" if query fails
-                }
+                $allPaid = $idxCounts['paid'] ?? 0;
                 ?>
                 <h6>Paid Tasks</h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-warning" data-countup='{"endValue":<?php echo $allPaid; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-warning" href="paid-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
@@ -487,20 +384,7 @@ if ($rowWriter->is_verified == 1) {
 
             <div class="card-body position-relative">
                 <?php
-                $allUnpaid = "";
-                $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed'  AND email = '$aid'";
-                $result = mysqli_query($con, $query);
-                if ($result) {
-                    $rowWriter = mysqli_fetch_assoc($result);
-                    $count = $rowWriter['taskCount'];
-                    if ($count > 0) {
-                        $allUnpaid = $count; // Set the count to output variable
-                    } else {
-                        $allUnpaid = "0"; // Set "0" if count is 0
-                    }
-                } else {
-                    $allUnpaid = "No data"; // Set "No Data" if query fails
-                }
+                $allUnpaid = $idxCounts['unpaid'] ?? 0;
                 ?>
                 <h6>Unpaid Tasks</h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-info" data-countup='{"endValue":<?php echo $allUnpaid; ?>}'>0</div><a class="fw-semi-bold fs-10 text-nowrap text-info" href="unpaid-tasks">See all<span class="fas fa-angle-right ms-1" data-fa-transform="down-1"></span></a>
@@ -515,31 +399,19 @@ if ($rowWriter->is_verified == 1) {
 
             <div class="card-body position-relative">
                 <?php
-                $totalPaidFormatted = "No data"; // Default message if the query fails
-                $totalPaidRaw = 0; // Raw total for JavaScript
-                $totalPaidShortened = "0"; // Shortened version
-                $query = mysqli_query($con, "SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE is_deleted = 0 AND is_paid = 1 AND email = '$aid'");
-                if ($query) {
-                    $rowWriter = mysqli_fetch_array($query);
-                    if ($rowWriter && $rowWriter['total'] !== null) {
-                        $totalPaidRaw = $rowWriter['total']; // Keep the raw total
-                        $totalPaidFormatted = 'Ksh. ' . number_format($rowWriter['total'], 2);
-
-                        // Create shortened version
-                        if ($totalPaidRaw >= 1000000) {
-                            $totalPaidShortened = 'Ksh. ' . number_format($totalPaidRaw / 1000000, 2) . 'M';
-                        } elseif ($totalPaidRaw >= 1000) {
-                            $totalPaidShortened = 'Ksh. ' . number_format($totalPaidRaw / 1000, 2) . 'K';
-                        } else {
-                            $totalPaidShortened = 'Ksh. ' . number_format($totalPaidRaw, 2);
-                        }
+                $totalPaidRaw = $idxPaidTotal;
+                if ($totalPaidRaw > 0) {
+                    $totalPaidFormatted = 'Ksh. ' . number_format($totalPaidRaw, 2);
+                    if ($totalPaidRaw >= 1000000) {
+                        $totalPaidShortened = 'Ksh. ' . number_format($totalPaidRaw / 1000000, 2) . 'M';
+                    } elseif ($totalPaidRaw >= 1000) {
+                        $totalPaidShortened = 'Ksh. ' . number_format($totalPaidRaw / 1000, 2) . 'K';
                     } else {
-                        $totalPaidFormatted = 'Ksh. 0.00';
-                        $totalPaidShortened = 'Ksh. 0.00';
+                        $totalPaidShortened = 'Ksh. ' . number_format($totalPaidRaw, 2);
                     }
                 } else {
-                    $totalPaidFormatted = "Error: " . mysqli_error($con);
-                    $totalPaidShortened = "Error";
+                    $totalPaidFormatted = 'Ksh. 0.00';
+                    $totalPaidShortened = 'Ksh. 0.00';
                 }
                 ?>
                 <h6>Total Paid Amount</h6>
@@ -562,20 +434,8 @@ if ($rowWriter->is_verified == 1) {
 
             <div class="card-body position-relative">
                 <?php
-                $totalUnPaidFormatted = "No data"; // Default message if the query fails
-                $totalUnPaidRaw = 0; // Raw total for JavaScript
-                $query = mysqli_query($con, "select sum(CPP*pages) as total  from tbltasks  WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed' AND email = '$aid'");
-                if ($query) {
-                    $rowWriter = mysqli_fetch_array($query);
-                    if ($rowWriter && $rowWriter['total'] !== null) {
-                        $totalUnPaidRaw = $rowWriter['total']; // Keep the raw total
-                        $totalUnPaidFormatted = 'Ksh. ' . number_format($rowWriter['total'], 2);
-                    } else {
-                        $totalUnPaidFormatted = 'Ksh. 0.00';
-                    }
-                } else {
-                    $totalUnPaidFormatted = "Error: " . mysqli_error($con);
-                }
+                $totalUnPaidRaw = $idxUnpaidTotal;
+                $totalUnPaidFormatted = $totalUnPaidRaw > 0 ? 'Ksh. ' . number_format($totalUnPaidRaw, 2) : 'Ksh. 0.00';
                 ?>
                 <h6>Total Unpaid Amount</h6>
                 <div class="display-4 fs-5 mb-2 fw-normal font-sans-serif text-warning" data-countup='{"endValue":<?php echo $totalUnPaidRaw; ?>,"decimalPlaces":2,"prefix":"Ksh. "}'>0</div>

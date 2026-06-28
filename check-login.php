@@ -12,6 +12,9 @@ include('dbcon.php');
 include('functions.php');
 require_once 'session_tracker.php';
 
+// Initialise CSRF token once per session
+csrf_token();
+
 $self = $_SERVER["PHP_SELF"];
 $allowed_pages = ['login.php', 'reset-password.php', 'forgot-password.php'];
 

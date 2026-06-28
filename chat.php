@@ -10,13 +10,14 @@ if (isset($_SESSION['sessionWriter'])) {
 }
 
 // Fetch current user information
-$currentUserQuery = mysqli_query($con, "
-    SELECT id, 'admin' as type, is_online, last_seen FROM tbladmin WHERE email = '$aid'
-    UNION 
-    SELECT id, 'writer' as type, is_online, last_seen FROM tblwriters WHERE email = '$aid'
+$userStmt = $con->prepare("
+    SELECT id, 'admin' as type, is_online, last_seen FROM tbladmin WHERE email = ?
+    UNION
+    SELECT id, 'writer' as type, is_online, last_seen FROM tblwriters WHERE email = ?
 ");
-
-$currentUser = mysqli_fetch_assoc($currentUserQuery);
+$userStmt->bind_param('ss', $aid, $aid);
+$userStmt->execute();
+$currentUser = $userStmt->get_result()->fetch_assoc();
 $currentUserId = $currentUser['id'];
 $currentUserType = $currentUser['type'];
 $isOnline = $currentUser['is_online'];
@@ -28,9 +29,11 @@ $statusText = $isOnline ? 'Online' : ($lastSeen ? 'Last seen ' . date('M j, Y, g
 // Fetch users for chat excluding the current user
 $users = [];
 if ($currentUserType == 'writer') {
-    // Fetch only admins if the current user is a writer
-    $adminsQuery = mysqli_query($con, "SELECT id, username, Photo, is_online, last_seen FROM tbladmin WHERE id != $currentUserId");
-    while ($admin = mysqli_fetch_assoc($adminsQuery)) {
+    $adminsStmt = $con->prepare("SELECT id, username, Photo, is_online, last_seen FROM tbladmin WHERE id != ?");
+    $adminsStmt->bind_param('i', $currentUserId);
+    $adminsStmt->execute();
+    $adminsResult = $adminsStmt->get_result();
+    while ($admin = $adminsResult->fetch_assoc()) {
         $users[] = [
             'id' => $admin['id'],
             'username' => $admin['username'],
@@ -45,16 +48,18 @@ if ($currentUserType == 'writer') {
 // Get the latest message for each user and sort by timestamp
 foreach ($users as &$user) {
     $userId = $user['id'];
-    $latestMessageQuery = mysqli_query($con, "
-        SELECT message, timestamp, is_read FROM chat_messages 
-        WHERE (sender_id = $userId AND receiver_id = $currentUserId)
-           OR (receiver_id = $userId AND sender_id = $currentUserId)
+    $msgStmt = $con->prepare("
+        SELECT message, timestamp, is_read FROM chat_messages
+        WHERE (sender_id = ? AND receiver_id = ?)
+           OR (receiver_id = ? AND sender_id = ?)
         ORDER BY timestamp DESC LIMIT 1
     ");
-    $latestMessage = mysqli_fetch_assoc($latestMessageQuery);
+    $msgStmt->bind_param('iiii', $userId, $currentUserId, $userId, $currentUserId);
+    $msgStmt->execute();
+    $latestMessage = $msgStmt->get_result()->fetch_assoc();
     $user['latest_message'] = $latestMessage ? $latestMessage['message'] : "No messages yet.";
     $user['latest_message_time'] = $latestMessage ? $latestMessage['timestamp'] : null;
-    $user['is_read'] = $latestMessage ? $latestMessage['is_read'] : 1; // default to read if no message
+    $user['is_read'] = $latestMessage ? $latestMessage['is_read'] : 1;
 }
 
 // Sort users by latest message timestamp in descending order
@@ -73,6 +78,7 @@ usort($users, function($a, $b) {
             </div>
             <div class="col-lg-auto pt-3 pt-lg-0">
                 <form class="row flex-lg-column flex-xxl-row gx-3 gy-2 align-items-center align-items-lg-start align-items-xxl-center">
+<?= csrf_field() ?>
                     <div class="col-auto">
                     </div>
                     <div class="col-md-auto position-relative">
@@ -122,6 +128,7 @@ usort($users, function($a, $b) {
                 </div>
             </div>
             <form class="contacts-search-wrapper">
+<?= csrf_field() ?>
                 <div class="form-group mb-0 position-relative d-md-none d-lg-block w-100 h-100">
                     <input class="form-control form-control-sm chat-contacts-search border-0 h-100" type="text" placeholder="Search contacts ..." /><span class="fas fa-search contacts-search-icon"></span>
                 </div>
@@ -160,6 +167,7 @@ usort($users, function($a, $b) {
                 </div>
             <?php endforeach; ?>
             <form class="chat-editor-area" method="post" action="send_message" enctype="multipart/form-data" onsubmit="return submitMessage();">
+<?= csrf_field() ?>
                 <div class="emojiarea-editor outline-none scrollbar" contenteditable="true" id="messageInput"></div>
                 <input type="hidden" name="message" id="messageField">
                 <input type="hidden" name="receiver_id" id="receiverIdField">

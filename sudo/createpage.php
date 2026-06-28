@@ -10,13 +10,14 @@ if (isset($_SESSION['sessionWriter'])) {
 }
 
 // Fetch current user information
-$currentUserQuery = mysqli_query($con, "
-    SELECT id, 'admin' as type, is_online, last_seen FROM tbladmin WHERE email = '$aid'
-    UNION 
-    SELECT id, 'writer' as type, is_online, last_seen FROM tblwriters WHERE email = '$aid'
+$userStmt = $con->prepare("
+    SELECT id, 'admin' as type, is_online, last_seen FROM tbladmin WHERE email = ?
+    UNION
+    SELECT id, 'writer' as type, is_online, last_seen FROM tblwriters WHERE email = ?
 ");
-
-$currentUser = mysqli_fetch_assoc($currentUserQuery);
+$userStmt->bind_param('ss', $aid, $aid);
+$userStmt->execute();
+$currentUser = $userStmt->get_result()->fetch_assoc();
 $currentUserId = $currentUser['id'];
 $currentUserType = $currentUser['type'];
 $isOnline = $currentUser['is_online'];

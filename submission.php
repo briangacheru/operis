@@ -102,6 +102,7 @@ $confirmation = "<span class='badge $confirmationClass'>$confirmationText</span>
                 </div>
                 <div class="col-lg-auto pt-3 pt-lg-0">
                     <form class="row flex-lg-column flex-xxl-row gx-3 gy-2 align-items-center align-items-lg-start align-items-xxl-center">
+<?= csrf_field() ?>
                         <div class="col-auto">
                         </div>
                         <div class="col-md-auto position-relative">
@@ -447,6 +448,7 @@ if (isset($_SESSION['alert'])) {
 
     <div id="alertPlaceholder"></div>
     <form class="needs-validation" novalidate="novalidate" id="taskForm" method="post" action="submission_upload" enctype="multipart/form-data">
+<?= csrf_field() ?>
         <div class="card mb-3" id="filesSubmission">
             <div class="card-header bg-body-tertiary">
                 <h6 class="mb-0">Submit file(s)</h6>

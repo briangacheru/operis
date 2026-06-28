@@ -17,8 +17,11 @@ $output = fopen('php://output', 'w');
 // Output the column headings
 fputcsv($output, array('Task #', 'Topic', 'Pages', 'CPP', 'Amount', 'Status'));
 
-$query=mysqli_query($con,"select * from tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND is_paid = 0 AND email = '$aid' ORDER BY id DESC");
-while ($row = mysqli_fetch_assoc($query)) {
+$stmt = $con->prepare("SELECT * FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND is_paid = 0 AND email = ? ORDER BY id DESC");
+$stmt->bind_param('s', $aid);
+$stmt->execute();
+$query = $stmt->get_result();
+while ($row = $query->fetch_assoc()) {
     $totalprice = $row["cpp"] * $row["pages"];
     $status = $row["status"]; // Simplified for CSV
     $is_paid = ($row['is_paid'] == 1) ? 'Paid' : 'Unpaid';

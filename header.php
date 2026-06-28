@@ -10,15 +10,38 @@ if (isset($_SESSION['sessionWriter'])) {
 }
 
 // Fetch userID from the database using the email stored in the session
-$userQuery = mysqli_query($con, "SELECT id FROM tblwriters WHERE email = '$aid'");
-$userResult = mysqli_fetch_assoc($userQuery);
-$userID = $userResult['id']; // Get the userID
+$userStmt = $con->prepare("SELECT id FROM tblwriters WHERE email = ?");
+$userStmt->bind_param('s', $aid);
+$userStmt->execute();
+$userID = $userStmt->get_result()->fetch_assoc()['id'];
+
+// Precompute task counts for nav badges
+$headerCounts = [];
+$countDefs = [
+    'all'        => "SELECT COUNT(*) FROM tbltasks WHERE email = ? AND status != 'Draft'",
+    'unconfirmed'=> "SELECT COUNT(*) FROM tbltasks WHERE is_deleted = 0 AND is_confirmed = 1 AND email = ?",
+    'progress'   => "SELECT COUNT(*) FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND email = ?",
+    'revision'   => "SELECT COUNT(*) FROM tbltasks WHERE is_deleted = 0 AND status = 'In Revision' AND email = ?",
+    'submitted'  => "SELECT COUNT(*) FROM tbltasks WHERE is_deleted = 0 AND status = 'Submitted' AND email = ?",
+    'completed'  => "SELECT COUNT(*) FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND email = ?",
+    'unpaid'     => "SELECT COUNT(*) FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed' AND email = ?",
+    'paid'       => "SELECT COUNT(*) FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND is_paid = 1 AND email = ?",
+];
+foreach ($countDefs as $key => $sql) {
+    $s = $con->prepare($sql);
+    $s->bind_param('s', $aid);
+    $s->execute();
+    $headerCounts[$key] = $s->get_result()->fetch_row()[0] ?? 0;
+}
 
 // Query to fetch unread messages details by userID
-$unreadMessagesQuery = mysqli_query($con, "SELECT * FROM chat_messages WHERE is_read = 0 AND receiver_id = '$userID' ORDER BY timestamp ASC");
+$msgStmt = $con->prepare("SELECT * FROM chat_messages WHERE is_read = 0 AND receiver_id = ? ORDER BY timestamp ASC");
+$msgStmt->bind_param('i', $userID);
+$msgStmt->execute();
+$unreadMessagesQuery = $msgStmt->get_result();
 
 $unreadMessages = []; // Initialize array to hold unread messages data
-while ($message = mysqli_fetch_assoc($unreadMessagesQuery)) {
+while ($message = $unreadMessagesQuery->fetch_assoc()) {
     $unreadMessages[] = $message; // Add each unread message to the array
 }
 
@@ -189,117 +212,33 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                             </div>
                             <!-- parent pages--><a class="nav-link" href="all-tasks" role="button">
                                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-database"></span></span><span class="nav-link-text ps-1">All Tasks</span>
-                                    <span class="badge rounded-pill ms-2 badge-subtle-success"><?php
-                                        // Query to count tasks where is_deleted = 0
-                                        $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE email = '$aid' AND status != 'Draft'  ";
-                                        $result = mysqli_query($con, $query);
-                                        if ($result) {
-                                            $row = mysqli_fetch_assoc($result);
-                                            $count = $row['taskCount'];
-                                            // Check if count is greater than 0
-                                            if ($count > 0) {
-                                                echo $count; // Display the count
-                                            } else {
-                                                echo "0"; // Display "No Data" if count is 0
-                                            }
-                                        }
-                                        ?></span>
+                                    <span class="badge rounded-pill ms-2 badge-subtle-success"><?=  ?? 0 ?></span>
                                 </div>
                             </a>
 
                             <!-- parent pages--><a class="nav-link" href="unconfirmed" role="button">
                                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-question-circle"></span></span><span class="nav-link-text ps-1">Unconfirmed</span>
-                                    <span class="badge rounded-pill ms-2 badge-subtle-primary"><?php
-                                        // Query to count tasks where is_deleted = 0
-                                        $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND is_confirmed = 1 AND email = '$aid'";
-                                        $result = mysqli_query($con, $query);
-                                        if ($result) {
-                                            $row = mysqli_fetch_assoc($result);
-                                            $count = $row['taskCount'];
-                                            // Check if count is greater than 0
-                                            if ($count > 0) {
-                                                echo $count; // Display the count
-                                            } else {
-                                                echo "0"; // Display "No Data" if count is 0
-                                            }
-                                        }
-                                        ?></span>
+                                    <span class="badge rounded-pill ms-2 badge-subtle-primary"><?= $headerCounts['unconfirmed'] ?? 0 ?></span>
                                 </div>
                             </a>
                             <!-- parent pages--><a class="nav-link" href="tasks-in-progress" role="button">
                                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-spinner"></span></span><span class="nav-link-text ps-1">In Progress</span>
-                                    <span class="badge rounded-pill ms-2 badge-subtle-warning"><?php
-                                        // Query to count tasks where is_deleted = 0
-                                        $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND email = '$aid'";
-                                        $result = mysqli_query($con, $query);
-                                        if ($result) {
-                                            $row = mysqli_fetch_assoc($result);
-                                            $count = $row['taskCount'];
-                                            // Check if count is greater than 0
-                                            if ($count > 0) {
-                                                echo $count; // Display the count
-                                            } else {
-                                                echo "0"; // Display "No Data" if count is 0
-                                            }
-                                        }
-                                        ?></span>
+                                    <span class="badge rounded-pill ms-2 badge-subtle-warning"><?= $headerCounts['progress'] ?? 0 ?></span>
                                 </div>
                             </a>
                             <!-- parent pages--><a class="nav-link" href="tasks-in-revision" role="button">
                                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-flag"></span></span><span class="nav-link-text ps-1">In Revision</span>
-                                    <span class="badge rounded-pill ms-2 badge-subtle-primary"><?php
-                                        // Query to count tasks where is_deleted = 0
-                                        $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'In Revision'  AND email = '$aid'";
-                                        $result = mysqli_query($con, $query);
-                                        if ($result) {
-                                            $row = mysqli_fetch_assoc($result);
-                                            $count = $row['taskCount'];
-                                            // Check if count is greater than 0
-                                            if ($count > 0) {
-                                                echo $count; // Display the count
-                                            } else {
-                                                echo "0"; // Display "No Data" if count is 0
-                                            }
-                                        }
-                                        ?></span>
+                                    <span class="badge rounded-pill ms-2 badge-subtle-primary"><?= $headerCounts['revision'] ?? 0 ?></span>
                                 </div>
                             </a>
                             <!-- parent pages--><a class="nav-link" href="submitted-tasks" role="button">
                                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-check"></span></span><span class="nav-link-text ps-1">Submitted</span>
-                                    <span class="badge rounded-pill ms-2 badge-subtle-info"><?php
-                                        // Query to count tasks where is_deleted = 0
-                                        $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Submitted' AND email = '$aid'";
-                                        $result = mysqli_query($con, $query);
-                                        if ($result) {
-                                            $row = mysqli_fetch_assoc($result);
-                                            $count = $row['taskCount'];
-                                            // Check if count is greater than 0
-                                            if ($count > 0) {
-                                                echo $count; // Display the count
-                                            } else {
-                                                echo "0"; // Display "No Data" if count is 0
-                                            }
-                                        }
-                                        ?></span>
+                                    <span class="badge rounded-pill ms-2 badge-subtle-info"><?= $headerCounts['submitted'] ?? 0 ?></span>
                                 </div>
                             </a>
                             <!-- parent pages--><a class="nav-link" href="completed-tasks" role="button">
                                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fas fa-check-double"></span></span><span class="nav-link-text ps-1">Completed</span>
-                                    <span class="badge rounded-pill ms-2 badge-subtle-success"><?php
-                                        // Query to count tasks where is_deleted = 0
-                                        $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND email = '$aid'";
-                                        $result = mysqli_query($con, $query);
-                                        if ($result) {
-                                            $row = mysqli_fetch_assoc($result);
-                                            $count = $row['taskCount'];
-                                            // Check if count is greater than 0
-                                            if ($count > 0) {
-                                                echo $count; // Display the count
-                                            } else {
-                                                echo "0"; // Display "No Data" if count is 0
-                                            }
-                                        }
-                                        ?></span>
+                                    <span class="badge rounded-pill ms-2 badge-subtle-success"><?= $headerCounts['completed'] ?? 0 ?></span>
                                 </div>
                             </a>
 
@@ -331,40 +270,12 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                             </div>
                             <!-- parent pages--><a class="nav-link" href="unpaid-tasks" role="button">
                                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="fab fa-creative-commons-nc"></span></span><span class="nav-link-text ps-1">Unpaid</span>
-                                    <span class="badge rounded-pill ms-2 badge-subtle-warning"><?php
-                                        // Query to count tasks where is_deleted = 0
-                                        $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND is_paid = 0 AND status = 'Completed' AND email = '$aid'";
-                                        $result = mysqli_query($con, $query);
-                                        if ($result) {
-                                            $row = mysqli_fetch_assoc($result);
-                                            $count = $row['taskCount'];
-                                            // Check if count is greater than 0
-                                            if ($count > 0) {
-                                                echo $count; // Display the count
-                                            } else {
-                                                echo "0"; // Display "No Data" if count is 0
-                                            }
-                                        }
-                                        ?></span>
+                                    <span class="badge rounded-pill ms-2 badge-subtle-warning"><?= $headerCounts['unpaid'] ?? 0 ?></span>
                                 </div>
                             </a>
                             <!-- parent pages--><a class="nav-link" href="paid-tasks" role="button">
                                 <div class="d-flex align-items-center"><span class="nav-link-icon"><span class="far fa-credit-card"></span></span><span class="nav-link-text ps-1">Paid</span>
-                                    <span class="badge rounded-pill ms-2 badge-subtle-success"><?php
-                                        // Query to count tasks where is_deleted = 0
-                                        $query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND is_paid = 1 AND email = '$aid'";
-                                        $result = mysqli_query($con, $query);
-                                        if ($result) {
-                                            $row = mysqli_fetch_assoc($result);
-                                            $count = $row['taskCount'];
-                                            // Check if count is greater than 0
-                                            if ($count > 0) {
-                                                echo $count; // Display the count
-                                            } else {
-                                                echo "0"; // Display "No Data" if count is 0
-                                            }
-                                        }
-                                        ?></span>
+                                    <span class="badge rounded-pill ms-2 badge-subtle-success"><?= $headerCounts['paid'] ?? 0 ?></span>
                                 </div>
                             </a>
 
@@ -461,8 +372,9 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                                     </div>
                                 </div>
                                 <?php
-                                $sql = "SELECT * FROM tblwriters WHERE email='$aid'";
+                                $sql = "SELECT * FROM tblwriters WHERE email=:aid";
                                 $query = $dbh->prepare($sql);
+                                $query->bindParam(':aid', $aid, PDO::PARAM_STR);
                                 $query->execute();
                                 $results = $query->fetchAll(PDO::FETCH_OBJ);
                                 $cnt = 1;
@@ -524,18 +436,15 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                     <li class="nav-item dropdown">
                         <?php
                         $aid = $_SESSION['sessionWriter'];
-                        // Query to count late tasks
-                        $lateTasksCountQuery = mysqli_query($con, "SELECT COUNT(*) AS late_task_count FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND due_date < NOW() AND email = '$aid'");
-                        $lateTasksCountResult = mysqli_fetch_assoc($lateTasksCountQuery);
-                        $lateTasksCount = $lateTasksCountResult['late_task_count'];
+                        // Use precomputed count
+                        $lateTasksCount = $headerCounts['late'] ?? 0;
 
-                        // Query to fetch late tasks details
-                        $lateTasksQuery = mysqli_query($con, "SELECT * FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND due_date < NOW() AND email = '$aid' ORDER BY due_date ASC");
+                        // Fetch late tasks details
+                        $lsStmt = $con->prepare("SELECT * FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND due_date < NOW() AND email = ? ORDER BY due_date ASC");
+                        $lsStmt->bind_param('s', $aid);
+                        $lsStmt->execute();
 
-                        $lateTasks = []; // Initialize array to hold late tasks data
-                        while ($task = mysqli_fetch_assoc($lateTasksQuery)) {
-                            $lateTasks[] = $task; // Add each late task to the array
-                        }
+                        $lateTasks = $lsStmt->get_result()->fetch_all(MYSQLI_ASSOC);
                         $sql = "SELECT * FROM tblwriters WHERE email=:aid";
                         $query = $dbh->prepare($sql);
                         $query->bindParam(':aid', $aid, PDO::PARAM_STR);
@@ -668,35 +577,19 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
             ?>
 
             <!-- Alert for Unconfirmed Tasks -->
-            <?php
-            $query_unconfirmed = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND is_confirmed = 1 AND email = '$aid'";
-            $result_unconfirmed = mysqli_query($con, $query_unconfirmed);
-            if ($result_unconfirmed) {
-                $row_unconfirmed = mysqli_fetch_assoc($result_unconfirmed);
-                $count_unconfirmed = $row_unconfirmed['taskCount'];
-                if ($count_unconfirmed > 0) {
-                    echo '<div class="alert alert-warning alert-dismissible fade show" role="alert">
-                        You have ' . $count_unconfirmed . ' unconfirmed tasks! 
-                        <a href="unconfirmed" class="alert-link">View Tasks</a>
-                        <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>';
-                }
-            }
-            ?>
+            <?php if (($headerCounts['unconfirmed'] ?? 0) > 0): ?>
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    You have <?= $headerCounts['unconfirmed'] ?> unconfirmed tasks!
+                    <a href="unconfirmed" class="alert-link">View Tasks</a>
+                    <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
 
             <!-- Alert for Tasks in Revision -->
-            <?php
-            $query_revision = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'In Revision' AND email = '$aid'";
-            $result_revision = mysqli_query($con, $query_revision);
-            if ($result_revision) {
-                $row_revision = mysqli_fetch_assoc($result_revision);
-                $count_revision = $row_revision['taskCount'];
-                if ($count_revision > 0) {
-                    echo '<div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        You have ' . $count_revision . ' tasks in revision!
-                        <a href="tasks-in-revision" class="alert-link">View Tasks</a>
-                    <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button> 
-                    </div>';
-                }
-            }
-            ?>
+            <?php if (($headerCounts['revision'] ?? 0) > 0): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    You have <?= $headerCounts['revision'] ?> tasks in revision!
+                    <a href="tasks-in-revision" class="alert-link">View Tasks</a>
+                    <button class="btn-close" type="button" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>

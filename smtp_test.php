@@ -1,4 +1,7 @@
 <?php
+require_once 'config.php';
+require_once 'functions.php';
+
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -12,7 +15,7 @@ try {
     configureMail($mail);
 
     $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
-    $mail->addAddress('bryo4419@gmail.com'); // your email to receive test
+    $mail->addAddress(env('MAIL_ADMIN_EMAIL'));
 
     $mail->Subject = 'SMTP Test';
     $mail->Body    = 'This is a test email to check SMTP settings.';
@@ -22,4 +25,3 @@ try {
 } catch (Exception $e) {
     echo "Test email failed: {$mail->ErrorInfo}";
 }
-?>

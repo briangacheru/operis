@@ -199,6 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                         </div>
                                     </div>
                                     <form class="needs-validation" novalidate="novalidate" method="post" role="form" action="">
+<?= csrf_field() ?>
                                         <?php if (isset($_GET['redirect'])): ?>
                                             <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($_GET['redirect']); ?>">
                                         <?php endif; ?>

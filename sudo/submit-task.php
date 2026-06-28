@@ -139,10 +139,10 @@ try {
             // Recipients
             $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
             $mail->addAddress($writerEmail);
-            $mail->addBCC('bryo4419@gmail.com', 'iTasker Admin');
+            $mail->addBCC(env('MAIL_ADMIN_EMAIL'), 'iTasker Admin');
             $mail->addCustomHeader('X-Priority', '3');
             $mail->addCustomHeader('X-Mailer', 'iTasker v1.0');
-            $mail->addCustomHeader('List-Unsubscribe', '<mailto:support@monkbrian.com>');
+            $mail->addCustomHeader('List-Unsubscribe', '<mailto:' . env('MAIL_FROM_ADDRESS') . '>');
 
             // Handle attachments
             $tempFiles = [];
@@ -297,7 +297,7 @@ try {
                     <a class='btn' href='$taskDetailsUrl'>View More Task Details</a>
                 </div>
                 <div class='footer'>
-                    <p>For any questions, contact <a href='mailto:bryo4419@gmail.com'>bryo4419@gmail.com</a></p>
+                    <p>For any questions, contact <a href='mailto:'></a></p>
                     <p>&copy; " . date('Y') . ' iTasker. All rights reserved.</p>
                 </div>
             </div>
@@ -315,7 +315,7 @@ try {
             Price per Page: Ksh $cpp\n
             Description: $description\n
             View Task Details: $taskDetailsUrl\n\n
-            For any questions, contact bryo4419@gmail.com";
+            For any questions, contact " . env('MAIL_ADMIN_EMAIL')";
 
             $mail->send();
             $emailSent = true;

@@ -2,13 +2,15 @@
 include('check-login.php');
 $aid = $_SESSION['sessionWriter'];
 // Get new tasks that haven't been acknowledged
-$query = mysqli_query($con, "SELECT * FROM tbltasks WHERE is_deleted = 0 AND (status = 'In Progress' OR is_confirmed = 1) AND email = '$aid' AND acknowledged = 0 ORDER BY create_date DESC");
-if (!$query) {
+$stmt = $con->prepare("SELECT * FROM tbltasks WHERE is_deleted = 0 AND (status = 'In Progress' OR is_confirmed = 1) AND email = ? AND acknowledged = 0 ORDER BY create_date DESC");
+$stmt->bind_param('s', $aid);
+if (!$stmt->execute()) {
     echo json_encode(['success' => false, 'error' => 'Query failed', 'tasks' => []]);
     exit;
 }
+$query = $stmt->get_result();
 $newTasks = [];
-while ($task = mysqli_fetch_assoc($query)) {
+while ($task = $query->fetch_assoc()) {
     $newTasks[] = $task;
 }
 if (count($newTasks) > 0) {

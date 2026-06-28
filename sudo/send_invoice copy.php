@@ -118,6 +118,7 @@ $invoiceDate              = date('jS F Y');
 
 // ── 6. Build email HTML ───────────────────────────────────────────────────
 $companyLogo = 'https://web.monkbrian.com/assets/img/team/itasker-email-header.png';
+$adminEmail = env('MAIL_ADMIN_EMAIL');
 
 // ── Tasks rows ────────────────────────────────────────────────────────────
 $tasksRowsHtml = '';
@@ -275,7 +276,7 @@ body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;
         <p style='margin-top:20px;'>Thank you! The amount payable will be sent to your mobile banking account shortly and the above tasks will be marked as paid on the website.</p>
     </div>
     <div class='footer'>
-        <p>For any questions, contact <a href='mailto:bryo4419@gmail.com'>bryo4419@gmail.com</a></p>
+        <p>For any questions, contact <a href='mailto:'></a></p>
         <p>&copy; " . date('Y') . " iTasker. All rights reserved.</p>
         <p style='font-size:11px; color:#aaa;'>This is an automated message. Please do not reply directly to this email.</p>
     </div>
@@ -334,7 +335,7 @@ $altBody .= str_repeat('=', 62) . "\n";
 $altBody .= sprintf("%-48s %12s\n", 'AMOUNT PAYABLE TO YOU', 'Ksh ' . number_format($amountPayable, 2));
 $altBody .= str_repeat('=', 62) . "\n\n";
 $altBody .= "Thank you! The amount payable will be sent to your mobile banking account shortly and the above tasks will be marked as paid on the website.\n";
-$altBody .= "For questions contact: bryo4419@gmail.com\niTasker";
+$altBody .= "For questions contact: $adminEmail\niTasker";
 
 // ── Preview mode — return raw HTML, no email sent ─────────────────────────
 if (!empty($_POST['preview_only'])) {
@@ -352,11 +353,11 @@ try {
 
     $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
     $mail->addAddress($writerEmail, $writerUsername);
-    $mail->addBCC('bryo4419@gmail.com', 'iTasker Admin');
+    $mail->addBCC(env('MAIL_ADMIN_EMAIL'), 'iTasker Admin');
 
     $mail->addCustomHeader('X-Priority', '3');
     $mail->addCustomHeader('X-Mailer', 'iTasker v1.0');
-    $mail->addCustomHeader('List-Unsubscribe', '<mailto:support@monkbrian.com>');
+    $mail->addCustomHeader('List-Unsubscribe', '<mailto:' . env('MAIL_FROM_ADDRESS') . '>');
 
     $mail->isHTML(true);
     $mail->Subject = "iTasker Invoice – Payment Summary ({$invoiceDate})";

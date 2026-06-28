@@ -308,6 +308,7 @@ foreach ($results as $row) {
                 </div>
                 <div class="modal-body py-4 px-5">
                     <form method="post" enctype="multipart/form-data">
+<?= csrf_field() ?>
                         <div class="form-group mb-3">
                             <label for="cover-image">Choose a new cover image</label>
                             <input type="file" class="form-control-file" id="cover-image" name="cover-image" required>
@@ -330,6 +331,7 @@ foreach ($results as $row) {
                 </div>
                 <div class="modal-body py-4 px-5">
                     <form method="post" enctype="multipart/form-data">
+<?= csrf_field() ?>
                         <div class="form-group mb-3">
                             <label for="profile-image">Choose a new profile image</label>
                             <input type="file" class="form-control-file" id="profile-image" name="profile-image" required>
@@ -349,6 +351,7 @@ foreach ($results as $row) {
                 </div>
                 <div class="card-body bg-body-tertiary">
                     <form class="row g-3" method="post" enctype="multipart/form-data">
+<?= csrf_field() ?>
                         <div class="col-lg-6 form-floating">
                             <input class="form-control" id="first-name" type="text" name="firstname" value="<?php echo $row->FirstName; ?>" />
                             <label for="first-name">First Name</label>
@@ -389,6 +392,7 @@ foreach ($results as $row) {
                         <p>Current Writer Registration Status: <span class="badge fs-10 <?php echo $badgeClass; ?>"><?php echo htmlspecialchars($currentStatusText, ENT_QUOTES, 'UTF-8'); ?></span></p>
                         <!-- Form to Update Registration Status -->
                         <form method="post" enctype="multipart/form-data">
+<?= csrf_field() ?>
                             <input type="hidden" name="newStatus" value="<?php echo $currentStatus == 1 ? 0 : 1; ?>">
                             <button class="btn btn-outline-primary w-100" type="submit" name="submitStatus">
                                 <?php echo $currentStatus == 1 ? 'Close Registration' : 'Open Registration'; ?>
@@ -406,6 +410,7 @@ foreach ($results as $row) {
                         <p>Current Admin Registration Status: <span class="badge fs-10 <?php echo $badgeClass1; ?>"><?php echo htmlspecialchars($currentStatusText1, ENT_QUOTES, 'UTF-8'); ?></span></p>
                         <!-- Form to Update Registration Status -->
                         <form method="post" enctype="multipart/form-data">
+<?= csrf_field() ?>
                             <input type="hidden" name="newStatus" value="<?php echo $currentStatus1 == 1 ? 0 : 1; ?>">
                             <button class="btn btn-outline-primary w-100" type="submit" name="adminStatus">
                                 <?php echo $currentStatus1 == 1 ? 'Close Registration' : 'Open Registration'; ?>
@@ -422,6 +427,7 @@ foreach ($results as $row) {
                         <!-- Form to Update Notification -->
                         <!-- Form to Update Notification -->
                         <form method="post" enctype="multipart/form-data">
+<?= csrf_field() ?>
                             <div class="mb-3">
                                 <label for="notificationText" class="form-label">Notification Text</label>
                                 <textarea class="form-control" id="notificationText" name="notificationText" rows="3" required><?php echo htmlspecialchars($currentNotification, ENT_QUOTES, 'UTF-8'); ?></textarea>
@@ -529,6 +535,7 @@ foreach ($results as $row) {
                     </div>
                     <div class="card-body bg-body-tertiary">
                         <form method="post">
+<?= csrf_field() ?>
                             <div class="form-floating mb-3">
                                 <input class="form-control" id="old-password" type="password" name="old_password" placeholder="Old Password" />
                                 <label for="old-password">Old Password</label>

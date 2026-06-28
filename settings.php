@@ -223,6 +223,7 @@ if (isset($_POST['update_password'])) {
                 </div>
                 <div class="modal-body py-4 px-5">
                     <form method="post" enctype="multipart/form-data">
+<?= csrf_field() ?>
                         <div class="form-group mb-3">
                             <label for="cover-image">Choose a new cover image</label>
                             <input type="file" class="form-control-file" id="cover-image" name="cover-image" required>
@@ -245,6 +246,7 @@ if (isset($_POST['update_password'])) {
                 </div>
                 <div class="modal-body py-4 px-5">
                     <form method="post" enctype="multipart/form-data">
+<?= csrf_field() ?>
                         <div class="form-group mb-3">
                             <label for="profile-image">Choose a new profile image</label>
                             <input type="file" class="form-control-file" id="profile-image" name="profile-image" required>
@@ -268,6 +270,7 @@ if (isset($_POST['update_password'])) {
                 <div class="modal-body py-4 px-5">
                     <div id="modal-alert" class="alert d-none"></div>
                     <form id="overdraft-form">
+<?= csrf_field() ?>
                         <input type="hidden" id="overdraft-id" name="id">
                         <div class="mb-3">
                             <label class="form-label" for="modal-auth-name">Writer</label>
@@ -298,6 +301,7 @@ if (isset($_POST['update_password'])) {
                 </div>
                 <div class="card-body bg-body-tertiary">
                     <form class="row g-3" method="post" enctype="multipart/form-data">
+<?= csrf_field() ?>
                         <div class="col-lg-6 form-floating">
                             <input class="form-control" id="first-name" type="text" name="firstname" value="<?php echo $row->FirstName; ?>" />
                             <label for="first-name">First Name</label>
@@ -333,6 +337,7 @@ if (isset($_POST['update_password'])) {
                     </div>
                     <div class="card-body bg-body-tertiary">
                         <form method="post" onsubmit="return validateForm()">
+<?= csrf_field() ?>
                             <div class="form-floating mb-3">
                                 <input class="form-control" id="old-password" type="password" name="old_password" placeholder="Old Password" required />
                                 <label for="old-password">Old Password</label>

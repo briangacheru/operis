@@ -289,6 +289,7 @@ try {
 
                 <!-- Enhanced search with better UX -->
                 <form class="contacts-search-wrapper">
+<?= csrf_field() ?>
                     <div class="form-group mb-0 position-relative d-md-none d-lg-block w-100 h-100">
                         <input class="form-control form-control-sm chat-contacts-search border-0 h-100"
                                type="text"
@@ -378,6 +379,7 @@ try {
 
                 <!-- Enhanced message input form with better validation -->
                 <form class="chat-editor-area" method="post" enctype="multipart/form-data" onsubmit="return submitMessage(event);">
+<?= csrf_field() ?>
                     <!-- CSRF token for security -->
                     <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
 

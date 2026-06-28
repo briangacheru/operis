@@ -54,6 +54,7 @@ if ($row = mysqli_fetch_array($result)) {
             </div>
             <div class="col-lg-auto pt-3 pt-lg-0">
                 <form class="row flex-lg-column flex-xxl-row gx-3 gy-2 align-items-center align-items-lg-start align-items-xxl-center">
+<?= csrf_field() ?>
                     <div class="col-auto">
                     </div>
                     <div class="col-md-auto position-relative">
@@ -77,6 +78,7 @@ if ($row = mysqli_fetch_array($result)) {
         <div class="tab-content">
             <div class="tab-pane preview-tab-pane active" >
                 <form class="needs-validation" novalidate="novalidate" id="taskForm" method="post" action="update-task.php" enctype="multipart/form-data">
+<?= csrf_field() ?>
                     <div class="card mb-3">
                         <div class="card-header bg-body-tertiary">
                             <h6 class="mb-0">Basic information</h6>

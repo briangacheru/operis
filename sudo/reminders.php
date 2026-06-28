@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/config.php';
 include('check-login.php');
 function formatSnoozeDuration($minutes) {
     if ($minutes < 60) {
@@ -762,7 +763,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     'evening_progress_enabled' => '1',
                     'due_reminders_enabled' => '1',
                     'send_empty_summaries' => '1',
-                    'notification_email' => 'bryo4419@gmail.com',
+                    'notification_email' => env('MAIL_ADMIN_EMAIL'),
                     'email_format' => 'html'
                 ];
 
@@ -1549,15 +1550,19 @@ if (isset($_SESSION['odmsaid'])) {
 
 
 // Fetch userID from the database using the email stored in the session
-$userQuery = mysqli_query($con, "SELECT id FROM tbladmin WHERE email = '$aid'");
-$userResult = mysqli_fetch_assoc($userQuery);
-$userID = $userResult['id']; // Get the userID
+$uStmt = $con->prepare("SELECT id FROM tbladmin WHERE email = ?");
+$uStmt->bind_param('s', $aid);
+$uStmt->execute();
+$userID = $uStmt->get_result()->fetch_assoc()['id'];
 
 // Query to fetch unread messages details by userID
-$unreadMessagesQuery = mysqli_query($con, "SELECT * FROM chat_messages WHERE is_read = 0 AND receiver_id = '$userID' ORDER BY timestamp ASC");
+$msgStmt = $con->prepare("SELECT * FROM chat_messages WHERE is_read = 0 AND receiver_id = ? ORDER BY timestamp ASC");
+$msgStmt->bind_param('i', $userID);
+$msgStmt->execute();
+$unreadMessagesQuery = $msgStmt->get_result();
 
 $unreadMessages = []; // Initialize array to hold unread messages data
-while ($message = mysqli_fetch_assoc($unreadMessagesQuery)) {
+while ($message = $unreadMessagesQuery->fetch_assoc()) {
     $unreadMessages[] = $message; // Add each unread message to the array
 }
 
@@ -1789,6 +1794,7 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                 </div>
                 <div class='col-lg-auto pt-3 pt-lg-0'>
                     <form class="$rowTask flex-lg-column flex-xxl-$rowTask gx-3 gy-2 align-items-center align-items-lg-start align-items-xxl-center">
+<?= csrf_field() ?>
                         <div class='col-auto'>
                         </div>
                         <div class='col-md-auto position-relative'>
@@ -1913,6 +1919,7 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                             <!-- Inline Quick Add -->
                             <div class="quick-add-bar p-3 border-bottom">
                                 <form id="quickAddForm" class="d-flex gap-2 flex-wrap align-items-center" autocomplete="off">
+<?= csrf_field() ?>
                                     <input type="text" name="title" id="quickAddTitle" class="form-control form-control-sm"
                                            placeholder="+ Quick add a reminder..." style="flex:1 1 100%;" required>
                                     <div class="d-flex gap-2 w-100 quick-add-meta" style="display:none !important;">
@@ -2239,6 +2246,7 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                             </div>
                             <div class="col-md-auto p-3">
                                 <form class="row align-items-center g-3">
+<?= csrf_field() ?>
                                     <div class="col-md-auto position-relative">
                                         <div class="dropdown font-sans-serif me-md-2">
                                             <button class="btn btn-falcon-default text-600 btn-sm dropdown-toggle dropdown-caret-none" type="button" id="reminder-view-selector" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -2325,6 +2333,7 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                             </div>
                             <div class="card-body">
                                 <form id="reminderSettingsForm">
+<?= csrf_field() ?>
                                     <div class="row g-4">
                                         <!-- Morning Summary Email -->
                                         <div class="col-md-6">
@@ -2436,7 +2445,7 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                                         <div class="row g-3">
                                             <div class="col-md-6">
                                                 <label class="form-label">Notification Email Address</label>
-                                                <input type="email" class="form-control" id="notification_email" name="notification_email" value="bryo4419@gmail.com">
+                                                <input type="email" class="form-control" id="notification_email" name="notification_email" value="<?= htmlspecialchars(env('MAIL_ADMIN_EMAIL')) ?>">
                                                 <small class="text-muted">Email address where notifications will be sent</small>
                                             </div>
                                             <div class="col-md-6">
@@ -2611,6 +2620,7 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form id="reminderForm">
+<?= csrf_field() ?>
                     <div class="modal-body">
                         <!-- Reminder Type Tabs -->
                         <div class="reminder-type-tabs mb-3">
@@ -2782,6 +2792,7 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form id="editReminderForm">
+<?= csrf_field() ?>
                     <input type="hidden" name="id" id="edit_reminder_id">
                     <input type="hidden" name="original_type" id="edit_original_type">
                     <div class="modal-body">
@@ -2967,6 +2978,7 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                         </div>
                         <div class="card-body">
                             <form id="addCategoryForm">
+<?= csrf_field() ?>
                                 <div class="row g-3">
                                     <div class="col-md-4">
                                         <label class="form-label">Category Name</label>
@@ -3044,6 +3056,7 @@ $unreadMessagesCount = count($unreadMessages); // Count the number of unread mes
                 </div>
                 <div class="modal-body">
                     <form id="editCategoryForm">
+<?= csrf_field() ?>
                         <input type="hidden" id="editCategoryId">
                         <div class="mb-3">
                             <label class="form-label">Category Name</label>

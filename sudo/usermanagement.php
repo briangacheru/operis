@@ -17,9 +17,9 @@ function sendVerificationEmail($writerName, $writerEmail, $action, $writerId)
 
         // Recipients
         $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
-        $mail->addReplyTo('bryo4419@gmail.com', 'itasker admin');
+        $mail->addReplyTo(env('MAIL_ADMIN_EMAIL'), 'itasker admin');
         $mail->addAddress($writerEmail);
-        $mail->addAddress('bryo4419@gmail.com', 'itasker admin');
+        $mail->addAddress(env('MAIL_ADMIN_EMAIL'), 'itasker admin');
 
         // Content
         $status = $action == 'verified' ? 'VERIFIED' : 'UNVERIFIED';
@@ -37,7 +37,7 @@ function sendVerificationEmail($writerName, $writerEmail, $action, $writerId)
 
         $actionButton = $action == 'verified'
             ? "<a class='btn' href='$dashboardUrl' style='background: #28a745;'>Access itasker</a>"
-            : "<a class='btn' href='mailto:bryo4419@gmail.com' style='background: #dc3545;'>Contact Support</a>";
+            : "<a class='btn' href='mailto:' style='background: #dc3545;'>Contact Support</a>";
 
         $mail->Body = "
             <!DOCTYPE html>
@@ -143,7 +143,7 @@ function sendVerificationEmail($writerName, $writerEmail, $action, $writerId)
                         $actionButton
                     </div>
                     <div class='footer'>
-                        <p>For any questions, contact <a href='mailto:bryo4419@gmail.com'>bryo4419@gmail.com</a></p>
+                        <p>For any questions, contact <a href='mailto:'></a></p>
                         <p>&copy; " . date('Y') . " itasker. All rights reserved.</p>
                     </div>
                 </div>
@@ -157,7 +157,7 @@ function sendVerificationEmail($writerName, $writerEmail, $action, $writerId)
                     Email: $writerEmail\n
                     Status Changed: " . date('F j, Y \a\t g:i A') . "\n\n
                     Dashboard: $dashboardUrl\n\n
-                    For any questions, contact bryo4419@gmail.com";
+                    For any questions, contact " . env('MAIL_ADMIN_EMAIL')";
 
         $mail->send();
 
@@ -175,8 +175,8 @@ function sendDeactivationEmailToAdmin($writerName, $writerEmail, $writerId, $rea
 
         // Recipients - Admin only
         $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
-        $mail->addReplyTo('bryo4419@gmail.com', 'itasker admin');
-        $mail->addAddress('bryo4419@gmail.com', 'itasker admin');
+        $mail->addReplyTo(env('MAIL_ADMIN_EMAIL'), 'itasker admin');
+        $mail->addAddress(env('MAIL_ADMIN_EMAIL'), 'itasker admin');
 
         // Content
         $deactivationType = $isAutomatic ? 'AUTOMATIC' : 'MANUAL';

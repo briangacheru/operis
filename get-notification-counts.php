@@ -14,32 +14,30 @@ $aid = $_SESSION['sessionWriter'];
 
 try {
     // Get task notifications count (new submitted tasks + late tasks)
-    $newTasksCountQuery = mysqli_query($con, "SELECT COUNT(*) AS new_task_count FROM tbltasks WHERE is_deleted = 0 AND status IN ('In Progress', 'Unconfirmed', 'In Revision') AND acknowledged = 0");
-    $newTasksCountResult = mysqli_fetch_assoc($newTasksCountQuery);
-    $newTasksCount = $newTasksCountResult['new_task_count'];
+    $r1 = $con->query("SELECT COUNT(*) AS new_task_count FROM tbltasks WHERE is_deleted = 0 AND status IN ('In Progress', 'Unconfirmed', 'In Revision') AND acknowledged = 0");
+    $newTasksCount = $r1->fetch_assoc()['new_task_count'];
 
-    $lateTasksCountQuery = mysqli_query($con, "SELECT COUNT(*) AS late_task_count FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND due_date < NOW()");
-    $lateTasksCountResult = mysqli_fetch_assoc($lateTasksCountQuery);
-    $lateTasksCount = $lateTasksCountResult['late_task_count'];
+    $r2 = $con->query("SELECT COUNT(*) AS late_task_count FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND due_date < NOW()");
+    $lateTasksCount = $r2->fetch_assoc()['late_task_count'];
 
     $totalTaskNotifications = $newTasksCount + $lateTasksCount;
 
     // Get unread messages count
-    $userQuery = mysqli_query($con, "SELECT id FROM tblwriters WHERE email = '$aid'");
-    $userResult = mysqli_fetch_assoc($userQuery);
-    $userID = $userResult['id'];
-    $unreadMessagesCountQuery = mysqli_query($con, "SELECT COUNT(*) AS unread_count FROM chat_messages WHERE is_read = 0 AND receiver_id = '$userID'");
+    $s1 = $con->prepare("SELECT id FROM tblwriters WHERE email = ?");
+    $s1->bind_param('s', $aid);
+    $s1->execute();
+    $userID = $s1->get_result()->fetch_assoc()['id'];
 
-    $unreadMessagesCountResult = mysqli_fetch_assoc($unreadMessagesCountQuery);
-    $unreadMessagesCount = $unreadMessagesCountResult['unread_count'] ?? 0;
+    $s2 = $con->prepare("SELECT COUNT(*) AS unread_count FROM chat_messages WHERE is_read = 0 AND receiver_id = ?");
+    $s2->bind_param('i', $userID);
+    $s2->execute();
+    $unreadMessagesCount = $s2->get_result()->fetch_assoc()['unread_count'] ?? 0;
 
     // Get unread comments count
-    $unreadCommentsCountQuery = mysqli_query($con, "
-        SELECT COUNT(*) AS unread_comments_count FROM tbl_task_comments tc 
-        JOIN tbltasks t ON tc.task_id = t.id WHERE t.email = '$aid' 
-        AND tc.user_type = 'admin' AND tc.is_read = 0");
-    $unreadCommentsCountResult = mysqli_fetch_assoc($unreadCommentsCountQuery);
-    $unreadCommentsCount = $unreadCommentsCountResult['unread_comments_count'];
+    $s3 = $con->prepare("SELECT COUNT(*) AS unread_comments_count FROM tbl_task_comments tc JOIN tbltasks t ON tc.task_id = t.id WHERE t.email = ? AND tc.user_type = 'admin' AND tc.is_read = 0");
+    $s3->bind_param('s', $aid);
+    $s3->execute();
+    $unreadCommentsCount = $s3->get_result()->fetch_assoc()['unread_comments_count'];
 
     // Return counts as JSON
     echo json_encode([

@@ -9,8 +9,11 @@ $output = fopen('php://output', 'w');
 // Output the column headings
 fputcsv($output, array('OD Id', 'Writer', 'Amount', 'Date'));
 
-$query=mysqli_query($con,"select * from tbloverdrafts WHERE is_deleted = 0 AND is_settled = 0 AND email='$aid' ORDER BY id ASC");
-while ($row = mysqli_fetch_assoc($query)) {
+$stmt = $con->prepare("SELECT * FROM tbloverdrafts WHERE is_deleted = 0 AND is_settled = 0 AND email = ? ORDER BY id ASC");
+$stmt->bind_param('s', $aid);
+$stmt->execute();
+$query = $stmt->get_result();
+while ($row = $query->fetch_assoc()) {
 
     // Populate data rows
     fputcsv($output, array($row["id"], $row["writer"], $row["amount"], $row["od_date"]));

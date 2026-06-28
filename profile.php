@@ -3,53 +3,33 @@ include "head.php";
 ?>
 
 <?php
-$allCompleted = "";
-$query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND email ='$aid'";
-$result = mysqli_query($con, $query);
-if ($result) {
-    $rowProfile = mysqli_fetch_assoc($result);
-    $count = $rowProfile['taskCount'];
-    if ($count > 0) {
-        $allCompleted = $count; // Set the count to output variable
-    } else {
-        $allCompleted = "0"; // Set "0" if count is 0
-    }
-} else {
-    $allCompleted = "No data"; // Set "No Data" if query fails
-}
+$s = $con->prepare("SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND email = ?");
+$s->bind_param('s', $aid);
+$s->execute();
+$count = $s->get_result()->fetch_assoc()['taskCount'];
+$allCompleted = $count > 0 ? $count : "0";
 ?>
 
 <?php
-$allProgress = "";
-$query = "SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND email ='$aid'";
-$result = mysqli_query($con, $query);
-if ($result) {
-    $rowProfile = mysqli_fetch_assoc($result);
-    $count = $rowProfile['taskCount'];
-    if ($count > 0) {
-        $allProgress = $count; // Set the count to output variable
-    } else {
-        $allProgress = "0"; // Set "0" if count is 0
-    }
-} else {
-    $allProgress = "No data"; // Set "No Data" if query fails
-}
+$s = $con->prepare("SELECT COUNT(*) as taskCount FROM tbltasks WHERE is_deleted = 0 AND status = 'In Progress' AND email = ?");
+$s->bind_param('s', $aid);
+$s->execute();
+$count = $s->get_result()->fetch_assoc()['taskCount'];
+$allProgress = $count > 0 ? $count : "0";
 ?>
 
 <?php
-$totalPaidFormatted = "No data"; // Default message if the query fails
-$totalPaidRaw = 0; // Raw total for JavaScript
-$query = mysqli_query($con, "SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND email ='$aid'");
-if ($query) {
-    $rowProfile = mysqli_fetch_array($query);
-    if ($rowProfile && $rowProfile['total'] !== null) {
-        $totalPaidRaw = $rowProfile['total']; // Keep the raw total
-        $totalPaidFormatted = 'Ksh. ' . number_format($rowProfile['total'], 2);
-    } else {
-        $totalPaidFormatted = 'Ksh. 0.00';
-    }
+$totalPaidFormatted = "No data";
+$totalPaidRaw = 0;
+$s = $con->prepare("SELECT SUM(CPP*pages) AS total FROM tbltasks WHERE is_deleted = 0 AND status = 'Completed' AND email = ?");
+$s->bind_param('s', $aid);
+$s->execute();
+$rowProfile = $s->get_result()->fetch_assoc();
+if ($rowProfile && $rowProfile['total'] !== null) {
+    $totalPaidRaw = $rowProfile['total'];
+    $totalPaidFormatted = 'Ksh. ' . number_format($rowProfile['total'], 2);
 } else {
-    $totalPaidFormatted = "Error: " . mysqli_error($con);
+    $totalPaidFormatted = 'Ksh. 0.00';
 }
 ?>
 

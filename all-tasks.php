@@ -12,8 +12,10 @@ if (isset($_GET['del'])) {
     if (is_numeric($cmpid) && !empty($cmpid)) {
 
         // First, retrieve the current status and is_paid value of the task
-        $checkQuery = mysqli_query($con, "SELECT status, is_paid FROM tbltasks WHERE id='$cmpid'");
-        $rowData = mysqli_fetch_assoc($checkQuery);
+        $checkStmt = $con->prepare("SELECT status, is_paid FROM tbltasks WHERE id = ?");
+        $checkStmt->bind_param('i', $cmpid);
+        $checkStmt->execute();
+        $rowData = $checkStmt->get_result()->fetch_assoc();
 
         if ($rowData && ($rowData['status'] == 'Completed' || $rowData['status'] == 'Submitted' || $rowData['is_paid'] == 1)) {
             $_SESSION['alert'] = '<div class="alert alert-warning alert-dismissible fade show" role="alert">
@@ -21,8 +23,9 @@ if (isset($_GET['del'])) {
                                   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                   </div>';
         } else {
-            // Perform the delete operation if the task is not completed, submitted, or paid
-            $query = mysqli_query($con, "UPDATE tbltasks SET is_deleted = 1 , status = 'Cancelled' WHERE id='$cmpid'");
+            $updStmt = $con->prepare("UPDATE tbltasks SET is_deleted = 1, status = 'Cancelled' WHERE id = ?");
+            $updStmt->bind_param('i', $cmpid);
+            $query = $updStmt->execute();
 
             if ($query) {
                 $_SESSION['alert'] = '<div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -118,9 +121,12 @@ if (isset($_GET['del'])) {
                                         </thead>
                                         <tbody class="list" id="table-simple-pagination-body">
                                         <?php
-                                            $query=mysqli_query($con,"select * from tbltasks WHERE email = '$aid' AND status != 'Draft' ORDER BY id DESC");
+                                            $stmt = $con->prepare("SELECT * FROM tbltasks WHERE email = ? AND status != 'Draft' ORDER BY id DESC");
+                                            $stmt->bind_param('s', $aid);
+                                            $stmt->execute();
+                                            $query = $stmt->get_result();
                                             $cnt=1;
-                                            while($row=mysqli_fetch_array($query))
+                                            while ($row = $query->fetch_assoc())
                                             {
                                                 $totalprice=$row["cpp"]*$row["pages"];
                                                 $encodedId = base64_encode($row["id"]); // Encode the id

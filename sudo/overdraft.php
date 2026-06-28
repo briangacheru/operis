@@ -166,6 +166,7 @@ if (isset($_GET['delete'])) {
                 </div>
                 <div class="col-lg-auto pt-3 pt-lg-0">
                     <form class="row flex-lg-column flex-xxl-row gx-3 gy-2 align-items-center align-items-lg-start align-items-xxl-center">
+<?= csrf_field() ?>
                         <div class="col-auto">
                         </div>
                         <div class="col-md-auto position-relative">
@@ -295,6 +296,7 @@ if (isset($_SESSION['alert'])) {
             <div class="tab-content">
                 <div class="tab-pane preview-tab-pane active show" role="tabpanel" aria-labelledby="tab-add" id="add-tab">
                     <form method="post" id="overdraftForm">
+<?= csrf_field() ?>
                         <div class="mb-3 row">
                             <label class="col-sm-2 col-form-label" for="record_type">Record Type</label>
                             <div class="col-sm-10">
@@ -419,6 +421,7 @@ if (isset($_SESSION['alert'])) {
                     <div class="tab-pane preview-tab-pane active" role="tabpanel">
                         <div class="card shadow-none">
                             <form id="tasksForm" method="post">
+<?= csrf_field() ?>
                                 <div class="card-header">
                                     <div class="row flex-between-center">
                                         <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
@@ -543,6 +546,7 @@ if (isset($_SESSION['alert'])) {
                 <div class="modal-body py-4 px-5">
                     <div id="modal-alert" class="alert d-none"></div>
                     <form id="overdraft-form">
+<?= csrf_field() ?>
                         <input type="hidden" id="overdraft-id" name="id">
                         <div class="mb-3">
                             <label class="form-label" for="modal-record-type">Record Type</label>

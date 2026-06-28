@@ -62,9 +62,12 @@
                                         </thead>
                                         <tbody class="list" id="table-simple-pagination-body">
                                         <?php
-                                            $query=mysqli_query($con,"select * from tbltasks WHERE is_deleted = 0 AND status = 'Submitted' AND email='$aid' ORDER BY submitted_on DESC");
+                                            $stmt = $con->prepare("SELECT * FROM tbltasks WHERE is_deleted = 0 AND status = 'Submitted' AND email = ? ORDER BY submitted_on DESC");
+                                            $stmt->bind_param('s', $aid);
+                                            $stmt->execute();
+                                            $query = $stmt->get_result();
                                             $cnt=1;
-                                            while($row=mysqli_fetch_array($query))
+                                            while ($row = $query->fetch_assoc())
                                             {
                                                 $totalprice=$row["cpp"]*$row["pages"];
                                                 $encodedId = base64_encode($row["id"]); // Encode the id

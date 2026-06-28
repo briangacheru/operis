@@ -14,6 +14,7 @@
                 </div>
                 <div class="col-lg-auto pt-3 pt-lg-0">
                     <form class="row flex-lg-column flex-xxl-row gx-3 gy-2 align-items-center align-items-lg-start align-items-xxl-center">
+<?= csrf_field() ?>
                         <div class="col-auto">
                         </div>
                         <div class="col-md-auto position-relative">
@@ -35,6 +36,7 @@ if (isset($_SESSION['alert'])) {
         <div class="tab-content">
             <div class="tab-pane preview-tab-pane active show" role="tabpanel">
                 <form method="post" id="overdraftFormView">
+<?= csrf_field() ?>
                     <?php
                     if (isset($_SESSION['sessionWriter'])) {
                         $email = $_SESSION['sessionWriter'];
@@ -139,6 +141,7 @@ if (isset($_SESSION['alert'])) {
                         <div class="tab-pane preview-tab-pane active" role="tabpanel">
                             <div class="card shadow-none">
                                 <form id="tasksForm" method="post">
+<?= csrf_field() ?>
                                     <div class="card-header">
                                         <div class="row flex-between-center">
                                             <div class="col-6 col-sm-auto d-flex align-items-center pe-0">
@@ -175,13 +178,16 @@ if (isset($_SESSION['alert'])) {
                                             <?php
                                             if (isset($_SESSION['sessionWriter'])) {
                                                 $email = $_SESSION['sessionWriter'];
-                                                    $query = mysqli_query($con, "SELECT * FROM tbloverdrafts WHERE is_settled = 0 AND is_deleted = 0 AND email = '$email' ORDER BY od_date DESC");
-                                                        } else {
-                                                            $query = false;
-                                                        }
+                                                $stmt = $con->prepare("SELECT * FROM tbloverdrafts WHERE is_settled = 0 AND is_deleted = 0 AND email = ? ORDER BY od_date DESC");
+                                                $stmt->bind_param('s', $email);
+                                                $stmt->execute();
+                                                $query = $stmt->get_result();
+                                            } else {
+                                                $query = false;
+                                            }
                                             $cnt = 1;
-                                            if ($query && mysqli_num_rows($query) > 0) {
-                                            while ($row = mysqli_fetch_array($query)) {
+                                            if ($query && $query->num_rows > 0) {
+                                            while ($row = $query->fetch_assoc()) {
                                                 $encodedId = base64_encode($row["id"]);
                                                 $recordType = isset($row["record_type"]) && !empty($row["record_type"]) ? $row["record_type"] : 'overdraft';
                                                 $badgeClass = ($recordType === 'bonus') ? 'badge-subtle-info' : 'badge-subtle-warning';

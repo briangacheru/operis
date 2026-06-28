@@ -1,4 +1,6 @@
 <?php
+require_once 'config.php';
+require_once 'functions.php';
 require_once 'db.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
@@ -10,9 +12,9 @@ require 'phpmailer/src/SMTP.php';
 
 // Enhanced features configuration with hour-based thresholds
 $config = [
-    'admin_email' => 'bryo4419@gmail.com',
-    'from_email' => 'support@monkbrian.com',
-    'from_name' => 'itasker',
+    'admin_email' => env('MAIL_ADMIN_EMAIL'),
+    'from_email' => env('MAIL_FROM_ADDRESS'),
+    'from_name' => env('MAIL_FROM_NAME'),
     'company_logo' => 'https://web.monkbrian.com/assets/img/team/itasker-email-header2.png',
     'base_url' => 'https://web.monkbrian.com/sudo/',
     'alert_levels' => [

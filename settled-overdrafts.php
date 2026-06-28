@@ -77,14 +77,17 @@ if (isset($_SESSION['alert'])) {
                                         // Updated query to use correct session variable and show both overdrafts and bonuses
                                         if (isset($_SESSION['sessionWriter'])) {
                                             $email = $_SESSION['sessionWriter'];
-                                            $query = mysqli_query($con, "SELECT * FROM tbloverdrafts WHERE is_settled = 1 AND email = '$email' ORDER BY od_date DESC");
+                                            $stmt = $con->prepare("SELECT * FROM tbloverdrafts WHERE is_settled = 1 AND email = ? ORDER BY od_date DESC");
+                                            $stmt->bind_param('s', $email);
+                                            $stmt->execute();
+                                            $query = $stmt->get_result();
                                         } else {
                                             $query = false; // No session found
                                         }
 
                                         $cnt = 1;
-                                        if ($query && mysqli_num_rows($query) > 0) {
-                                            while ($row = mysqli_fetch_array($query)) {
+                                        if ($query && $query->num_rows > 0) {
+                                            while ($row = $query->fetch_assoc()) {
                                                 $encodedId = base64_encode($row["id"]);
                                                 $recordType = isset($row["record_type"]) && !empty($row["record_type"]) ? $row["record_type"] : 'overdraft';
                                                 $badgeClass = ($recordType === 'bonus') ? 'badge-subtle-info' : 'badge-subtle-warning';

@@ -54,9 +54,9 @@ if (isset($_GET['del'])) {
                     configureMail($mail);
 
                     $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
-                    $mail->addReplyTo('bryo4419@gmail.com', 'Bryo Gacheru');
+                    $mail->addReplyTo(env('MAIL_ADMIN_EMAIL'), 'Bryo Gacheru');
                     $mail->addAddress($writerEmail);
-                    $mail->addAddress('bryo4419@gmail.com', 'iTasker Admin');
+                    $mail->addAddress(env('MAIL_ADMIN_EMAIL'), 'iTasker Admin');
 
                     // Content
                     $mail->isHTML(true);                        // Set email format to HTML

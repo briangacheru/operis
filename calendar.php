@@ -2,10 +2,13 @@
 include "head.php";
 
 // Fetch tasks from the database
-$query = mysqli_query($con, "SELECT id, topic, due_date, status FROM tbltasks WHERE is_deleted = 0 AND email = '$aid' AND status != 'Draft'");
+$stmt = $con->prepare("SELECT id, topic, due_date, status FROM tbltasks WHERE is_deleted = 0 AND email = ? AND status != 'Draft'");
+$stmt->bind_param('s', $aid);
+$stmt->execute();
+$query = $stmt->get_result();
 $tasks = [];
 
-while ($row = mysqli_fetch_assoc($query)) {
+while ($row = $query->fetch_assoc()) {
     $due_date = new DateTime($row['due_date']);
     $formatted_due_date = $due_date->format('Y-m-d\TH:i:s');
 

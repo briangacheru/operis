@@ -17,10 +17,10 @@ function sendEmail($writer, $pages, $cpp, $due_date, $writerEmail, $taskId, $act
 
         $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
         $mail->addAddress($writerEmail);
-        $mail->addBCC('bryo4419@gmail.com', 'iTasker Admin');
+        $mail->addBCC(env('MAIL_ADMIN_EMAIL'), 'iTasker Admin');
         $mail->addCustomHeader('X-Priority', '3');
         $mail->addCustomHeader('X-Mailer', 'iTasker v1.0');
-        $mail->addCustomHeader('List-Unsubscribe', '<mailto:support@monkbrian.com>');
+        $mail->addCustomHeader('List-Unsubscribe', '<mailto:' . env('MAIL_FROM_ADDRESS') . '>');
 
         // Content
         $status = $action == 'accept' ? 'ACCEPTED' : 'DECLINED';
@@ -30,6 +30,7 @@ function sendEmail($writer, $pages, $cpp, $due_date, $writerEmail, $taskId, $act
 // Email Body with Logo and Modern Formatting
         $companyLogo = 'https://web.monkbrian.com/assets/img/team/itasker-email-header.png';
         $taskDetailsUrl = "https://web.monkbrian.com/view-task?task_id=" . $encodedId;
+        $adminEmail = env('MAIL_ADMIN_EMAIL');
 
         $mail->Body = "
                             <!DOCTYPE html>
@@ -118,7 +119,7 @@ function sendEmail($writer, $pages, $cpp, $due_date, $writerEmail, $taskId, $act
                                         <a class='btn' href='$taskDetailsUrl'>View More Task Details</a>
                                     </div>
                                     <div class='footer'>
-                                        <p>For any questions, contact <a href='mailto:bryo4419@gmail.com'>bryo4419@gmail.com</a></p>
+                                        <p>For any questions, contact <a href='mailto:$adminEmail'>$adminEmail</a></p>
                                         <p>&copy; " . date('Y') . " iTasker. All rights reserved.</p>
                                     </div>
                                 </div>
@@ -134,7 +135,7 @@ function sendEmail($writer, $pages, $cpp, $due_date, $writerEmail, $taskId, $act
                     Total Price: Ksh $total_price\n
                     Due Date: $due_date\n
                     View Task Details: $taskDetailsUrl\n\n
-                    For any questions, contact bryo4419@gmail.com";
+                    For any questions, contact $adminEmail";
 
         $mail->send();
 
@@ -149,18 +150,18 @@ if (isset($_GET['task_id']) && isset($_GET['action'])) {
     $action = $_GET['action'];
 
     // Fetch task details
-    $sql = "SELECT * FROM tbltasks WHERE id = '$taskId'";
-    $result = mysqli_query($con, $sql);
-    if ($result && mysqli_num_rows($result) > 0) {
-        $task = mysqli_fetch_assoc($result);
+    $stmt = $con->prepare("SELECT email, topic, account, writer, pages, cpp, due_date FROM tbltasks WHERE id = ?");
+    $stmt->bind_param('i', $taskId);
+    $stmt->execute();
+    $task = $stmt->get_result()->fetch_assoc();
+    if ($task) {
         $writerEmail = $task['email'];
-        $topic = $task['topic'];
-        $account = $task['account'];
-        $writer = $task['writer'];
-        $pages = $task['pages'];
-        $cpp = $task['cpp'];
-        $due_date = $task['due_date'];
-
+        $topic       = $task['topic'];
+        $account     = $task['account'];
+        $writer      = $task['writer'];
+        $pages       = $task['pages'];
+        $cpp         = $task['cpp'];
+        $due_date    = $task['due_date'];
     } else {
         $_SESSION['alert'] = '<div class="alert alert-danger border-0 d-flex align-items-center" role="alert">
                                     <div class="bg-danger me-3 icon-item"><span class="fas fa-exclamation-circle text-white fs-6"></span></div>
@@ -171,15 +172,14 @@ if (isset($_GET['task_id']) && isset($_GET['action'])) {
         exit();
     }
 
-    if ($action == 'accept') {
-        // Update the task to be accepted
-        $sql = "UPDATE tbltasks SET is_confirmed = 0, status = 'In Progress' WHERE id = '$taskId'";
-    } elseif ($action == 'decline') {
-        // Update the task to be declined
-        $sql = "UPDATE tbltasks SET is_confirmed = 2, status = 'Draft' WHERE id = '$taskId'";
+    if ($action === 'accept') {
+        $stmt = $con->prepare("UPDATE tbltasks SET is_confirmed = 0, status = 'In Progress' WHERE id = ?");
+    } else {
+        $stmt = $con->prepare("UPDATE tbltasks SET is_confirmed = 2, status = 'Draft' WHERE id = ?");
     }
+    $stmt->bind_param('i', $taskId);
 
-    if (mysqli_query($con, $sql)) {
+    if ($stmt->execute()) {
         // Send email notification
         sendEmail($writer, $pages, $cpp, $due_date, $writerEmail, $taskId, $action, $topic, $account);
 

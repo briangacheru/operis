@@ -225,6 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                         </div>
                                     </div>
                                     <form class="needs-validation" novalidate="novalidate" method="post" role="form" action="">
+<?= csrf_field() ?>
                                         <div class="form-floating mb-3">
                                             <input class="form-control" id="floatingInput" type="email" placeholder="name@example.com" name="email" value="<?php echo htmlspecialchars($email); ?>" required="required" />
                                             <label for="floatingInput">Email address</label>

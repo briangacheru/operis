@@ -1,32 +1,35 @@
 <?php
 include "check-login.php";
 
-// Check if the form is submitted
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Retrieve form data
-    $topic = mysqli_real_escape_string($con, $_POST['topic']);
-    $subject = mysqli_real_escape_string($con, $_POST['subject']);
-    $account = mysqli_real_escape_string($con, $_POST['account']);
-    $pages = mysqli_real_escape_string($con, $_POST['pages']);
-    $cpp = mysqli_real_escape_string($con, $_POST['cpp']);
-    $due_date = mysqli_real_escape_string($con, $_POST['due_date']);
-    $is_confirmed = mysqli_real_escape_string($con, $_POST['is_confirmed']);
-    $writer = mysqli_real_escape_string($con, explode("|", $_POST['writer'])[0]); // Assuming you only need the writer's name
-    $email = mysqli_real_escape_string($con, $_POST['email']);
-    $description = mysqli_real_escape_string($con, $_POST['description']);
-    // $task_files will be handled by the JavaScript and AJAX
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') exit();
 
-    // SQL query to insert form data into tbltasks
-    $sql = "INSERT INTO tbltasks (topic, subject, account, pages, cpp, due_date, is_confirmed, writer, email, description) VALUES ('$topic', '$subject', '$account', '$pages', '$cpp', '$due_date', '$is_confirmed', '$writer', '$email', '$description')";
+validate_csrf();
 
-    // Execute the query
-    if (mysqli_query($con, $sql)) {
-        // Success
-        $task_id = mysqli_insert_id($con); // Get the ID of the inserted task
-        echo "Task created successfully. Task ID: " . $task_id;
-    } else {
-        // Error handling
-        echo "Error: " . $sql . "<br>" . mysqli_error($con);
-    }
+$topic        = trim($_POST['topic']          ?? '');
+$subject      = trim($_POST['subject']        ?? '');
+$account      = trim($_POST['account']        ?? '');
+$pages        = (int)   ($_POST['pages']      ?? 0);
+$cpp          = (float) ($_POST['cpp']        ?? 0);
+$due_date     = trim($_POST['due_date']       ?? '');
+$is_confirmed = (int)   ($_POST['is_confirmed'] ?? 0);
+$writer       = trim(explode('|', $_POST['writer'] ?? '')[0]);
+$email        = trim($_POST['email']          ?? '');
+$description  = trim($_POST['description']    ?? '');
+
+if (!$topic || !$account || !$email || !$due_date) {
+    echo json_encode(['success' => false, 'message' => 'Required fields missing.']);
+    exit();
+}
+
+$stmt = $con->prepare(
+    "INSERT INTO tbltasks (topic, subject, account, pages, cpp, due_date, is_confirmed, writer, email, description)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+);
+$stmt->bind_param('sssiidssss', $topic, $subject, $account, $pages, $cpp, $due_date, $is_confirmed, $writer, $email, $description);
+
+if ($stmt->execute()) {
+    echo json_encode(['success' => true, 'task_id' => $stmt->insert_id]);
+} else {
+    echo json_encode(['success' => false, 'message' => 'Failed to create task.']);
 }
 ?>

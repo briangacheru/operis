@@ -2,6 +2,7 @@
 require_once('auth.php');
 require_once('db.php');
 if($_SERVER['REQUEST_METHOD'] == 'POST'){
+    validate_csrf();
     extract($_POST);
 
     // Password validation
@@ -134,6 +135,7 @@ if($_SERVER['REQUEST_METHOD'] == 'POST'){
                                                 </div>
                                             <?php endif; ?>
                                             <form class="mb-3" method="post" role="form" action="" onsubmit="return validateForm()">
+<?= csrf_field() ?>
                                                 <div class="form-floating mb-3">
                                                     <input type="password" class="form-control" id="new_password" name="new_password" value="<?= $_POST['new_password'] ?? "" ?>" required="required">
                                                     <label for="floatingPassword">New Password</label>

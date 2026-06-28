@@ -27,7 +27,10 @@ $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
 $task_filter = isset($_GET['task']) ? (int)$_GET['task'] : 0;
 
 // Build WHERE clause based on filters
-$whereClause = "WHERE t.email = '$aid'";
+$whereClause = "WHERE t.email = ?";
+$params = [$aid];
+$types  = 's';
+
 if ($filter === 'unread') {
     $whereClause .= " AND tc.is_read = 0 AND tc.user_type = 'admin'";
 } elseif ($filter === 'admin') {
@@ -37,32 +40,28 @@ if ($filter === 'unread') {
 }
 
 if ($task_filter > 0) {
-    $whereClause .= " AND tc.task_id = $task_filter";
+    $whereClause .= " AND tc.task_id = ?";
+    $params[] = $task_filter;
+    $types   .= 'i';
 }
 
 // Get total count for pagination
-$countQuery = mysqli_query($con, "
-    SELECT COUNT(*) as total 
-    FROM tbl_task_comments tc 
-    JOIN tbltasks t ON tc.task_id = t.id 
-    $whereClause
-");
-$totalResult = mysqli_fetch_assoc($countQuery);
-$totalComments = $totalResult['total'];
+$countStmt = $con->prepare("SELECT COUNT(*) as total FROM tbl_task_comments tc JOIN tbltasks t ON tc.task_id = t.id $whereClause");
+$countStmt->bind_param($types, ...$params);
+$countStmt->execute();
+$totalComments = $countStmt->get_result()->fetch_assoc()['total'];
 $totalPages = ceil($totalComments / $limit);
 
 // Get comments with pagination
-$commentsQuery = mysqli_query($con, "
-    SELECT tc.*, t.topic, t.id as task_id, t.status as task_status
-    FROM tbl_task_comments tc 
-    JOIN tbltasks t ON tc.task_id = t.id 
-    $whereClause
-    ORDER BY tc.created_at DESC 
-    LIMIT $limit OFFSET $offset
-");
+$paginationParams = array_merge($params, [$limit, $offset]);
+$paginationTypes  = $types . 'ii';
+$commentsStmt = $con->prepare("SELECT tc.*, t.topic, t.id as task_id, t.status as task_status FROM tbl_task_comments tc JOIN tbltasks t ON tc.task_id = t.id $whereClause ORDER BY tc.created_at DESC LIMIT ? OFFSET ?");
+$commentsStmt->bind_param($paginationTypes, ...$paginationParams);
+$commentsStmt->execute();
+$commentsQuery = $commentsStmt->get_result();
 
 $comments = [];
-while ($comment = mysqli_fetch_assoc($commentsQuery)) {
+while ($comment = $commentsQuery->fetch_assoc()) {
     // Calculate time ago
     $commentTime = new DateTime($comment['created_at']);
     $now = new DateTime();
@@ -87,9 +86,11 @@ while ($comment = mysqli_fetch_assoc($commentsQuery)) {
 }
 
 // Get tasks for filter dropdown
-$tasksQuery = mysqli_query($con, "SELECT id, topic FROM tbltasks WHERE email = '$aid' AND is_deleted = 0 ORDER BY create_date DESC");
+$tasksStmt = $con->prepare("SELECT id, topic FROM tbltasks WHERE email = ? AND is_deleted = 0 ORDER BY create_date DESC");
+$tasksStmt->bind_param('s', $aid);
+$tasksStmt->execute();
 $tasks = [];
-while ($task = mysqli_fetch_assoc($tasksQuery)) {
+while ($task = $tasksStmt->get_result()->fetch_assoc()) {
     $tasks[] = $task;
 }
 
