@@ -66,14 +66,8 @@ if ($action === 'request_reset') {
 
     $mail = new PHPMailer(true);
     try {
-        $mail->isSMTP();
-        $mail->Host       = 'das121.truehost.cloud';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = 'support@monkbrian.com';
-        $mail->Password   = 'EDU+pass.';
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 587;
-        $mail->setFrom('support@monkbrian.com', 'iTasker');
+        configureMail($mail);
+        $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
         $mail->addAddress($admin->email, $firstName);
         $mail->isHTML(true);
         $mail->addCustomHeader('X-Priority',       '3');

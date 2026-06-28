@@ -1,20 +1,20 @@
 <?php
-// DB credentials.
-define('DB_HOST','localhost');
-define('DB_USER','root');
-define('DB_PASS','');
-define('DB_NAME','tasker');
-// Establish database connection.
-try
-{
-    $dbh = new PDO("mysql:host=".DB_HOST.";dbname=".DB_NAME,DB_USER, DB_PASS,array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'utf8'"));
-}
-catch (PDOException $e)
-{
+require_once __DIR__ . '/config.php';
+
+try {
+    $dbh = new PDO(
+        "mysql:host=" . env('DB_HOST') . ";dbname=" . env('DB_NAME'),
+        env('DB_USER'),
+        env('DB_PASS'),
+        [PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'utf8'"]
+    );
+    $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
     exit("Error: " . $e->getMessage());
 }
-$con=mysqli_connect("localhost", "root", "", "tasker");
-if(mysqli_connect_errno()){
-    echo "Connection Fail".mysqli_connect_error();
+
+$con = new mysqli(env('DB_HOST'), env('DB_USER'), env('DB_PASS'), env('DB_NAME'));
+if (mysqli_connect_errno()) {
+    exit("Connection failed: " . mysqli_connect_error());
 }
-?>
+$con->set_charset("utf8mb4");

@@ -81,13 +81,7 @@ function sendLateTaskEmail($lateTasksData, $config) {
 
     try {
         // SMTP configuration
-        $mail->isSMTP();
-        $mail->Host = 'das121.truehost.cloud';
-        $mail->SMTPAuth = true;
-        $mail->Username = 'support@monkbrian.com';
-        $mail->Password = 'EDU+pass.';
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port = 587;
+        configureMail($mail);
 
         // Recipients
         $mail->setFrom($config['from_email'], $config['from_name']);

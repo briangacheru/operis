@@ -13,16 +13,10 @@ function sendVerificationEmail($writerName, $writerEmail, $action, $writerId)
 {
     $mail = new PHPMailer(true);
     try {
-        $mail->isSMTP();
-        $mail->Host = 'das121.truehost.cloud';
-        $mail->SMTPAuth = true;
-        $mail->Username = 'support@monkbrian.com';
-        $mail->Password = 'EDU+pass.';
-        $mail->SMTPSecure = 'tls';
-        $mail->Port = 587;
+        configureMail($mail);
 
         // Recipients
-        $mail->setFrom('support@monkbrian.com', 'itasker');
+        $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
         $mail->addReplyTo('bryo4419@gmail.com', 'itasker admin');
         $mail->addAddress($writerEmail);
         $mail->addAddress('bryo4419@gmail.com', 'itasker admin');
@@ -177,16 +171,10 @@ function sendDeactivationEmailToAdmin($writerName, $writerEmail, $writerId, $rea
 {
     $mail = new PHPMailer(true);
     try {
-        $mail->isSMTP();
-        $mail->Host = 'das121.truehost.cloud';
-        $mail->SMTPAuth = true;
-        $mail->Username = 'support@monkbrian.com';
-        $mail->Password = 'EDU+pass.';
-        $mail->SMTPSecure = 'tls';
-        $mail->Port = 587;
+        configureMail($mail);
 
         // Recipients - Admin only
-        $mail->setFrom('support@monkbrian.com', 'itasker');
+        $mail->setFrom(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'));
         $mail->addReplyTo('bryo4419@gmail.com', 'itasker admin');
         $mail->addAddress('bryo4419@gmail.com', 'itasker admin');
 

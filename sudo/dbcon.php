@@ -1,28 +1,20 @@
 <?php
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'tasker');
+require_once __DIR__ . '/config.php';
 
-// Establish database connection
 try {
     $dbh = new PDO(
-        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME,
-        DB_USER,
-        DB_PASS,
-        array(PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'utf8'")
+        "mysql:host=" . env('DB_HOST') . ";dbname=" . env('DB_NAME'),
+        env('DB_USER'),
+        env('DB_PASS'),
+        [PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'utf8'"]
     );
     $dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     exit("Error: " . $e->getMessage());
 }
 
-// Create MySQLi connection
-$con = mysqli_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+$con = new mysqli(env('DB_HOST'), env('DB_USER'), env('DB_PASS'), env('DB_NAME'));
 if (mysqli_connect_errno()) {
-    echo "Connection Fail: " . mysqli_connect_error();
-    exit();
+    exit("Connection failed: " . mysqli_connect_error());
 }
-
-mysqli_set_charset($con, "utf8mb4");
-?>
+$con->set_charset("utf8mb4");

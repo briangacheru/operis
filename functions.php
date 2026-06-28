@@ -1,67 +1,63 @@
 <?php
+require_once __DIR__ . '/config.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+
+function configureMail(PHPMailer $mail): void {
+    $mail->isSMTP();
+    $mail->Host       = env('MAIL_HOST');
+    $mail->SMTPAuth   = true;
+    $mail->Username   = env('MAIL_USERNAME');
+    $mail->Password   = env('MAIL_PASSWORD');
+    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+    $mail->Port       = (int) env('MAIL_PORT', '587');
+}
+
 function email_exists($email)
 {
     global $con;
-
-    $sql = "SELECT id FROM tblwriters WHERE email = '$email'";
-
-    $result = $con->query($sql);
-
-    if($result->num_rows == 1 ) {
-        return true;
-    } else {
-        return false;
-    }
+    $stmt = $con->prepare("SELECT id FROM tblwriters WHERE email = ?");
+    $stmt->bind_param('s', $email);
+    $stmt->execute();
+    $stmt->store_result();
+    return $stmt->num_rows === 1;
 }
+
 function username_exists($username)
 {
     global $con;
-
-    $sql = "SELECT id FROM tblwriters WHERE username = '$username'";
-
-    $result = $con->query($sql);
-
-    if($result->num_rows == 1 ) {
-        return true;
-    } else {
-        return false;
-    }
+    $stmt = $con->prepare("SELECT id FROM tblwriters WHERE username = ?");
+    $stmt->bind_param('s', $username);
+    $stmt->execute();
+    $stmt->store_result();
+    return $stmt->num_rows === 1;
 }
 
 function get_name($email) {
     global $con;
-
-    $sql = "SELECT username FROM tbladmin WHERE email = '$email'";
-
-    $result = $con->query($sql);
-
-    $row = $result->fetch_assoc();
-
-    return $row["username"];
+    $stmt = $con->prepare("SELECT username FROM tbladmin WHERE email = ?");
+    $stmt->bind_param('s', $email);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    return $row["username"] ?? null;
 }
 
 function get_email($email) {
     global $con;
-
-    $sql = "SELECT email FROM tbladmin WHERE email = '$email'";
-
-    $result = $con->query($sql);
-
-    $row = $result->fetch_assoc();
-
-    return $row["email"];
+    $stmt = $con->prepare("SELECT email FROM tbladmin WHERE email = ?");
+    $stmt->bind_param('s', $email);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    return $row["email"] ?? null;
 }
 
 function get_picture($email) {
     global $con;
-
-    $sql = "SELECT profile_picture FROM tbladmin WHERE email = '$email'";
-
-    $result = $con->query($sql);
-
-    $row = $result->fetch_assoc();
-
-    return $row["profile_picture"];
+    $stmt = $con->prepare("SELECT profile_picture FROM tbladmin WHERE email = ?");
+    $stmt->bind_param('s', $email);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    return $row["profile_picture"] ?? null;
 }
 
 
