@@ -6,6 +6,19 @@ profileimages/
 uploads/
 php-errors.log
 
+# Empty/generated directories
+db/
+
+# Vendor directories (managed by Composer)
+sudo/vendor/
+
+# Uploaded files
+sudo/uploads/
+
+# Debug/test scripts
+smtp_test.php
+sudo/test.php
+
 # macOS
 .DS_Store
 **/.DS_Store
