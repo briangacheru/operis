@@ -94,7 +94,7 @@ class UserRepository extends BaseRepository
     public function getProfile(string $email): ?array
     {
         return $this->queryOne(
-            "SELECT id, username, email, Photo, contact, bio, is_online, last_seen
+            "SELECT id, username, email, Photo, contact, is_online, last_seen
              FROM tblwriters WHERE email = ? LIMIT 1",
             's', [$email]
         );

@@ -2,7 +2,7 @@
 $currentUri = $_SERVER['REQUEST_URI'] ?? '/';
 function navActive(string $path): string {
     global $currentUri;
-    return str_starts_with($currentUri, $path) ? 'active' : '';
+    return str_starts_with((string) $currentUri, $path) ? 'active' : '';
 }
 ?>
 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm px-3">

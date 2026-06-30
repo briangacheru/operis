@@ -93,6 +93,9 @@ abstract class BaseRepository
     protected function query(string $sql, string $types = '', array $params = []): array
     {
         $stmt = $this->db->prepare($sql);
+        if ($stmt === false) {
+            throw new RuntimeException('Query prepare failed: ' . $this->db->error . ' | SQL: ' . $sql);
+        }
         if ($params) {
             $stmt->bind_param($types, ...$params);
         }
@@ -108,6 +111,9 @@ abstract class BaseRepository
     protected function queryOne(string $sql, string $types = '', array $params = []): ?array
     {
         $stmt = $this->db->prepare($sql);
+        if ($stmt === false) {
+            throw new RuntimeException('Query prepare failed: ' . $this->db->error . ' | SQL: ' . $sql);
+        }
         if ($params) {
             $stmt->bind_param($types, ...$params);
         }
@@ -124,6 +130,9 @@ abstract class BaseRepository
     protected function execute(string $sql, string $types = '', array $params = []): int
     {
         $stmt = $this->db->prepare($sql);
+        if ($stmt === false) {
+            throw new RuntimeException('Query prepare failed: ' . $this->db->error . ' | SQL: ' . $sql);
+        }
         if ($params) {
             $stmt->bind_param($types, ...$params);
         }

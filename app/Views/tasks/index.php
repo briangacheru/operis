@@ -31,7 +31,7 @@
                             </a>
                         </td>
                         <td><?= $task['pages'] ?></td>
-                        <td><?= number_format((float) $task['CPP'], 2) ?></td>
+                        <td><?= number_format((float) ($task['CPP'] ?? 0), 2) ?></td>
                         <td><?= date('M j, Y', strtotime($task['due_date'])) ?></td>
                         <td>
                             <?php
