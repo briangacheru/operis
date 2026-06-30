@@ -55,7 +55,8 @@ class App
         $this->response = new Response();
         $this->router   = new Router();
 
-        // 6. Register routes
+        // 6. Register routes ($router exposed as local variable for routes.php)
+        $router = $this->router;
         require_once $root . '/routes.php';
     }
 
